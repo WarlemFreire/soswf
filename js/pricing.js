@@ -77,6 +77,11 @@ function mergeConfig(parsed) {
 
   const cleaningMethods = data.cleaningMethods || {
     "Higienização com bolsa":
+      data.cleaningMethods?.["Limpeza com bolsa coletora"] ??
+      data.cleaning?.["Uso frequente"] ??
+      DEFAULT_PRICES.cleaningMethods["Higienização com bolsa"],
+    "Higienização completa":
+      data.cleaningMethods?.["Limpeza completa"] ??
       data.cleaningMethods?.["Limpeza com bolsa coletora"] ||
       data.cleaning?.["Uso frequente"] ??
       DEFAULT_PRICES.cleaningMethods["Higienização com bolsa"],

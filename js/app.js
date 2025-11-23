@@ -317,6 +317,16 @@ Agendamento:
 
     if (!hasSelection) return;
 
+    const recommendedMap = {
+      "menos de 6 meses": "bolsa",
+      "1 ano": "bolsa",
+      "2 anos ou mais": "completa",
+      "nunca fiz": "completa"
+    };
+
+    const recommended = recommendedMap[normalizedLast];
+    if (recommended === "bolsa") hiBadges.bolsa?.classList.remove("hidden");
+    else if (recommended === "completa") hiBadges.completa?.classList.remove("hidden");
     const recommendsBag = normalizedLast === "menos de 6 meses" || normalizedLast === "1 ano";
     if (recommendsBag) {
       hiBadges.bolsa?.classList.remove("hidden");
@@ -341,6 +351,9 @@ Agendamento:
       if (!hiLastClean) {
         return;
       }
+
+      if (card.classList.contains("disabled")) return;
+
       hiMethod = card.dataset.method;
       highlightHiMethod(hiMethod);
       openCleaningSummary();
@@ -352,6 +365,10 @@ Agendamento:
   // HIGIENIZAÇÃO - RESUMO + PAGAMENTO
   // ======================================
   function openCleaningSummary() {
+
+    if (!hiLastClean || !hiMethod) {
+      return;
+    }
 
     document.getElementById("hi-summary-btu").textContent = hiBTU;
     document.getElementById("hi-summary-last").textContent = hiLastClean;
