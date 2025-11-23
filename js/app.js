@@ -276,7 +276,7 @@ Agendamento:
   const hiMethodCards = document.querySelectorAll(".method-card");
 
   function highlightHiLast(value) {
-    document.querySelectorAll(".card-hi-last").forEach(btn => {
+  document.querySelectorAll(".card-hi-last").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.hi === value);
     });
   }
@@ -327,6 +327,12 @@ Agendamento:
     const recommended = recommendedMap[normalizedLast];
     if (recommended === "bolsa") hiBadges.bolsa?.classList.remove("hidden");
     else if (recommended === "completa") hiBadges.completa?.classList.remove("hidden");
+    const recommendsBag = normalizedLast === "menos de 6 meses" || normalizedLast === "1 ano";
+    if (recommendsBag) {
+      hiBadges.bolsa?.classList.remove("hidden");
+    } else {
+      hiBadges.completa?.classList.remove("hidden");
+    }
   }
 
   document.querySelectorAll(".card-hi-last").forEach(btn => {
