@@ -307,11 +307,18 @@ Agendamento:
   function updateRecommendedBadge(forceHide = false) {
     const normalizedLast = (hiLastClean || "").toLowerCase();
     const hasSelection = Boolean(hiLastClean) && !forceHide;
-    const recommendBag =
-      hasSelection && (normalizedLast === "menos de 6 meses" || normalizedLast === "1 ano");
 
-    if (hiBadges.bolsa) hiBadges.bolsa.classList.toggle("hidden", !hasSelection || !recommendBag);
-    if (hiBadges.completa) hiBadges.completa.classList.toggle("hidden", !hasSelection || recommendBag);
+    if (hiBadges.bolsa) hiBadges.bolsa.classList.add("hidden");
+    if (hiBadges.completa) hiBadges.completa.classList.add("hidden");
+
+    if (!hasSelection) return;
+
+    const recommendsBag = normalizedLast === "menos de 6 meses" || normalizedLast === "1 ano";
+    if (recommendsBag) {
+      hiBadges.bolsa?.classList.remove("hidden");
+    } else {
+      hiBadges.completa?.classList.remove("hidden");
+    }
   }
 
   document.querySelectorAll(".card-hi-last").forEach(btn => {
@@ -321,6 +328,7 @@ Agendamento:
       highlightHiLast(hiLastClean);
       highlightHiMethod(null);
       setHiMethodsVisibility(true);
+      updateRecommendedBadge();
     });
   });
 
