@@ -275,7 +275,7 @@ Agendamento:
   const hiMethodCards = document.querySelectorAll(".method-card");
 
   function highlightHiLast(value) {
-    document.querySelectorAll(".card-hi-last").forEach(btn => {
+  document.querySelectorAll(".card-hi-last").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.hi === value);
     });
   }
@@ -289,8 +289,10 @@ Agendamento:
   function setHiMethodsVisibility(show) {
     if (hiMethodsSection) hiMethodsSection.classList.toggle("hidden", !show);
     hiMethodCards.forEach(card => {
-      card.setAttribute("aria-disabled", show ? "false" : "true");
-      card.tabIndex = show ? 0 : -1;
+      const isDisabled = !show;
+      card.setAttribute("aria-disabled", isDisabled ? "true" : "false");
+      card.tabIndex = isDisabled ? -1 : 0;
+      card.classList.toggle("disabled", isDisabled);
     });
     updateRecommendedBadge(!show);
   }
@@ -325,7 +327,6 @@ Agendamento:
   document.querySelectorAll(".method-card").forEach(card => {
     card.addEventListener("click", () => {
       if (!hiLastClean) {
-        hiMethodsSection?.classList.add("hidden");
         return;
       }
       hiMethod = card.dataset.method;
