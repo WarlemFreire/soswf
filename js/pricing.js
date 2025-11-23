@@ -3,7 +3,7 @@
 // ============================
 
 // Carrega do admin ou usa padrão
-const PRICING_VERSION = "v2-higienizacao-localidade";
+const PRICING_VERSION = "v3-higienizacao-localidade";
 
 const DEFAULT_PRICES = {
   cardFee: 0.0449,          // juros mensal do cartão
@@ -62,8 +62,8 @@ const DEFAULT_PRICES = {
   },
 
   cleaningMethods: {
-    "Limpeza com bolsa coletora": 220,
-    "Limpeza completa": 320
+    "Higienização com bolsa": 220,
+    "Higienização completa": 320
   },
 
   maintenance: {
@@ -76,8 +76,14 @@ function mergeConfig(parsed) {
   const data = parsed || {};
 
   const cleaningMethods = data.cleaningMethods || {
-    "Limpeza com bolsa coletora": data.cleaning?.["Uso frequente"] ?? DEFAULT_PRICES.cleaningMethods["Limpeza com bolsa coletora"],
-    "Limpeza completa": data.cleaning?.["Nunca fiz"] ?? DEFAULT_PRICES.cleaningMethods["Limpeza completa"]
+    "Higienização com bolsa":
+      data.cleaningMethods?.["Limpeza com bolsa coletora"] ??
+      data.cleaning?.["Uso frequente"] ??
+      DEFAULT_PRICES.cleaningMethods["Higienização com bolsa"],
+    "Higienização completa":
+      data.cleaningMethods?.["Limpeza completa"] ??
+      data.cleaning?.["Nunca fiz"] ??
+      DEFAULT_PRICES.cleaningMethods["Higienização completa"]
   };
 
   // Se o admin salvou apenas interestRate (em %), converte para cardFee
