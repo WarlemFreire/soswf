@@ -89,6 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
     hiMethod = null;
     highlightHiLast(null);
     highlightHiMethod(null);
+    updateRecommendedBadge(true);
     setHiMethodsVisibility(false);
   }
 
@@ -295,12 +296,15 @@ Agendamento:
       card.classList.toggle("disabled", isDisabled);
     });
     updateRecommendedBadge(!show);
+    if (!show) {
+      hiMethod = null;
+      highlightHiMethod(null);
+    }
   }
 
   function prepareHiStep() {
     highlightHiLast(hiLastClean);
     highlightHiMethod(hiMethod);
-
     setHiMethodsVisibility(Boolean(hiLastClean));
   }
 
@@ -327,7 +331,7 @@ Agendamento:
       hiMethod = null;
       highlightHiLast(hiLastClean);
       highlightHiMethod(null);
-      setHiMethodsVisibility(true);
+      setHiMethodsVisibility(Boolean(hiLastClean));
       updateRecommendedBadge();
     });
   });
