@@ -82,6 +82,11 @@ function mergeConfig(parsed) {
       DEFAULT_PRICES.cleaningMethods["Higienização com bolsa"],
     "Higienização completa":
       data.cleaningMethods?.["Limpeza completa"] ??
+      data.cleaningMethods?.["Limpeza com bolsa coletora"] ||
+      data.cleaning?.["Uso frequente"] ??
+      DEFAULT_PRICES.cleaningMethods["Higienização com bolsa"],
+    "Higienização completa":
+      data.cleaningMethods?.["Limpeza completa"] ||
       data.cleaning?.["Nunca fiz"] ??
       DEFAULT_PRICES.cleaningMethods["Higienização completa"]
   };
