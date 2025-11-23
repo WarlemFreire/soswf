@@ -419,13 +419,19 @@ body {
   gap: 12px;
 }
 
-.method-card {
+.method-card { 
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   padding: 12px 14px;
   background: #f8fafc;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.method-card.disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .method-card:hover {

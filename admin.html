@@ -82,7 +82,7 @@
 
 
 
-  <h1>Painel de Pre??os SOS WF</h1>
+  <h1>Painel de Preços SOS WF</h1>
 
 
 
@@ -247,13 +247,13 @@
 
 
 
-    <label>Limpeza com bolsa coletora</label>
+    <label>Higienização com bolsa</label>
 
     <input id="cBolsa" type="number">
 
 
 
-    <label>Limpeza completa</label>
+    <label>Higienização completa</label>
 
     <input id="cCompleta" type="number">
 
@@ -285,7 +285,7 @@
 
 <script>
 
-  const PRICING_VERSION = "v2-higienizacao-localidade";
+  const PRICING_VERSION = "v3-higienizacao-localidade";
 
   const DEFAULT_PRICES = {
     interestRate: 4.49,
@@ -343,8 +343,8 @@
     },
 
     cleaningMethods: {
-      "Limpeza com bolsa coletora": 220,
-      "Limpeza completa": 320
+      "Higienização com bolsa": 220,
+      "Higienização completa": 320
     },
 
     maintenance: {
@@ -357,8 +357,14 @@
     const data = parsed || {};
 
     const cleaningMethods = data.cleaningMethods || {
-      "Limpeza com bolsa coletora": data.cleaning?.["Uso frequente"] ?? DEFAULT_PRICES.cleaningMethods["Limpeza com bolsa coletora"],
-      "Limpeza completa": data.cleaning?.["Nunca fiz"] ?? DEFAULT_PRICES.cleaningMethods["Limpeza completa"]
+      "Higienização com bolsa":
+        data.cleaningMethods?.["Limpeza com bolsa coletora"] ||
+        data.cleaning?.["Uso frequente"] ??
+        DEFAULT_PRICES.cleaningMethods["Higienização com bolsa"],
+      "Higienização completa":
+        data.cleaningMethods?.["Limpeza completa"] ||
+        data.cleaning?.["Nunca fiz"] ??
+        DEFAULT_PRICES.cleaningMethods["Higienização completa"]
     };
 
     const interestRate =
@@ -490,9 +496,9 @@
 
       const cleaning = config.cleaningMethods || config.cleaning;
 
-      set("cBolsa", cleaning["Limpeza com bolsa coletora"] ?? cleaning["Uso frequente"]);
+      set("cBolsa", cleaning["Higienização com bolsa"] ?? cleaning["Limpeza com bolsa coletora"] ?? cleaning["Uso frequente"]);
 
-      set("cCompleta", cleaning["Limpeza completa"] ?? cleaning["Nunca fiz"]);
+      set("cCompleta", cleaning["Higienização completa"] ?? cleaning["Limpeza completa"] ?? cleaning["Nunca fiz"]);
 
     }
 
@@ -596,9 +602,9 @@
 
       cleaningMethods: {
 
-        "Limpeza com bolsa coletora": Number(document.getElementById("cBolsa").value),
+        "Higienização com bolsa": Number(document.getElementById("cBolsa").value),
 
-        "Limpeza completa": Number(document.getElementById("cCompleta").value)
+        "Higienização completa": Number(document.getElementById("cCompleta").value)
 
       },
 

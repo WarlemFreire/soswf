@@ -89,6 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
     hiMethod = null;
     highlightHiLast(null);
     highlightHiMethod(null);
+    updateRecommendedBadge(true);
     setHiMethodsVisibility(false);
   }
 
@@ -275,7 +276,7 @@ Agendamento:
   const hiMethodCards = document.querySelectorAll(".method-card");
 
   function highlightHiLast(value) {
-    document.querySelectorAll(".card-hi-last").forEach(btn => {
+  document.querySelectorAll(".card-hi-last").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.hi === value);
     });
   }
@@ -289,27 +290,39 @@ Agendamento:
   function setHiMethodsVisibility(show) {
     if (hiMethodsSection) hiMethodsSection.classList.toggle("hidden", !show);
     hiMethodCards.forEach(card => {
-      card.setAttribute("aria-disabled", show ? "false" : "true");
-      card.tabIndex = show ? 0 : -1;
+      const isDisabled = !show;
+      card.setAttribute("aria-disabled", isDisabled ? "true" : "false");
+      card.tabIndex = isDisabled ? -1 : 0;
+      card.classList.toggle("disabled", isDisabled);
     });
     updateRecommendedBadge(!show);
+    if (!show) {
+      hiMethod = null;
+      highlightHiMethod(null);
+    }
   }
 
   function prepareHiStep() {
     highlightHiLast(hiLastClean);
     highlightHiMethod(hiMethod);
-
     setHiMethodsVisibility(Boolean(hiLastClean));
   }
 
   function updateRecommendedBadge(forceHide = false) {
     const normalizedLast = (hiLastClean || "").toLowerCase();
     const hasSelection = Boolean(hiLastClean) && !forceHide;
-    const recommendBag =
-      hasSelection && (normalizedLast === "menos de 6 meses" || normalizedLast === "1 ano");
 
-    if (hiBadges.bolsa) hiBadges.bolsa.classList.toggle("hidden", !hasSelection || !recommendBag);
-    if (hiBadges.completa) hiBadges.completa.classList.toggle("hidden", !hasSelection || recommendBag);
+    if (hiBadges.bolsa) hiBadges.bolsa.classList.add("hidden");
+    if (hiBadges.completa) hiBadges.completa.classList.add("hidden");
+
+    if (!hasSelection) return;
+
+    const recommendsBag = normalizedLast === "menos de 6 meses" || normalizedLast === "1 ano";
+    if (recommendsBag) {
+      hiBadges.bolsa?.classList.remove("hidden");
+    } else {
+      hiBadges.completa?.classList.remove("hidden");
+    }
   }
 
   document.querySelectorAll(".card-hi-last").forEach(btn => {
@@ -318,14 +331,14 @@ Agendamento:
       hiMethod = null;
       highlightHiLast(hiLastClean);
       highlightHiMethod(null);
-      setHiMethodsVisibility(true);
+      setHiMethodsVisibility(Boolean(hiLastClean));
+      updateRecommendedBadge();
     });
   });
 
   document.querySelectorAll(".method-card").forEach(card => {
     card.addEventListener("click", () => {
       if (!hiLastClean) {
-        hiMethodsSection?.classList.add("hidden");
         return;
       }
       hiMethod = card.dataset.method;
