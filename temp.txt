@@ -1,0 +1,342 @@
+﻿// ===============================
+// APP.JS â€” SISTEMA COMPLETO
+// ===============================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  // ==========================
+  // ESTADOS GLOBAIS
+  // ==========================
+  let selectedService = null;
+  let selectedBTU = null;
+  let selectedLocal = null;
+
+  let hiBTU = null;
+  let hiLastClean = null;
+
+  let maDevice = null;
+  let maStatus = null;
+
+  let osType = null;
+  let osDesc = "";
+
+  let installPayInfo = null;
+  let hiPayInfo = null;
+
+  const backToStartBtn = document.getElementById("back-to-start");
+
+
+
+  // ==========================
+  // TROCA DE TELA
+  // ==========================
+  function goToScreen(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("screen-active"));
+    document.getElementById(id)?.classList.add("screen-active");
+
+    if (id === "screen-t1") backToStartBtn.classList.add("hidden");
+    else backToStartBtn.classList.remove("hidden");
+  }
+
+  backToStartBtn.addEventListener("click", () => goToScreen("screen-t1"));
+
+
+
+  // ==========================
+  // T1 â€” ESCOLHA DO SERVIÃ‡O
+  // ==========================
+  document.querySelectorAll(".card-service").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedService = btn.dataset.service;
+      const s = selectedService.toLowerCase();
+
+      if (s.includes("instala")) goToScreen("screen-t2");
+      else if (s.includes("higien")) goToScreen("screen-t2");
+      else if (s.includes("manuten")) goToScreen("screen-ma-t2");
+      else goToScreen("screen-os-t2");
+    });
+  });
+
+
+
+  // ==========================
+  // T2 â€” BTUs (instala + higienizaÃ§Ã£o)
+  // ==========================
+  document.querySelectorAll(".card-btu").forEach(btn => {
+    btn.addEventListener("click", () => {
+
+      selectedBTU = btn.dataset.btu;
+
+      if (selectedService.toLowerCase().includes("higien")) {
+        hiBTU = selectedBTU;
+        goToScreen("screen-hi-t3");
+
+      } else {
+        goToScreen("screen-t3");
+      }
+    });
+  });
+
+
+
+  // ==========================
+  // INSTALAÃ‡ÃƒO â€” T3 (LOCAL)
+  // ==========================
+  document.querySelectorAll(".card-local").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedLocal = btn.dataset.local;
+      openInstallationSummary();
+    });
+  });
+
+
+  // ==========================
+  // INSTALAÃ‡ÃƒO â€” RESUMO + PAG.
+  // ==========================
+  function openInstallationSummary() {
+
+    document.getElementById("summary-service").textContent = selectedService;
+    document.getElementById("summary-btu").textContent = selectedBTU;
+    document.getElementById("summary-local").textContent = selectedLocal;
+
+    const base = PRICES.installation[selectedBTU] || 450;
+    const addon = PRICES.installLocalAddons[selectedLocal] || 0;
+    const finalPrice = base + addon;
+
+    // Pagamento
+    const pay = getPaymentText(finalPrice);
+    installPayInfo = pay;
+
+    document.getElementById("install-parc-n").textContent = pay.n;
+    document.getElementById("install-parc-value").textContent = pay.installmentValue;
+    document.getElementById("install-card-total").textContent =
+      `Total no cartão: R$ ${pay.cardTotal}`;
+    document.getElementById("install-pix").textContent =
+      `R$ ${pay.pixValue} no dinheiro ou pix`;
+
+    goToScreen("screen-t4");
+  }
+
+
+
+  // ==========================
+  // T4 â†’ T5 (agendamento)
+  // ==========================
+  document.getElementById("go-to-t5")?.addEventListener("click", () => goToScreen("screen-t5"));
+
+
+
+  // ==========================
+  // WHATSAPP â€” INSTALAÃ‡ÃƒO
+  // ==========================
+  document.getElementById("whatsapp-flow")?.addEventListener("click", () => {
+
+    const installEstimate =
+      installPayInfo?.baseValue ||
+      document.getElementById("install-base-price")?.textContent ||
+      "";
+
+    const msg = encodeURIComponent(
+`OlÃ¡! Fiz o prÃ©-orÃ§amento de INSTALAÃ‡ÃƒO:
+
+â€¢ ServiÃ§o: ${selectedService}
+â€¢ BTU: ${selectedBTU}
+â€¢ Local: ${selectedLocal}
+â€¢ Valor estimado: R$ ${installEstimate}
+
+Agendamento:
+â€¢ Nome: ${document.getElementById("client-name").value}
+â€¢ Bairro: ${document.getElementById("client-bairro").value}
+â€¢ Dia: ${document.getElementById("client-date").value}
+â€¢ PerÃ­odo: ${document.getElementById("client-shift").value}`
+    );
+
+    window.location.href = `https://wa.me/5521975232241?text=${msg}`;
+  });
+
+
+
+
+  // ======================================
+  // HIGIENIZAÃ‡ÃƒO â€” T3 (Ãšltima Limpeza)
+  // ======================================
+  document.querySelectorAll(".card-hi-last").forEach(btn => {
+    btn.addEventListener("click", () => {
+      hiLastClean = btn.dataset.hi;
+      openCleaningSummary();
+    });
+  });
+
+
+  // ======================================
+  // HIGIENIZAÃ‡ÃƒO â€” RESUMO + PAGAMENTO
+  // ======================================
+  function openCleaningSummary() {
+
+    document.getElementById("hi-summary-btu").textContent = hiBTU;
+    document.getElementById("hi-summary-last").textContent = hiLastClean;
+
+    const price = PRICES.cleaning[hiLastClean] || 200;
+
+    const pay = getPaymentText(price);
+    hiPayInfo = pay;
+    document.getElementById("hi-parc-n").textContent = pay.n;
+    document.getElementById("hi-parc-value").textContent = pay.installmentValue;
+    document.getElementById("hi-card-total").textContent =
+      `Total no cartao: R$ ${pay.cardTotal}`;
+    document.getElementById("hi-pix").textContent = `R$ ${pay.pixValue} no dinheiro ou pix`;
+
+    goToScreen("screen-hi-t4");
+  }
+
+
+  document.getElementById("hi-go-t5")?.addEventListener("click", () => goToScreen("screen-hi-t5"));
+
+
+
+  // ======================================
+  // WHATSAPP â€” HIGIENIZAÃ‡ÃƒO
+  // ======================================
+  document.getElementById("hi-whatsapp")?.addEventListener("click", () => {
+
+    const hiEstimate =
+      hiPayInfo?.baseValue ||
+      "";
+
+    const msg = encodeURIComponent(
+`OlÃ¡! Quero agendar HIGIENIZAÃ‡ÃƒO:
+
+â€¢ BTU: ${hiBTU}
+â€¢ Ãšltima limpeza: ${hiLastClean}
+â€¢ Valor estimado: R$ ${hiEstimate}
+
+Agendamento:
+â€¢ Nome: ${document.getElementById("hi-name").value}
+â€¢ Bairro: ${document.getElementById("hi-bairro").value}
+â€¢ Dia: ${document.getElementById("hi-date").value}
+â€¢ PerÃ­odo: ${document.getElementById("hi-shift").value}`
+    );
+
+    window.location.href = `https://wa.me/5521975232241?text=${msg}`;
+  });
+
+
+
+
+  // ======================================
+  // MANUTENÃ‡ÃƒO â€” T2 (Aparelho)
+  // ======================================
+  document.querySelectorAll(".card-ma-device").forEach(btn => {
+    btn.addEventListener("click", () => {
+      maDevice = btn.dataset.device;
+      goToScreen("screen-ma-t3");
+    });
+  });
+
+
+
+  // ======================================
+  // MANUTENÃ‡ÃƒO â€” T3 (Status)
+  // ======================================
+  document.querySelectorAll(".card-ma-status").forEach(btn => {
+    btn.addEventListener("click", () => {
+      maStatus = btn.dataset.status;
+      openMaintenanceSummary();
+    });
+  });
+
+
+
+  // ======================================
+  // MANUTENÃ‡ÃƒO â€” RESUMO (SEM PARCELAR)
+  // ======================================
+  function openMaintenanceSummary() {
+
+    document.getElementById("ma-summary-device").textContent = maDevice;
+    document.getElementById("ma-summary-status").textContent = maStatus;
+
+    document.getElementById("ma-visit-price").textContent =
+      PRICES.maintenance.visit.toFixed(2).replace(".", ",");
+
+    goToScreen("screen-ma-t4");
+  }
+
+  document.getElementById("ma-go-t5")?.addEventListener("click", () => goToScreen("screen-ma-t5"));
+
+
+
+  // ======================================
+  // WHATSAPP â€” MANUTENÃ‡ÃƒO
+  // ======================================
+  document.getElementById("ma-whatsapp")?.addEventListener("click", () => {
+
+    const msg = encodeURIComponent(
+`OlÃ¡! Quero agendar MANUTENÃ‡ÃƒO:
+
+â€¢ Aparelho: ${maDevice}
+â€¢ Problema: ${maStatus}
+â€¢ Valor da visita: R$ ${PRICES.maintenance.visit}
+
+Agendamento:
+â€¢ Nome: ${document.getElementById("ma-name").value}
+â€¢ Bairro: ${document.getElementById("ma-bairro").value}
+â€¢ Dia: ${document.getElementById("ma-date").value}
+â€¢ PerÃ­odo: ${document.getElementById("ma-shift").value}`
+    );
+
+    window.location.href = `https://wa.me/5521975232241?text=${msg}`;
+  });
+
+
+
+
+  // ======================================
+  // OUTROS SERVIÃ‡OS â€” T2
+  // ======================================
+  document.querySelectorAll(".card-os-type").forEach(btn => {
+    btn.addEventListener("click", () => {
+      osType = btn.dataset.os;
+      goToScreen("screen-os-t3");
+    });
+  });
+
+
+
+  // ======================================
+  // OUTROS SERVIÃ‡OS â€” T3
+  // ======================================
+  document.getElementById("os-go-t4")?.addEventListener("click", () => {
+
+    osDesc = document.getElementById("os-description").value.trim();
+
+    document.getElementById("os-summary-type").textContent = osType;
+    document.getElementById("os-summary-desc").textContent =
+      osDesc || "Nenhuma descriÃ§Ã£o informada.";
+
+    goToScreen("screen-os-t4");
+  });
+
+
+
+  // ======================================
+  // WHATSAPP â€” OUTROS SERVIÃ‡OS
+  // ======================================
+  document.getElementById("os-whatsapp")?.addEventListener("click", () => {
+
+    const msg = encodeURIComponent(
+`OlÃ¡! Preciso de ajuda com um SERVIÃ‡O DE REFRIGERAÃ‡ÃƒO:
+
+â€¢ Equipamento: ${osType}
+â€¢ DescriÃ§Ã£o: ${osDesc}
+
+Pode me orientar?`
+    );
+
+    window.location.href = `https://wa.me/5521975232241?text=${msg}`;
+  });
+
+});
+
+
+
+

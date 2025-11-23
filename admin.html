@@ -1,0 +1,631 @@
+ï»¿<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+  <meta charset="UTF-8">
+
+<title>Admin – SOS WF</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+
+    body {
+
+      font-family: Arial;
+
+      padding: 20px;
+
+      background: #f4f4f4;
+
+    }
+
+    h1 { margin-bottom: 10px; }
+
+    .box {
+
+      background: white;
+
+      padding: 20px;
+
+      border-radius: 8px;
+
+      margin-bottom: 25px;
+
+    }
+
+    label { font-weight: bold; display: block; margin-top: 12px; }
+
+    input {
+
+      width: 100%;
+
+      padding: 10px;
+
+      margin-top: 6px;
+
+      border: 1px solid #ccc;
+
+      border-radius: 6px;
+
+    }
+
+    button {
+
+      background: #0057ff;
+
+      color: white;
+
+      padding: 12px 20px;
+
+      font-size: 16px;
+
+      border: none;
+
+      border-radius: 6px;
+
+      margin-top: 20px;
+
+      cursor: pointer;
+
+    }
+
+    button:hover { opacity: .9; }
+
+  </style>
+
+</head>
+
+<body>
+
+
+
+  <h1>Painel de Pre??os SOS WF</h1>
+
+
+
+  <div class="box">
+
+    <h2>Configura????es de Parcelamento</h2>
+
+
+
+    <label>Taxa de juros mensal (%)</label>
+
+    <input id="interestRate" type="number" step="0.01">
+
+
+
+    <label>N??mero m??ximo de parcelas</label>
+
+    <input id="maxInstallments" type="number">
+
+
+
+    <label>Valor m??nimo por parcela</label>
+
+    <input id="minInstallmentValue" type="number">
+
+  </div>
+
+
+
+  <div class="box">
+
+    <h2>Instala????o</h2>
+
+
+
+    <label>7500 BTUs</label>
+
+    <input id="i7500" type="number">
+
+
+
+    <label>9000 BTUs</label>
+
+    <input id="i9000" type="number">
+
+
+
+    <label>12000 BTUs</label>
+
+    <input id="i12000" type="number">
+
+
+
+    <label>18000 BTUs</label>
+
+    <input id="i18000" type="number">
+
+
+
+    <label>24000 BTUs</label>
+
+    <input id="i24000" type="number">
+
+
+
+    <h3>Adicionais por local</h3>
+
+
+
+    <label>Casa t??rrea</label>
+
+    <input id="lCasa" type="number">
+
+
+
+    <label>Varanda apartamento</label>
+
+    <input id="lVaranda" type="number">
+
+
+
+    <label>Fachada / altura</label>
+
+    <input id="lAltura" type="number">
+
+
+
+    <label>Com??rcio</label>
+
+    <input id="lComercio" type="number">
+
+  </div>
+
+
+  <div class="box">
+
+    <h2>Adicional por localidade</h2>
+
+    <h3>Baixada Fluminense</h3>
+    <label>Belford Roxo</label>
+    <input id="locBelford" type="number">
+    <label>Duque de Caxias</label>
+    <input id="locCaxias" type="number">
+    <label>Guapimirim</label>
+    <input id="locGuapimirim" type="number">
+    <label>Itagua??</label>
+    <input id="locItaguai" type="number">
+    <label>Japeri</label>
+    <input id="locJaperi" type="number">
+    <label>Mag??</label>
+    <input id="locMage" type="number">
+    <label>Mesquita</label>
+    <input id="locMesquita" type="number">
+    <label>Nil??polis</label>
+    <input id="locNilopolis" type="number">
+    <label>Nova Igua??u</label>
+    <input id="locNovaIguacu" type="number">
+    <label>Paracambi</label>
+    <input id="locParacambi" type="number">
+    <label>Queimados</label>
+    <input id="locQueimados" type="number">
+    <label>S??o Jo??o de Meriti</label>
+    <input id="locMeriti" type="number">
+    <label>Serop??dica</label>
+    <input id="locSeropedica" type="number">
+
+    <h3>Rio Capital</h3>
+    <label>Centro</label>
+    <input id="locCentro" type="number">
+    <label>Zona Sul</label>
+    <input id="locZonaSul" type="number">
+    <label>Tijuca e regi??o</label>
+    <input id="locTijuca" type="number">
+    <label>Zona Norte</label>
+    <input id="locZonaNorte" type="number">
+    <label>Jacarepagu?? e regi??o</label>
+    <input id="locJacarepagua" type="number">
+    <label>Bangu e regi??o</label>
+    <input id="locBangu" type="number">
+    <label>Barra da Tijuca</label>
+    <input id="locBarra" type="number">
+    <label>Recreio dos Bandeirantes</label>
+    <input id="locRecreio" type="number">
+
+    <h3>Regi??o Serrana</h3>
+    <label>Petr??polis</label>
+    <input id="locPetropolis" type="number">
+    <label>Teres??polis</label>
+    <input id="locTeresopolis" type="number">
+    <label>Nova Friburgo</label>
+    <input id="locNovaFriburgo" type="number">
+    <label>Outros da Regi??o Serrana</label>
+    <input id="locSerranaOutros" type="number">
+
+  </div>
+
+
+
+  <div class="box">
+
+    <h2>Higienização</h2>
+
+
+
+    <label>Limpeza com bolsa coletora</label>
+
+    <input id="cBolsa" type="number">
+
+
+
+    <label>Limpeza completa</label>
+
+    <input id="cCompleta" type="number">
+
+  </div>
+
+
+
+    <div class="box">
+
+      <h2>Visita Técnica</h2>
+
+
+
+      <label>Valor fixo</label>
+
+      <input id="visit" type="number">
+
+      <label>Adicional por visita</label>
+
+      <input id="visitAddon" type="number">
+
+    </div>
+
+
+
+  <button id="save">Salvar Tudo</button>
+
+
+
+<script>
+
+  const PRICING_VERSION = "v2-higienizacao-localidade";
+
+  const DEFAULT_PRICES = {
+    interestRate: 4.49,
+    maxInstallments: 12,
+    minInstallmentValue: 100,
+
+    installation: {
+      "7.500 BTUs": 450,
+      "9.000 BTUs": 500,
+      "12.000 BTUs": 600,
+      "18.000 BTUs": 750,
+      "24.000 BTUs": 900,
+      "Não informado": 450
+    },
+
+    installLocalAddons: {
+      "Casa térrea": 0,
+      "Varanda de apartamento": 80,
+      "Fachada / altura": 150,
+      "Comércio ou área ampla": 120
+    },
+
+    locationAddons: {
+      "Baixada Fluminense": {
+        "Belford Roxo": 0,
+        "Duque de Caxias": 0,
+        "Guapimirim": 0,
+        "Itaguaí": 0,
+        "Japeri": 0,
+        "Magé": 0,
+        "Mesquita": 0,
+        "Nilópolis": 0,
+        "Nova Iguaçu": 0,
+        "Paracambi": 0,
+        "Queimados": 0,
+        "São João de Meriti": 0,
+        "Seropédica": 0
+      },
+      "Rio Capital": {
+        "Centro": 0,
+        "Zona Sul": 0,
+        "Tijuca e região": 0,
+        "Zona Norte": 0,
+        "Jacarepaguá e região": 0,
+        "Bangu e região": 0,
+        "Barra da Tijuca": 0,
+        "Recreio dos Bandeirantes": 0
+      },
+      "Região Serrana": {
+        "Petrópolis": 0,
+        "Teresópolis": 0,
+        "Nova Friburgo": 0,
+        "Outros da Região Serrana": 0
+      }
+    },
+
+    cleaningMethods: {
+      "Limpeza com bolsa coletora": 220,
+      "Limpeza completa": 320
+    },
+
+    maintenance: {
+      visit: 120,
+      visitAddon: 0
+    }
+  };
+
+  function mergeConfig(parsed) {
+    const data = parsed || {};
+
+    const cleaningMethods = data.cleaningMethods || {
+      "Limpeza com bolsa coletora": data.cleaning?.["Uso frequente"] ?? DEFAULT_PRICES.cleaningMethods["Limpeza com bolsa coletora"],
+      "Limpeza completa": data.cleaning?.["Nunca fiz"] ?? DEFAULT_PRICES.cleaningMethods["Limpeza completa"]
+    };
+
+    const interestRate =
+      data.interestRate ??
+      (data.cardFee !== undefined ? Number(data.cardFee) * 100 : DEFAULT_PRICES.interestRate);
+
+    return {
+      ...DEFAULT_PRICES,
+      ...data,
+      interestRate,
+      installation: {
+        ...DEFAULT_PRICES.installation,
+        ...(data.installation || {})
+      },
+      installLocalAddons: {
+        ...DEFAULT_PRICES.installLocalAddons,
+        ...(data.installLocalAddons || {})
+      },
+      locationAddons: Object.entries(DEFAULT_PRICES.locationAddons).reduce((acc, [region, subzones]) => {
+        acc[region] = {
+          ...subzones,
+          ...(data.locationAddons?.[region] || {})
+        };
+        return acc;
+      }, {}),
+      cleaningMethods,
+      maintenance: {
+        ...DEFAULT_PRICES.maintenance,
+        ...(data.maintenance || {})
+      }
+    };
+  }
+
+  let savedConfig = null;
+
+  try {
+    savedConfig = JSON.parse(localStorage.getItem("SOSWF_PRICING"));
+  } catch (e) {
+    localStorage.removeItem("SOSWF_PRICING");
+  }
+
+  const isVersioned = savedConfig && savedConfig.version === PRICING_VERSION;
+
+  const config = mergeConfig(isVersioned ? savedConfig : null);
+
+  if (!isVersioned) {
+    localStorage.setItem("SOSWF_PRICING", JSON.stringify({ ...config, version: PRICING_VERSION }));
+  }
+
+
+
+  function set(id, value) {
+
+    document.getElementById(id).value = value ?? "";
+
+  }
+
+
+
+  function loadFields() {
+
+    set("interestRate", config.interestRate);
+
+    set("maxInstallments", config.maxInstallments);
+
+    set("minInstallmentValue", config.minInstallmentValue);
+
+
+
+    if (config.installation) {
+
+      set("i7500", config.installation["7.500 BTUs"]);
+
+      set("i9000", config.installation["9.000 BTUs"]);
+
+      set("i12000", config.installation["12.000 BTUs"]);
+
+      set("i18000", config.installation["18.000 BTUs"]);
+
+      set("i24000", config.installation["24.000 BTUs"]);
+
+    }
+
+    if (config.installLocalAddons) {
+
+      set("lCasa", config.installLocalAddons["Casa térrea"]);
+
+      set("lVaranda", config.installLocalAddons["Varanda de apartamento"]);
+
+      set("lAltura", config.installLocalAddons["Fachada / altura"]);
+
+      set("lComercio", config.installLocalAddons["Comércio ou área ampla"]);
+
+    }
+
+    if (config.locationAddons) {
+      const loc = config.locationAddons;
+
+      set("locBelford", loc["Baixada Fluminense"]?.["Belford Roxo"]);
+      set("locCaxias", loc["Baixada Fluminense"]?.["Duque de Caxias"]);
+      set("locGuapimirim", loc["Baixada Fluminense"]?.["Guapimirim"]);
+      set("locItaguai", loc["Baixada Fluminense"]?.["Itaguaí"]);
+      set("locJaperi", loc["Baixada Fluminense"]?.["Japeri"]);
+      set("locMage", loc["Baixada Fluminense"]?.["Magé"]);
+      set("locMesquita", loc["Baixada Fluminense"]?.["Mesquita"]);
+      set("locNilopolis", loc["Baixada Fluminense"]?.["Nilópolis"]);
+      set("locNovaIguacu", loc["Baixada Fluminense"]?.["Nova Iguaçu"]);
+      set("locParacambi", loc["Baixada Fluminense"]?.["Paracambi"]);
+      set("locQueimados", loc["Baixada Fluminense"]?.["Queimados"]);
+      set("locMeriti", loc["Baixada Fluminense"]?.["São João de Meriti"]);
+      set("locSeropedica", loc["Baixada Fluminense"]?.["Seropédica"]);
+
+      set("locCentro", loc["Rio Capital"]?.["Centro"]);
+      set("locZonaSul", loc["Rio Capital"]?.["Zona Sul"]);
+      set("locTijuca", loc["Rio Capital"]?.["Tijuca e região"]);
+      set("locZonaNorte", loc["Rio Capital"]?.["Zona Norte"]);
+      set("locJacarepagua", loc["Rio Capital"]?.["Jacarepaguá e região"]);
+      set("locBangu", loc["Rio Capital"]?.["Bangu e região"]);
+      set("locBarra", loc["Rio Capital"]?.["Barra da Tijuca"]);
+      set("locRecreio", loc["Rio Capital"]?.["Recreio dos Bandeirantes"]);
+
+      set("locPetropolis", loc["Região Serrana"]?.["Petrópolis"]);
+      set("locTeresopolis", loc["Região Serrana"]?.["Teresópolis"]);
+      set("locNovaFriburgo", loc["Região Serrana"]?.["Nova Friburgo"]);
+      set("locSerranaOutros", loc["Região Serrana"]?.["Outros da Região Serrana"]);
+    }
+
+    if (config.cleaningMethods || config.cleaning) {
+
+      const cleaning = config.cleaningMethods || config.cleaning;
+
+      set("cBolsa", cleaning["Limpeza com bolsa coletora"] ?? cleaning["Uso frequente"]);
+
+      set("cCompleta", cleaning["Limpeza completa"] ?? cleaning["Nunca fiz"]);
+
+    }
+
+    if (config.maintenance) {
+
+      set("visit", config.maintenance.visit);
+      set("visitAddon", config.maintenance.visitAddon);
+
+    }
+
+  }
+
+
+
+  loadFields();
+
+
+
+  document.getElementById("save").addEventListener("click", () => {
+
+
+
+    const newConfig = {
+      version: PRICING_VERSION,
+
+      interestRate: Number(document.getElementById("interestRate").value),
+
+      maxInstallments: Number(document.getElementById("maxInstallments").value),
+
+      minInstallmentValue: Number(document.getElementById("minInstallmentValue").value),
+
+
+
+      installation: {
+
+        "7.500 BTUs": Number(document.getElementById("i7500").value),
+
+        "9.000 BTUs": Number(document.getElementById("i9000").value),
+
+        "12.000 BTUs": Number(document.getElementById("i12000").value),
+
+        "18.000 BTUs": Number(document.getElementById("i18000").value),
+
+        "24.000 BTUs": Number(document.getElementById("i24000").value)
+
+      },
+
+
+
+      installLocalAddons: {
+
+        "Casa térrea": Number(document.getElementById("lCasa").value),
+
+        "Varanda de apartamento": Number(document.getElementById("lVaranda").value),
+
+        "Fachada / altura": Number(document.getElementById("lAltura").value),
+
+        "Comércio ou área ampla": Number(document.getElementById("lComercio").value)
+
+      },
+
+      locationAddons: {
+
+        "Baixada Fluminense": {
+          "Belford Roxo": Number(document.getElementById("locBelford").value),
+          "Duque de Caxias": Number(document.getElementById("locCaxias").value),
+          "Guapimirim": Number(document.getElementById("locGuapimirim").value),
+          "Itaguaí": Number(document.getElementById("locItaguai").value),
+          "Japeri": Number(document.getElementById("locJaperi").value),
+          "Magé": Number(document.getElementById("locMage").value),
+          "Mesquita": Number(document.getElementById("locMesquita").value),
+          "Nilópolis": Number(document.getElementById("locNilopolis").value),
+          "Nova Iguaçu": Number(document.getElementById("locNovaIguacu").value),
+          "Paracambi": Number(document.getElementById("locParacambi").value),
+          "Queimados": Number(document.getElementById("locQueimados").value),
+          "São João de Meriti": Number(document.getElementById("locMeriti").value),
+          "Seropédica": Number(document.getElementById("locSeropedica").value)
+        },
+
+        "Rio Capital": {
+          "Centro": Number(document.getElementById("locCentro").value),
+          "Zona Sul": Number(document.getElementById("locZonaSul").value),
+          "Tijuca e região": Number(document.getElementById("locTijuca").value),
+          "Zona Norte": Number(document.getElementById("locZonaNorte").value),
+          "Jacarepaguá e região": Number(document.getElementById("locJacarepagua").value),
+          "Bangu e região": Number(document.getElementById("locBangu").value),
+          "Barra da Tijuca": Number(document.getElementById("locBarra").value),
+          "Recreio dos Bandeirantes": Number(document.getElementById("locRecreio").value)
+        },
+
+        "Região Serrana": {
+          "Petrópolis": Number(document.getElementById("locPetropolis").value),
+          "Teresópolis": Number(document.getElementById("locTeresopolis").value),
+          "Nova Friburgo": Number(document.getElementById("locNovaFriburgo").value),
+          "Outros da Região Serrana": Number(document.getElementById("locSerranaOutros").value)
+        }
+
+      },
+
+
+
+      cleaningMethods: {
+
+        "Limpeza com bolsa coletora": Number(document.getElementById("cBolsa").value),
+
+        "Limpeza completa": Number(document.getElementById("cCompleta").value)
+
+      },
+
+
+
+      maintenance: {
+
+        visit: Number(document.getElementById("visit").value),
+        visitAddon: Number(document.getElementById("visitAddon").value)
+
+      }
+
+    };
+
+
+
+    localStorage.setItem("SOSWF_PRICING", JSON.stringify(newConfig));
+
+    alert("Configurações salvas com sucesso!");
+
+  });
+
+</script>
+
+
+
+</body>
+
+</html>
+

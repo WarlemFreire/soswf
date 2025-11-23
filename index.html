@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>SOS WF - Instalação de Ar-condicionado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div class="app-container">
+
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-mark">SOS WF</span>
+      </div>
+      <button class="menu-button" aria-label="Menu">
+        ☰
+      </button>
+    </header>
+
+    <!-- T1: Tela inicial -->
+    <main id="screen-t1" class="screen screen-active">
+      <section class="hero">
+        <h1 class="hero-title">
+          Serviços de refrigeração<br />
+          com garantia técnica
+        </h1>
+        <p class="hero-subtitle">
+          Atendimento profissional, sem improvisos.
+        </p>
+      </section>
+
+      <section class="hero-highlight">
+        <p>Comece seu atendimento em 4 passos simples.</p>
+        <ul>
+          <li>Instalação seguindo manual do fabricante</li>
+          <li>Padrão ABNT para segurança e desempenho</li>
+          <li>Serviço limpo e organizado</li>
+        </ul>
+      </section>
+
+      <section class="service-cards">
+        <h2 class="section-title">O que você precisa hoje</h2>
+        <div class="card-grid">
+
+          <button class="card card-service" data-service="Instalação de Split">
+            <div class="card-icon" aria-hidden="true">&#128295;</div>
+            <div class="card-title">Instalação de Split</div>
+            <p class="card-text">Aparelho já comprado, pronto para instalar.</p>
+          </button>
+
+          <button class="card card-service" data-service="Higienização técnica">
+            <div class="card-icon" aria-hidden="true">&#129530;</div>
+            <div class="card-title">Higienização técnica</div>
+            <p class="card-text">Limpeza completa para melhor desempenho.</p>
+          </button>
+
+          <button class="card card-service" data-service="Manutenção técnica">
+            <div class="card-icon" aria-hidden="true">&#128736;</div>
+            <div class="card-title">Manutenção técnica</div>
+            <p class="card-text">Aparelho com falha ou funcionamento irregular.</p>
+          </button>
+
+          <button class="card card-service" data-service="Outro serviço de refrigeração">
+            <div class="card-icon" aria-hidden="true">&#129482;</div>
+            <div class="card-title">Outro serviço de refrigeração</div>
+            <p class="card-text">Geladeira, câmara fria ou sistemas especiais.</p>
+          </button>
+
+        </div>
+      </section>
+    </main>
+
+    <!-- T2.5: Localidade -->
+    <main id="screen-location" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Onde vai ser o serviço?</h1>
+        <p class="hero-subtitle">Selecione a região e o bairro para calcular o deslocamento.</p>
+      </section>
+
+      <section class="location-list">
+        <div class="region-block">
+          <button class="card card-region" data-region="Baixada Fluminense">Baixada Fluminense</button>
+          <div class="subzone-grid" data-region="Baixada Fluminense">
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Belford Roxo">Belford Roxo</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Duque de Caxias">Duque de Caxias</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Guapimirim">Guapimirim</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Itaguaí">Itaguaí</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Japeri">Japeri</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Magé">Magé</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Mesquita">Mesquita</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Nilópolis">Nilópolis</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Nova Iguaçu">Nova Iguaçu</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Paracambi">Paracambi</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Queimados">Queimados</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="São João de Meriti">São João de Meriti</button>
+            <button class="card card-subzone" data-region="Baixada Fluminense" data-subzone="Seropédica">Seropédica</button>
+          </div>
+        </div>
+
+        <div class="region-block">
+          <button class="card card-region" data-region="Rio Capital">Rio Capital</button>
+          <div class="subzone-grid" data-region="Rio Capital">
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Centro">Centro</button>
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Zona Sul">Zona Sul</button>
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Tijuca e região">Tijuca e região</button>
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Zona Norte">Zona Norte</button>
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Jacarepaguá e região">Jacarepaguá e região</button>
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Bangu e região">Bangu e região</button>
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Barra da Tijuca">Barra da Tijuca</button>
+            <button class="card card-subzone" data-region="Rio Capital" data-subzone="Recreio dos Bandeirantes">Recreio dos Bandeirantes</button>
+          </div>
+        </div>
+
+        <div class="region-block">
+          <button class="card card-region" data-region="Região Serrana">Região Serrana</button>
+          <div class="subzone-grid" data-region="Região Serrana">
+            <button class="card card-subzone" data-region="Região Serrana" data-subzone="Petrópolis">Petrópolis</button>
+            <button class="card card-subzone" data-region="Região Serrana" data-subzone="Teresópolis">Teresópolis</button>
+            <button class="card card-subzone" data-region="Região Serrana" data-subzone="Nova Friburgo">Nova Friburgo</button>
+            <button class="card card-subzone" data-region="Região Serrana" data-subzone="Outros da Região Serrana">Outros da Região Serrana</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="button-row">
+        <button class="secondary-button" id="location-back">Voltar</button>
+      </div>
+    </main>
+
+    <!-- T2: Potência (BTUs) -->
+    <main id="screen-t2" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">
+          Qual é a potência do aparelho?
+        </h1>
+        <p class="hero-subtitle">
+          Se não souber, pode pular esta etapa.
+        </p>
+      </section>
+
+      <section class="card-grid">
+        <button class="card card-btu" data-btu="7.500 BTUs">7.500 BTUs</button>
+        <button class="card card-btu" data-btu="9.000 BTUs">9.000 BTUs</button>
+        <button class="card card-btu" data-btu="12.000 BTUs">12.000 BTUs</button>
+        <button class="card card-btu" data-btu="18.000 BTUs">18.000 BTUs</button>
+        <button class="card card-btu" data-btu="24.000 BTUs">24.000 BTUs</button>
+        <button class="card card-btu" data-btu="Não informado">Não sei informar</button>
+      </section>
+    </main>
+
+    <!-- T3: Local da instalação -->
+    <main id="screen-t3" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">
+          Onde será instalado?
+        </h1>
+        <p class="hero-subtitle">
+          Isso ajuda a definir o procedimento adequado.
+        </p>
+      </section>
+
+      <section class="card-grid">
+        <button class="card card-local" data-local="Casa térrea">
+          <span class="card-icon" aria-hidden="true">&#127969;</span>
+          Casa térrea
+          <p class="card-text">Instalação simples.</p>
+        </button>
+
+        <button class="card card-local" data-local="Varanda de apartamento">
+          <span class="card-icon" aria-hidden="true">&#127968;</span>
+          Varanda de apartamento
+          <p class="card-text">Avaliar fixação e segurança.</p>
+        </button>
+
+        <button class="card card-local" data-local="Fachada / altura">
+          <span class="card-icon" aria-hidden="true">&#127970;</span>
+          Fachada / altura
+          <p class="card-text">Procedimento técnico especializado.</p>
+        </button>
+
+        <button class="card card-local" data-local="Comércio ou área ampla">
+          <span class="card-icon" aria-hidden="true">&#127980;</span>
+          Comércio ou área ampla
+          <p class="card-text">Pode exigir tubulação maior.</p>
+        </button>
+      </section>
+    </main>
+    <!-- =======================
+     T4 – RESUMO INSTALAÇÃO
+========================= -->
+<main id="screen-t4" class="screen">
+  <section class="hero">
+    <h1 class="hero-title">Pré-orçamento estimado</h1>
+    <p class="hero-subtitle">Valores médios com base nas informações que você informou.</p>
+  </section>
+
+  <section class="summary-box">
+    <h3>Resumo do seu pedido</h3>
+    <ul class="summary-list">
+      <li><strong>Serviço:</strong> <span id="summary-service"></span></li>
+      <li><strong>Potência:</strong> <span id="summary-btu"></span></li>
+      <li><strong>Local:</strong> <span id="summary-local"></span></li>
+      <li><strong>Localidade:</strong> <span id="summary-location"></span></li>
+    </ul>
+  </section>
+
+  <section class="price-box">
+    <p class="price-label">Cartão</p>
+    <h2 class="price-value">
+      <span id="install-parc-n">--</span>x de R$ <span id="install-parc-value">--</span>
+    </h2>
+    <p class="price-sub" id="install-card-total"></p>
+
+    <div class="payment-box">
+      <p class="price-label">Pix / dinheiro</p>
+      <p id="install-pix" class="payment-line emphasis"></p>
+    </div>
+
+    <p class="price-note">
+      Valor estimado. O valor final é confirmado com fotos ou na visita técnica.
+    </p>
+  </section>
+
+  <div class="button-row">
+    <button class="secondary-button" id="back-to-t3">Voltar</button>
+    <button class="primary-button" id="go-to-t5">Avançar para agendamento</button>
+  </div>
+</main>
+
+
+    <!-- T5: Pré-agendamento instalação -->
+    <main id="screen-t5" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Vamos combinar o atendimento</h1>
+        <p class="hero-subtitle">
+          Esses dados ajudam a organizar a agenda e o deslocamento.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <div class="form-field">
+          <label for="client-name">Seu nome</label>
+          <input id="client-name" type="text" placeholder="Como devo te chamar?" />
+        </div>
+
+        <div class="form-field">
+          <label for="client-bairro">Bairro</label>
+          <input id="client-bairro" type="text" placeholder="Ex.: Centro, Austin, Comendador Soares" />
+        </div>
+
+        <div class="form-field">
+          <label for="client-date">Dia preferido</label>
+          <input id="client-date" type="date" />
+          <small class="micro-hint">Poucas vagas, reserve hoje.</small>
+        </div>
+
+        
+      </section>
+
+      <div class="button-row">
+        <button class="secondary-button" id="back-to-t4">Voltar</button>
+        <button class="primary-button" id="whatsapp-flow">Finalizar pelo WhatsApp</button>
+      </div>
+    </main>
+
+
+
+    <!-- HI-T3: última limpeza -->
+    <main id="screen-hi-t3" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Quando foi feita a última limpeza?</h1>
+        <p class="hero-subtitle">Isso ajuda a definir o tipo de higienização.</p>
+        <div class="info-alert">
+          <strong>Higienização faz diferença.</strong>
+          <p>Filtros e serpentinas limpos evitam mofo, mau cheiro e preservam o desempenho do aparelho.</p>
+        </div>
+      </section>
+
+      <section class="card-grid">
+        <button class="card card-hi-last" data-hi="Menos de 6 meses">Menos de 6 meses</button>
+        <button class="card card-hi-last" data-hi="1 ano">1 ano</button>
+        <button class="card card-hi-last" data-hi="2 anos ou mais">2 anos ou mais</button>
+        <button class="card card-hi-last" data-hi="Nunca fiz">Nunca fiz</button>
+      </section>
+
+      <section id="hi-methods" class="hi-methods hidden">
+        <h3 class="section-title">Escolha o tipo de limpeza</h3>
+
+        <div class="method-card" data-method="Limpeza com bolsa coletora">
+          <div class="method-card-header">
+            <div>
+              <h4>Limpeza com bolsa coletora</h4>
+              <p class="card-text">Remove sujeira recente, lodo leve e poeira do evaporador sem desmontar o aparelho.</p>
+            </div>
+            <span class="badge badge-recommended hidden" data-badge="bolsa">Recomendado</span>
+          </div>
+          <p class="card-text">É rápida, prática e indicada para quem fez manutenção há pouco tempo.</p>
+        </div>
+
+        <div class="method-card" data-method="Limpeza completa">
+          <div class="method-card-header">
+            <div>
+              <h4>Limpeza completa</h4>
+              <p class="card-text">O ar é desinstalado, aberto e lavado peça por peça.</p>
+            </div>
+            <span class="badge badge-recommended hidden" data-badge="completa">Recomendado</span>
+          </div>
+          <p class="card-text">Indicada quando o aparelho ficou muito tempo sem manutenção, tem cheiro, gotejamento ou desempenho fraco.</p>
+          <p class="card-text">Leva mais tempo e usa mais materiais, por isso o valor é maior.</p>
+        </div>
+
+      </section>
+    </main>
+
+
+
+    <!-- =======================
+     T4 – RESUMO HIGIENIZAÇÃO
+========================= -->
+<main id="screen-hi-t4" class="screen">
+  <section class="hero">
+    <h1 class="hero-title">Pré-orçamento</h1>
+    <p class="hero-subtitle">Revise antes de agendar.</p>
+  </section>
+
+  <div class="summary-box">
+    <p><strong>BTU:</strong> <span id="hi-summary-btu"></span></p>
+    <p><strong>Última limpeza:</strong> <span id="hi-summary-last"></span></p>
+    <p><strong>Tipo de limpeza:</strong> <span id="hi-summary-method"></span></p>
+    <p><strong>Localidade:</strong> <span id="hi-summary-location"></span></p>
+  </div>
+
+  <div class="price-box">
+    <p class="price-label">Cartão</p>
+    <p class="price-value">
+      <span id="hi-parc-n">--</span>x de R$ <span id="hi-parc-value">--</span>
+    </p>
+    <p class="price-sub" id="hi-card-total"></p>
+
+    <div class="payment-options">
+      <p class="price-label">Pix / dinheiro</p>
+      <p id="hi-pix" class="payment-line emphasis"></p>
+    </div>
+  </div>
+
+  <button id="hi-go-t5" class="primary-button">Avançar para agendamento</button>
+</main>
+
+
+    <!-- HI-T5: pré-agendamento -->
+    <main id="screen-hi-t5" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Vamos combinar a higienização</h1>
+        <p class="hero-subtitle">Informações necessárias para agendar.</p>
+      </section>
+
+      <section class="form-section">
+        <div class="form-field">
+          <label for="hi-name">Seu nome</label>
+          <input id="hi-name" type="text" placeholder="Como devo te chamar?" />
+        </div>
+
+        <div class="form-field">
+          <label for="hi-bairro">Bairro</label>
+          <input id="hi-bairro" type="text" placeholder="Ex.: Centro, Austin ..." />
+        </div>
+
+        <div class="form-field">
+          <label for="hi-date">Dia preferido</label>
+          <input id="hi-date" type="date" />
+          <small class="micro-hint">Poucas vagas, reserve hoje.</small>
+        </div>
+
+        
+      </section>
+
+      <div class="button-row">
+        <button class="secondary-button" id="hi-back-t4">Voltar</button>
+        <button class="primary-button" id="hi-whatsapp">Finalizar pelo WhatsApp</button>
+      </div>
+    </main>
+
+
+
+    <!-- MA-T2 -->
+    <main id="screen-ma-t2" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Qual é o aparelho?</h1>
+        <p class="hero-subtitle">Selecione o tipo de equipamento.</p>
+      </section>
+
+      <section class="card-grid">
+        <button class="card card-ma-device" data-device="Split">Split</button>
+        <button class="card card-ma-device" data-device="Janela">Janela</button>
+        <button class="card card-ma-device" data-device="Piso teto">Piso teto</button>
+        <button class="card card-ma-device" data-device="Cassete">Cassete</button>
+        <button class="card card-ma-device" data-device="Outro">Outro</button>
+      </section>
+    </main>
+
+
+
+    <!-- MA-T3 -->
+    <main id="screen-ma-t3" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">O que está acontecendo?</h1>
+        <p class="hero-subtitle">Escolha a situação que mais se aproxima.</p>
+      </section>
+
+      <section class="card-grid">
+        <button class="card card-ma-status" data-status="Gelando pouco">Gelando pouco</button>
+        <button class="card card-ma-status" data-status="Pingando água">Pingando água</button>
+        <button class="card card-ma-status" data-status="Desligando sozinho">Desligando sozinho</button>
+        <button class="card card-ma-status" data-status="Não liga">Não liga</button>
+      </section>
+    </main>
+
+
+
+   <!-- =======================
+     T4 – RESUMO MANUTENÇÃO
+========================= -->
+<main id="screen-ma-t4" class="screen">
+  <section class="hero">
+    <h1 class="hero-title">Visita técnica</h1>
+    <p class="hero-subtitle">Confirmar informações do aparelho.</p>
+  </section>
+
+  <div class="summary-box">
+    <p><strong>Aparelho:</strong> <span id="ma-summary-device"></span></p>
+    <p><strong>Problema:</strong> <span id="ma-summary-status"></span></p>
+    <p><strong>Localidade:</strong> <span id="ma-summary-location"></span></p>
+  </div>
+
+  <div class="price-box">
+    <p class="price-label">Valor da visita</p>
+    <p class="price-value">R$ <span id="ma-visit-price"></span></p>
+  </div>
+
+  <button id="ma-go-t5" class="primary-button">Agendar visita técnica</button>
+</main>
+
+
+
+
+    <!-- MA-T5 -->
+    <main id="screen-ma-t5" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Agendar visita técnica</h1>
+        <p class="hero-subtitle">Deixe seus dados para prosseguir.</p>
+      </section>
+
+      <section class="form-section">
+        <div class="form-field">
+          <label for="ma-name">Seu nome</label>
+          <input id="ma-name" type="text" />
+        </div>
+
+        <div class="form-field">
+          <label for="ma-bairro">Bairro</label>
+          <input id="ma-bairro" type="text" />
+        </div>
+
+        <div class="form-field">
+          <label for="ma-date">Dia desejado</label>
+          <input id="ma-date" type="date" />
+          <small class="micro-hint">Poucas vagas, reserve hoje.</small>
+        </div>
+
+         <!-- div abaixo é para horario, dou preferencia a sempre marcar pela manhã então retirei -->
+        <!--  <div class="form-field">
+          <label for="ma-shift">Período</label>
+          <select id="ma-shift">
+            <option value="">Selecione</option>
+            <option value="Manhã">Manhã</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noite">Noite</option>
+            <option value="Sem preferência">Sem preferência</option>
+          </select>
+        </div>-->
+      </section>
+
+      <div class="button-row">
+        <button class="secondary-button" id="ma-back-t4">Voltar</button>
+        <button class="primary-button" id="ma-whatsapp">Finalizar pelo WhatsApp</button>
+      </div>
+    </main>
+    <!-- OS-T2: Tipo de serviço -->
+    <main id="screen-os-t2" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Qual serviço você precisa?</h1>
+        <p class="hero-subtitle">Selecione o tipo de equipamento.</p>
+      </section>
+
+      <section class="card-grid">
+        <button class="card card-os-type" data-os="Geladeira / Freezer / Expositora">
+          <span class="card-icon" aria-hidden="true">&#129482;</span> Geladeiras, freezers e expositoras
+          <p class="card-text">Comerciais ou domésticas.</p>
+        </button>
+
+        <button class="card card-os-type" data-os="Chopeira / Máquina de gelo / Gela copos">
+          <span class="card-icon" aria-hidden="true">&#127867;</span> Chopeira, máquina de gelo, gela copos
+          <p class="card-text">Alta demanda.</p>
+        </button>
+
+        <button class="card card-os-type" data-os="Câmara fria">
+          <span class="card-icon" aria-hidden="true">&#127970;</span> Câmara fria
+          <p class="card-text">Manutenção e instalação.</p>
+        </button>
+
+        <button class="card card-os-type" data-os="Projeto de refrigeração">
+          <span class="card-icon" aria-hidden="true">&#128736;</span> Projeto de refrigeração
+          <p class="card-text">Ambientes comerciais.</p>
+        </button>
+
+        <button class="card card-os-type" data-os="Não sei / Preciso de orientação">
+          <span class="card-icon" aria-hidden="true">&#10067;</span> Não sei / Preciso de orientação
+          <p class="card-text">Vamos entender juntos.</p>
+        </button>
+      </section>
+    </main>
+
+
+
+    <!-- OS-T3: detalhes -->
+    <main id="screen-os-t3" class="screen">
+      <section class="hero">
+        <h1 class="hero-title">Me dê mais detalhes</h1>
+        <p class="hero-subtitle">
+          Uma breve descrição ajuda a entender seu pedido.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <div class="form-field">
+          <label for="os-description">Descrição do serviço</label>
+          <textarea id="os-description" rows="5" placeholder="Ex.: Geladeira expositora não gela, barulho forte, câmara fria não liga..."></textarea>
+        </div>
+      </section>
+
+      <div class="button-row">
+        <button class="secondary-button" id="os-back-t2">Voltar</button>
+        <button class="primary-button" id="os-go-t4">Continuar</button>
+      </div>
+    </main>
+
+
+
+    <!-- =======================
+     T4 – OUTROS SERVIÇOS
+========================= -->
+<main id="screen-os-t4" class="screen">
+  <section class="hero">
+    <h1 class="hero-title">Resumo</h1>
+  </section>
+
+  <div class="summary-box">
+    <p><strong>Equipamento:</strong> <span id="os-summary-type"></span></p>
+    <p><strong>Descrição:</strong> <span id="os-summary-desc"></span></p>
+  </div>
+
+  <button id="os-whatsapp" class="primary-button">Chamar no WhatsApp</button>
+</main>
+
+
+
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <button id="back-to-start" class="secondary-button hidden">
+        Voltar ao início
+      </button>
+
+      <p class="footer-note">
+        SOS WF - Manutenção, Instalação e Refrigeração Técnica
+      </p>
+      <p class="footer-version" id="build-version">Versão sincronizada com o Git.</p>
+      <p class="footer-version" id="config-version"></p>
+    </footer>
+
+
+  </div> <!-- fecha app-container -->
+
+
+  <!-- SCRIPTS -->
+  <script src="js/pricing.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

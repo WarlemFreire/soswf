@@ -1,0 +1,89 @@
+/* ============================
+   PAINEL ADMIN – DESIGN LIMPO
+   ============================ */
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f7fa;
+  padding: 40px;
+  max-width: 900px;
+  margin: auto;
+  color: #333;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: #1d3557;
+}
+
+.group {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  border: 1px solid #e1e5eb;
+  box-shadow: 0px 2px 4px rgba(0,0,0,0.04);
+}
+
+.group h2 {
+  margin-top: 0;
+  font-size: 20px;
+  color: #1d3557;
+  border-left: 4px solid #457b9d;
+  padding-left: 10px;
+}
+
+label {
+  display: inline-block;
+  width: 260px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+input[type="number"] {
+  width: 140px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #c7ccd3;
+  background: #f9fbfd;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+input[type="number"]:focus {
+  outline: none;
+  border-color: #457b9d;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(69,123,157,0.2);
+}
+
+button {
+  padding: 12px 22px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 10px;
+  transition: 0.2s ease;
+}
+
+.primary-button {
+  background: #1d3557;
+  color: white;
+}
+
+.primary-button:hover {
+  background: #163249;
+}
+
+.secondary-button {
+  background: #e9ecef;
+  color: #333;
+}
+
+.secondary-button:hover {
+  background: #dde1e5;
+}

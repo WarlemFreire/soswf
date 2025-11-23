@@ -1,0 +1,468 @@
+﻿:root {
+  --bg-main: #043052;
+  --bg-card: #f5f7f9;
+  --accent: #1c5d8c;
+  --accent-soft: #4db5ff;
+  --text-main: #0f172a;
+  --text-light: #e5e7eb;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+}
+
+body[data-theme="install"] {
+  --bg-main: #043052;
+  --accent: #1c5d8c;
+  --accent-soft: #4db5ff;
+}
+
+body[data-theme="clean"] {
+  --bg-main: #0f5c3c;
+  --accent: #1b8a5a;
+  --accent-soft: #4ade80;
+}
+
+body[data-theme="maint"] {
+  --bg-main: #7c3412;
+  --accent: #c05621;
+  --accent-soft: #f6ad55;
+}
+
+body[data-theme="other"] {
+  --bg-main: #4c1d95;
+  --accent: #6b21a8;
+  --accent-soft: #c084fc;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #0f172a 0, #020617 55%);
+  color: var(--text-main);
+}
+
+.app-container {
+  max-width: 420px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.logo-mark {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.menu-button {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.screen {
+  display: none;
+  padding: 20px 20px 80px;
+}
+
+.screen-active {
+  display: block;
+}
+
+.hero {
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  font-size: 22px;
+  line-height: 1.3;
+  margin: 0 0 8px;
+  color: var(--bg-main);
+}
+
+.hero-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.hero-highlight {
+  background: var(--bg-main);
+  color: var(--text-light);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.hero-highlight p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.hero-highlight ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.section-title {
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: #111827;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.card {
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  padding: 14px 12px;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+}
+
+.card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(77, 181, 255, 0.25);
+}
+
+.card-icon {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.card-text {
+  font-size: 12px;
+  color: #4b5563;
+  margin: 0;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+  border-color: var(--accent-soft);
+}
+
+.location-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.region-block {
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.card-region {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  font-weight: 700;
+}
+
+.card-region.active {
+  border-color: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft);
+}
+
+.subzone-grid {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.subzone-grid.active {
+  display: grid;
+}
+
+.card-subzone {
+  font-size: 13px;
+}
+
+/* CAIXA PRINCIPAL DO PRE?�O */
+.price-box {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  text-align: center;
+}
+
+/* PRE?�O PRINCIPAL */
+.price-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: #043f6e;
+  margin-bottom: 10px;
+}
+
+/* LINHAS DE PAGAMENTO */
+.payment-options {
+  margin-top: 10px;
+  text-align: left;
+}
+
+.payment-line {
+  font-size: 15px;
+  padding: 6px 0;
+  color: #333;
+}
+
+/* SETINHA DAS LINHAS */
+.payment-line::before {
+  content: "- ";
+  color: #043f6e;
+  font-weight: bold;
+}
+
+.payment-line.emphasis {
+  font-weight: 700;
+  color: #0f9d58; /* destaque pix */
+}
+
+.payment-line.emphasis::before {
+  content: "";
+}
+
+/* LABEL */
+.price-label {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.price-sub {
+  margin: 4px 0 8px;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.micro-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.price-sub {
+  margin: 4px 0 12px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+
+/* Formul??rio da T5 */
+
+.form-section {
+  margin-top: 12px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.form-field label {
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #374151;
+}
+
+.form-field input,
+.form-field select {
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 1px rgba(77, 181, 255, 0.3);
+}
+
+/* Bot??es */
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.primary-button,
+.secondary-button {
+  flex: 1;
+  border-radius: 999px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.primary-button {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.3);
+}
+
+.primary-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.15);
+}
+
+.secondary-button {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+/* Rodap?? */
+
+.app-footer {
+  margin-top: auto;
+  padding: 10px 20px 16px;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffffee;
+  position: sticky;
+  bottom: 0;
+}
+
+.footer-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.footer-version {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.hidden {
+  display: none;
+}
+
+.payment-box {
+  margin-top: 15px;
+}
+
+.payment-line {
+  font-size: 16px;
+  color: #003366;
+  margin: 6px 0;
+}
+
+.info-alert {
+  margin-top: 12px;
+  padding: 12px;
+  background: #ecfeff;
+  border: 1px solid #7dd3fc;
+  border-radius: 12px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.info-alert p {
+  margin: 6px 0 0;
+  color: #334155;
+}
+
+.hi-methods {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.method-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.method-card:hover {
+  border-color: var(--accent-soft);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+}
+
+.method-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(77, 181, 255, 0.3);
+}
+
+.method-card h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.method-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-recommended {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
