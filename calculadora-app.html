@@ -131,6 +131,31 @@ body {
 
 .field { display: flex; flex-direction: column; }
 
+.field-span { grid-column: 1 / -1; }
+
+.sub-head {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  margin: 22px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sub-head:first-of-type { margin-top: 4px; }
+
+.sub-head small {
+  display: block;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
 .field label {
   display: flex;
   align-items: center;
@@ -239,6 +264,75 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
   cursor: pointer;
 }
 
+.est-box {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.est-title { margin: 0 0 2px; font-size: 12px; color: var(--ink-soft); }
+.est-main { margin: 0 0 6px; font-size: 22px; font-weight: 800; color: var(--ink); }
+
+.est-split {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.est-split strong { color: var(--accent); }
+
+.est-warn {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: none;
+}
+.est-warn.show { display: block; }
+
+.cost-detail {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+  padding: 0 12px;
+}
+
+.cost-detail summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+}
+.cost-detail summary::-webkit-details-marker { display: none; }
+.cost-detail summary::before { content: "▸ "; }
+.cost-detail[open] summary::before { content: "▾ "; }
+
+.cost-list { list-style: none; margin: 0; padding: 0 0 12px; }
+.cost-list li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 5px 0;
+  color: #334155;
+}
+.cost-list-total {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 8px !important;
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .cost-bar {
   display: flex;
   height: 34px;
@@ -338,7 +432,8 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
       </div>
       <p class="calc-intro">
         Estime quanto você realmente leva para casa dirigindo para
-        Uber, 99 e outros apps — descontando combustível e custos do carro.
+        Uber, 99 e outros apps — descontando comissão, combustível e
+        custos do carro.
       </p>
     </header>
 
@@ -357,16 +452,17 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
           </button>
         </div>
 
+        <!-- ---------- Operação diária ---------- -->
+        <h3 class="sub-head">Operação do dia</h3>
         <div class="field-grid">
 
-          <!-- Operação diária -->
           <div class="field">
             <label for="km-dia">
               <svg viewBox="0 0 24 24" class="ic"><path d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M12 2a8 8 0 0 0-8 8c0 1.7 1 3.9 2.4 6 1.3 1.9 2.9 3.7 4.3 5.1a1.8 1.8 0 0 0 2.6 0c1.4-1.4 3-3.2 4.3-5.1C19 13.9 20 11.7 20 10a8 8 0 0 0-8-8Z"/></svg>
               KM Rodado no Dia
             </label>
             <div class="field-input">
-              <input id="km-dia" type="number" inputmode="decimal" min="0" step="1" value="280" />
+              <input id="km-dia" type="number" inputmode="decimal" min="0" step="1" value="160" />
               <span class="unit">km</span>
             </div>
           </div>
@@ -400,58 +496,167 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
               Consumo do Veículo
             </label>
             <div class="field-input">
-              <input id="consumo" type="number" inputmode="decimal" min="0.1" step="0.1" value="7" />
+              <input id="consumo" type="number" inputmode="decimal" min="0.1" step="0.1" value="15" />
               <span class="unit">km/L</span>
             </div>
           </div>
 
-          <!-- Custos do carro PRÓPRIO -->
-          <div class="field mode-proprio">
+        </div>
+
+        <!-- ---------- Ganhos (tarifa) ---------- -->
+        <h3 class="sub-head">
+          Quanto você ganha
+          <small>Digite os dois — a calculadora tira a média</small>
+        </h3>
+        <div class="field-grid">
+
+          <div class="field">
+            <label for="ganho-km">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 18 10 12l4 4 6-7M14 9h6v6"/></svg>
+              Ganho por KM
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="ganho-km" type="number" inputmode="decimal" min="0" step="0.1" value="1.80" />
+              <span class="unit">/ km</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="ganho-hora">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z M12 7v5l3 2"/></svg>
+              Ganho por Hora
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="ganho-hora" type="number" inputmode="decimal" min="0" step="1" value="28" />
+              <span class="unit">/ h</span>
+            </div>
+          </div>
+
+          <div class="field field-span">
+            <label for="comissao">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M7 7h.01M17 17h.01M6 18 18 6"/></svg>
+              Comissão do App
+            </label>
+            <div class="field-input">
+              <input id="comissao" type="number" inputmode="decimal" min="0" max="90" step="1" value="25" />
+              <span class="unit">%</span>
+            </div>
+            <small class="hint">Fatia que Uber/99 tira. Se o ganho acima já é o que cai pra você, deixe 0.</small>
+          </div>
+
+        </div>
+
+        <!-- ---------- Custos fixos do carro ---------- -->
+        <h3 class="sub-head mode-proprio">Custos fixos do carro (mês)</h3>
+        <div class="field-grid mode-proprio">
+
+          <div class="field">
             <label for="prestacao">
               <svg viewBox="0 0 24 24" class="ic"><path d="M3 7h18v12H3z M3 11h18M7 15h4"/></svg>
-              Prestação / Reserva Mensal
+              Prestação / Reserva
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="prestacao" type="number" inputmode="decimal" min="0" step="1" value="1940" />
+              <input id="prestacao" type="number" inputmode="decimal" min="0" step="1" value="1400" />
             </div>
           </div>
 
-          <div class="field mode-proprio">
+          <div class="field">
             <label for="seguro">
               <svg viewBox="0 0 24 24" class="ic"><path d="M12 3 5 6v5c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/></svg>
-              Seguro Mensal
+              Seguro
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="seguro" type="number" inputmode="decimal" min="0" step="1" value="1155" />
+              <input id="seguro" type="number" inputmode="decimal" min="0" step="1" value="300" />
             </div>
           </div>
 
-          <div class="field mode-proprio">
+          <div class="field">
             <label for="ipva">
               <svg viewBox="0 0 24 24" class="ic"><path d="M4 13 6 6h12l2 7M5 13h14v5H5z M7 18v2M17 18v2"/><circle cx="8" cy="15.5" r="1"/><circle cx="16" cy="15.5" r="1"/></svg>
-              IPVA + Licenc. Mensal
+              IPVA + Licenciamento
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="ipva" type="number" inputmode="decimal" min="0" step="1" value="325" />
+              <input id="ipva" type="number" inputmode="decimal" min="0" step="1" value="100" />
             </div>
           </div>
 
-          <div class="field mode-proprio">
-            <label for="manutencao">
+        </div>
+
+        <!-- ---------- Manutenção destrinchada ---------- -->
+        <h3 class="sub-head mode-proprio">
+          Manutenção <small>itens mensais — a soma é calculada</small>
+        </h3>
+        <div class="field-grid mode-proprio">
+
+          <div class="field">
+            <label for="manut-oleo">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M5 21V8l4-3h6l4 3v13M9 5V3h6v2M8 12h8"/></svg>
+              Óleo + filtros
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="manut-oleo" type="number" inputmode="decimal" min="0" step="5" value="120" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="manut-revisao">
               <svg viewBox="0 0 24 24" class="ic"><path d="M14 7a3.5 3.5 0 0 1-4.7 4.7L5 16l-2 2 1 1 2-2 4.3-4.3A3.5 3.5 0 0 0 17 10l-3-3Z"/></svg>
-              Manutenção Mensal
+              Revisão / mecânico
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="manutencao" type="number" inputmode="decimal" min="0" step="1" value="1000" />
+              <input id="manut-revisao" type="number" inputmode="decimal" min="0" step="5" value="80" />
             </div>
           </div>
 
-          <!-- Custos do carro ALUGADO -->
-          <div class="field mode-alugado">
+          <div class="field">
+            <label for="manut-freios">
+              <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+              Freios / suspensão
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="manut-freios" type="number" inputmode="decimal" min="0" step="5" value="50" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="manut-outros">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+              Lavagem / outros
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="manut-outros" type="number" inputmode="decimal" min="0" step="5" value="60" />
+            </div>
+          </div>
+
+          <div class="field field-span">
+            <label for="pneu-km">
+              <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+              Pneu + depreciação por km
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="pneu-km" type="number" inputmode="decimal" min="0" step="0.01" value="0.12" />
+              <span class="unit">/ km</span>
+            </div>
+            <small class="hint">Desgaste de pneu e perda de valor do carro a cada km rodado.</small>
+          </div>
+
+        </div>
+
+        <!-- ---------- Custos do carro ALUGADO ---------- -->
+        <h3 class="sub-head mode-alugado">Custos do aluguel</h3>
+        <div class="field-grid mode-alugado">
+
+          <div class="field">
             <label for="aluguel">
               <svg viewBox="0 0 24 24" class="ic"><path d="M4 13 6 6h12l2 7M5 13h14v5H5z M7 18v2M17 18v2"/><circle cx="8" cy="15.5" r="1"/><circle cx="16" cy="15.5" r="1"/></svg>
               Aluguel do Carro (Semanal)
@@ -463,9 +668,9 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             </div>
           </div>
 
-          <div class="field mode-alugado">
+          <div class="field">
             <label for="extras">
-              <svg viewBox="0 0 24 24" class="ic"><path d="M14 7a3.5 3.5 0 0 1-4.7 4.7L5 16l-2 2 1 1 2-2 4.3-4.3A3.5 3.5 0 0 0 17 10l-3-3Z"/></svg>
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
               Outros Custos Mensais
             </label>
             <div class="field-input">
@@ -475,7 +680,12 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             <small class="hint">Limpeza, app, lavagem, multas etc.</small>
           </div>
 
-          <!-- Jornada -->
+        </div>
+
+        <!-- ---------- Jornada ---------- -->
+        <h3 class="sub-head">Jornada</h3>
+        <div class="field-grid">
+
           <div class="field">
             <label for="dias-semana">
               <svg viewBox="0 0 24 24" class="ic"><path d="M4 5h16v15H4z M4 9h16M8 3v4M16 3v4"/></svg>
@@ -498,22 +708,6 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
 
         </div>
 
-        <!-- Simulação de ganhos -->
-        <div class="sim-block">
-          <h2 class="sim-title">Simulação de Ganhos (Diário)</h2>
-          <div class="field">
-            <label for="bruto-dia">
-              <svg viewBox="0 0 24 24" class="ic"><path d="M4 18 10 12l4 4 6-7M14 9h6v6"/></svg>
-              Faturamento Bruto do Dia
-            </label>
-            <div class="field-input">
-              <span class="prefix">R$</span>
-              <input id="bruto-dia" type="number" inputmode="decimal" min="0" step="10" value="520" />
-            </div>
-            <small class="hint">Total que entra no app antes de descontar custos.</small>
-          </div>
-        </div>
-
       </section>
 
       <!-- ====================== PAINEL DE ANÁLISE ====================== -->
@@ -527,6 +721,17 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             <option value="mes" selected>Mês</option>
             <option value="ano">Ano</option>
           </select>
+        </div>
+
+        <!-- Estimativa de faturamento (média km x hora) -->
+        <div class="est-box" id="est-box">
+          <p class="est-title">Faturamento bruto estimado do dia</p>
+          <p class="est-main" id="est-media">R$ 0,00</p>
+          <div class="est-split">
+            <span>Por km: <strong id="est-km">R$ 0,00</strong></span>
+            <span>Por hora: <strong id="est-hora">R$ 0,00</strong></span>
+          </div>
+          <p class="est-warn" id="est-warn"></p>
         </div>
 
         <div class="cost-bar" aria-hidden="true">
@@ -575,6 +780,19 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
           </div>
         </div>
 
+        <!-- Detalhamento dos custos -->
+        <details class="cost-detail">
+          <summary>Ver de onde vêm os custos (mês)</summary>
+          <ul class="cost-list">
+            <li><span>Comissão do app</span><strong id="d-comissao">R$ 0,00</strong></li>
+            <li><span>Combustível</span><strong id="d-combustivel">R$ 0,00</strong></li>
+            <li><span>Pneu + depreciação</span><strong id="d-pneu">R$ 0,00</strong></li>
+            <li><span>Fixos (prestação, seguro, IPVA)</span><strong id="d-fixos">R$ 0,00</strong></li>
+            <li><span>Manutenção</span><strong id="d-manut">R$ 0,00</strong></li>
+            <li class="cost-list-total"><span>Total</span><strong id="d-total">R$ 0,00</strong></li>
+          </ul>
+        </details>
+
         <div class="summary-card" id="summary">
           <span class="summary-ico">ⓘ</span>
           <p id="summary-text"></p>
@@ -585,7 +803,7 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
     </div>
 
     <footer class="calc-footer">
-      <p>Estimativa para fins de planejamento. Os valores reais variam conforme demanda, trânsito e tarifas dos apps.</p>
+      <p>Estimativa para fins de planejamento. Os valores reais variam conforme demanda, trânsito e tarifas dos apps. Não inclui imposto de renda/INSS.</p>
     </footer>
 
   </div>
@@ -593,24 +811,31 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
   <script>
 /* =========================================================
    Calculadora de Ganhos em Apps — SOS WF
-   Estima o lucro líquido dirigindo para apps de transporte,
-   descontando combustível e os custos fixos do veículo.
+   Estima o lucro líquido dirigindo para apps de transporte.
+
+   Faturamento: estimado por DOIS caminhos (R$/km e R$/h);
+   usa-se a MÉDIA dos que foram preenchidos. Se as duas
+   estimativas divergem muito, avisa que os dados estão
+   inconsistentes.
+
+   Custos: comissão do app, combustível, pneu+depreciação
+   por km, custos fixos e manutenção (destrinchada).
    ========================================================= */
 
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "soswf-calc-ganhos";
+  var STORAGE_KEY = "soswf-calc-ganhos-v2";
 
-  // Campos numéricos que entram no cálculo / são persistidos.
   var FIELDS = [
     "km-dia", "horas", "preco-comb", "consumo",
-    "prestacao", "seguro", "ipva", "manutencao",
+    "ganho-km", "ganho-hora", "comissao",
+    "prestacao", "seguro", "ipva",
+    "manut-oleo", "manut-revisao", "manut-freios", "manut-outros", "pneu-km",
     "aluguel", "extras",
-    "dias-semana", "dias-mes", "bruto-dia"
+    "dias-semana", "dias-mes"
   ];
 
-  var DIAS_UTEIS_MES = 21.7; // referência p/ aluguel (52 sem / 12 meses ≈ 4,33)
   var SEMANAS_MES = 52 / 12;
 
   var brl = new Intl.NumberFormat("pt-BR", {
@@ -620,7 +845,9 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
   function $(id) { return document.getElementById(id); }
 
   function num(id) {
-    var v = parseFloat(($(id) && $(id).value || "").replace(",", "."));
+    var el = $(id);
+    if (!el) return 0;
+    var v = parseFloat((el.value || "").replace(",", "."));
     return isFinite(v) && v > 0 ? v : 0;
   }
 
@@ -630,63 +857,81 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
 
   /* -------------------- Cálculo -------------------- */
   function calcular() {
-    var kmDia    = num("km-dia");
+    var km       = num("km-dia");
     var horas    = num("horas");
     var preco    = num("preco-comb");
     var consumo  = num("consumo");
+    var ganhoKm  = num("ganho-km");
+    var ganhoH   = num("ganho-hora");
+    var comissao = num("comissao") / 100;
     var diasSem  = num("dias-semana") || 1;
     var diasMes  = num("dias-mes") || 1;
-    var brutoDia = num("bruto-dia");
 
-    // Combustível por dia e por mês
-    var combDia = consumo > 0 ? (kmDia / consumo) * preco : 0;
-    var combMes = combDia * diasMes;
+    // --- Faturamento bruto do dia: média das estimativas preenchidas ---
+    var estKm = ganhoKm * km;     // estimativa pela rodagem
+    var estH  = ganhoH * horas;   // estimativa pelas horas
+    var partes = [];
+    if (estKm > 0) partes.push(estKm);
+    if (estH > 0) partes.push(estH);
+    var brutoDia = partes.length
+      ? partes.reduce(function (a, b) { return a + b; }, 0) / partes.length
+      : 0;
 
-    // Custos fixos mensais do veículo
-    var fixosMes;
-    if (getMode() === "alugado") {
-      fixosMes = num("aluguel") * SEMANAS_MES + num("extras");
-    } else {
-      fixosMes = num("prestacao") + num("seguro") + num("ipva") + num("manutencao");
+    // divergência entre as duas estimativas (0 = idênticas)
+    var divergencia = 0;
+    if (estKm > 0 && estH > 0) {
+      divergencia = Math.abs(estKm - estH) / Math.max(estKm, estH);
     }
 
-    var custoMes = combMes + fixosMes;
-    var brutoMes = brutoDia * diasMes;
+    // --- Custos diários variáveis ---
+    var combDia     = consumo > 0 ? (km / consumo) * preco : 0;
+    var comissaoDia = brutoDia * comissao;
+    var pneuDia     = num("pneu-km") * km;
 
-    // Custo médio por dia trabalhado (distribui os fixos pelos dias do mês)
-    var custoDia = custoMes / diasMes;
+    // --- Custos fixos mensais ---
+    var fixosMes, manutMes;
+    if (getMode() === "alugado") {
+      fixosMes = num("aluguel") * SEMANAS_MES + num("extras");
+      manutMes = 0;
+      pneuDia = 0; // no aluguel, pneu/desgaste é por conta da locadora
+    } else {
+      fixosMes = num("prestacao") + num("seguro") + num("ipva");
+      manutMes = num("manut-oleo") + num("manut-revisao") +
+                 num("manut-freios") + num("manut-outros");
+    }
+
+    var combMes     = combDia * diasMes;
+    var comissaoMes = comissaoDia * diasMes;
+    var pneuMes     = pneuDia * diasMes;
+    var custoMes    = combMes + comissaoMes + pneuMes + fixosMes + manutMes;
+    var brutoMes    = brutoDia * diasMes;
+    var custoDia    = custoMes / diasMes;
 
     return {
-      diasSem: diasSem,
-      diasMes: diasMes,
-      horasDia: horas,
-      kmDia: kmDia,
-      combDia: combDia,
-      custoDia: custoDia,
-      brutoDia: brutoDia,
-      custoMes: custoMes,
-      brutoMes: brutoMes
+      diasSem: diasSem, diasMes: diasMes, horasDia: horas, kmDia: km,
+      estKm: estKm, estH: estH, brutoDia: brutoDia, divergencia: divergencia,
+      custoDia: custoDia, custoMes: custoMes, brutoMes: brutoMes,
+      partes: {
+        comissao: comissaoMes, combustivel: combMes, pneu: pneuMes,
+        fixos: fixosMes, manut: manutMes
+      }
     };
   }
 
   /* -------------------- Escala por período -------------------- */
   function escala(r, periodo) {
-    var fator, dias;
+    var fator;
     switch (periodo) {
-      case "dia":    fator = 1;            dias = 1;          break;
-      case "semana": fator = r.diasSem;    dias = r.diasSem;  break;
-      case "ano":    fator = r.diasMes*12; dias = r.diasMes*12; break;
-      default:       fator = r.diasMes;    dias = r.diasMes;  break; // mês
+      case "dia":    fator = 1;             break;
+      case "semana": fator = r.diasSem;     break;
+      case "ano":    fator = r.diasMes * 12; break;
+      default:       fator = r.diasMes;     break;
     }
     var bruto = r.brutoDia * fator;
     var custo = r.custoDia * fator;
     return {
-      dias: dias,
-      bruto: bruto,
-      custo: custo,
-      liquido: bruto - custo,
-      horas: r.horasDia * fator,
-      km: r.kmDia * fator
+      bruto: bruto, custo: custo, liquido: bruto - custo,
+      horas: r.horasDia * fator, km: r.kmDia * fator
     };
   }
 
@@ -696,10 +941,26 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
     var periodo = $("periodo").value;
     var p = escala(r, periodo);
 
-    var margem = p.bruto > 0 ? (p.liquido / p.bruto) * 100 : 0;
+    var margem  = p.bruto > 0 ? (p.liquido / p.bruto) * 100 : 0;
     var liqHora = p.horas > 0 ? p.liquido / p.horas : 0;
     var custoKm = p.km > 0 ? p.custo / p.km : 0;
-    var metaDia = r.custoDia; // faturamento bruto diário para empatar
+
+    // Estimativa de faturamento (sempre em base diária)
+    $("est-media").textContent = brl.format(r.brutoDia);
+    $("est-km").textContent = r.estKm > 0 ? brl.format(r.estKm) : "—";
+    $("est-hora").textContent = r.estH > 0 ? brl.format(r.estH) : "—";
+
+    var warn = $("est-warn");
+    if (r.divergencia >= 0.2) {
+      var maior = r.estKm > r.estH ? "km" : "hora";
+      warn.textContent = "As estimativas por km e por hora estão " +
+        Math.round(r.divergencia * 100) + "% diferentes — provavelmente um " +
+        "dos valores não condiz com a realidade (o por " + maior + " está " +
+        "puxando pra cima). Ajuste para elas ficarem próximas.";
+      warn.classList.add("show");
+    } else {
+      warn.classList.remove("show");
+    }
 
     $("out-custo").textContent = brl.format(p.custo);
     $("out-liquido-mini").textContent = brl.format(p.liquido);
@@ -709,25 +970,28 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
     $("kpi-hora").textContent = brl.format(liqHora);
     $("kpi-km").textContent = brl.format(custoKm);
     $("kpi-margem").textContent = (margem >= 0 ? "+" : "") + margem.toFixed(1) + "%";
-    $("kpi-breakeven").textContent = brl.format(metaDia);
+    $("kpi-breakeven").textContent = brl.format(r.custoDia);
 
-    // cor do líquido conforme resultado
-    var liqEls = [$("out-liquido"), $("out-liquido-mini")];
-    liqEls.forEach(function (el) {
-      el.style.color = p.liquido >= 0 ? "var(--profit)" : "var(--cost)";
-    });
-    $("kpi-margem").style.color = p.liquido >= 0 ? "var(--profit)" : "var(--cost)";
+    // detalhamento de custos (mês)
+    $("d-comissao").textContent = brl.format(r.partes.comissao);
+    $("d-combustivel").textContent = brl.format(r.partes.combustivel);
+    $("d-pneu").textContent = brl.format(r.partes.pneu);
+    $("d-fixos").textContent = brl.format(r.partes.fixos);
+    $("d-manut").textContent = brl.format(r.partes.manut);
+    $("d-total").textContent = brl.format(r.custoMes);
+
+    // cor do líquido
+    var liqColor = p.liquido >= 0 ? "var(--profit)" : "var(--cost)";
+    $("out-liquido").style.color = liqColor;
+    $("out-liquido-mini").style.color = liqColor;
+    $("kpi-margem").style.color = liqColor;
 
     // barra custo x lucro
     var total = p.custo + Math.max(p.liquido, 0);
     var custoPct = total > 0 ? (p.custo / total) * 100 : 100;
-    var lucroPct = 100 - custoPct;
+    if (p.liquido < 0) { custoPct = 100; }
     $("bar-cost").style.width = custoPct + "%";
-    $("bar-profit").style.width = lucroPct + "%";
-    if (p.liquido < 0) {
-      $("bar-cost").style.width = "100%";
-      $("bar-profit").style.width = "0%";
-    }
+    $("bar-profit").style.width = (100 - custoPct) + "%";
 
     renderResumo(p, periodo, margem, liqHora);
     salvar();
@@ -749,8 +1013,7 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
       txt = "Atenção: em <strong>" + nome + "</strong> os custos (" +
         "<strong class='cost'>" + brl.format(p.custo) + "</strong>) superam o faturamento (" +
         brl.format(p.bruto) + "), gerando prejuízo de " +
-        "<strong class='cost'>" + brl.format(Math.abs(p.liquido)) + "</strong>. " +
-        "Aumente o faturamento diário ou reduza os custos do carro.";
+        "<strong class='cost'>" + brl.format(Math.abs(p.liquido)) + "</strong>.";
     }
     $("summary-text").innerHTML = txt;
   }
@@ -761,7 +1024,7 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
       var data = { mode: getMode(), periodo: $("periodo").value };
       FIELDS.forEach(function (id) { if ($(id)) data[id] = $(id).value; });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) { /* ignora storage indisponível */ }
+    } catch (e) { /* storage indisponível */ }
   }
 
   function carregar() {
@@ -773,10 +1036,10 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
       });
       if (data.periodo) $("periodo").value = data.periodo;
       if (data.mode) setMode(data.mode);
-    } catch (e) { /* ignora dados corrompidos */ }
+    } catch (e) { /* dados corrompidos */ }
   }
 
-  /* -------------------- Modo (próprio / alugado) -------------------- */
+  /* -------------------- Modo -------------------- */
   function setMode(mode) {
     document.body.setAttribute("data-mode", mode);
     document.querySelectorAll(".mode-btn").forEach(function (btn) {
