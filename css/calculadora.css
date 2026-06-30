@@ -1,0 +1,319 @@
+:root {
+  --bg-page: #eef1f5;
+  --bg-card: #ffffff;
+  --line: #e3e8ee;
+  --ink: #0f172a;
+  --ink-soft: #64748b;
+  --accent: #043052;
+  --accent-soft: #1c5d8c;
+  --cost: #e23744;
+  --profit: #15a05a;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg-page);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+.calc-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+/* ---------- Cabeçalho ---------- */
+.calc-header { margin-bottom: 20px; }
+
+.calc-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.calc-logo {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 15px;
+  color: var(--accent-soft);
+}
+
+.calc-tag {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.calc-intro {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+/* ---------- Layout ---------- */
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 820px) {
+  .calc-grid { grid-template-columns: 1.25fr 1fr; align-items: start; }
+  .calc-analysis { position: sticky; top: 16px; }
+}
+
+.calc-inputs,
+.calc-analysis {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Toggle de modo ---------- */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.mode-btn {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mode-btn.active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
+
+/* ---------- Campos ---------- */
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 420px) {
+  .field-grid { grid-template-columns: 1fr; }
+}
+
+.field { display: flex; flex-direction: column; }
+
+.field label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+  line-height: 1.25;
+}
+
+.ic {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--accent-soft);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.field-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d7dee6;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field-input:focus-within {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 3px rgba(28, 93, 140, 0.12);
+}
+
+.field-input input {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 11px 0;
+  min-width: 0;
+}
+
+/* remove setas dos number inputs */
+.field-input input::-webkit-outer-spin-button,
+.field-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.field-input input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+.prefix, .unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.hint {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* visibilidade por modo */
+body[data-mode="proprio"] .mode-alugado { display: none; }
+body[data-mode="alugado"] .mode-proprio { display: none; }
+
+/* ---------- Simulação ---------- */
+.sim-block {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.sim-title {
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: var(--accent);
+}
+
+/* ---------- Análise ---------- */
+.analysis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.analysis-title { font-size: 18px; margin: 0; color: var(--accent); }
+
+.period-select {
+  border: 1px solid #d7dee6;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+  cursor: pointer;
+}
+
+.cost-bar {
+  display: flex;
+  height: 34px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f5f9;
+  margin-bottom: 10px;
+}
+
+.cost-bar-cost { background: var(--cost); transition: width 0.35s ease; }
+.cost-bar-profit { background: var(--profit); transition: width 0.35s ease; }
+
+.split-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.split-item { display: flex; flex-direction: column; }
+.split-item.right { text-align: right; }
+
+.split-label { font-size: 13px; font-weight: 700; }
+.split-label.cost { color: var(--cost); }
+.split-label.profit { color: var(--profit); }
+
+.split-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
+.split-value.cost { color: var(--cost); }
+.split-value.profit { color: var(--profit); }
+
+.headline { text-align: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+
+.headline-label { margin: 0 0 4px; font-size: 13px; color: var(--ink-soft); }
+
+.headline-value { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+.headline-value.bruto { color: var(--ink); }
+.headline-value.profit { color: var(--profit); }
+
+/* ---------- KPIs ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.kpi {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: center;
+}
+
+.kpi-value { display: block; font-size: 18px; font-weight: 800; color: var(--accent); }
+.kpi-label { display: block; font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+
+/* ---------- Resumo ---------- */
+.summary-card {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  background: #f1f5f9;
+  border-radius: var(--radius-md);
+}
+
+.summary-ico { color: var(--accent-soft); font-size: 16px; line-height: 1.5; }
+
+.summary-card p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #334155; }
+
+.summary-card strong.cost { color: var(--cost); }
+.summary-card strong.profit { color: var(--profit); }
+
+.calc-footer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.calc-footer p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #94a3b8;
+}

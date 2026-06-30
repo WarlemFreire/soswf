@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculadora de Ganhos em Apps | SOS WF</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/calculadora.css" />
+</head>
+<body>
+
+  <div class="calc-container">
+
+    <header class="calc-header">
+      <div class="calc-brand">
+        <span class="calc-logo">SOS WF</span>
+        <span class="calc-tag">Calculadora de Ganhos em Apps</span>
+      </div>
+      <p class="calc-intro">
+        Estime quanto você realmente leva para casa dirigindo para
+        Uber, 99 e outros apps — descontando combustível e custos do carro.
+      </p>
+    </header>
+
+    <div class="calc-grid">
+
+      <!-- ====================== COLUNA DE ENTRADAS ====================== -->
+      <section class="calc-inputs" aria-label="Dados da operação">
+
+        <!-- Alternador Alugado / Próprio -->
+        <div class="mode-toggle" role="tablist" aria-label="Tipo de carro">
+          <button class="mode-btn" data-mode="alugado" role="tab" aria-selected="false">
+            Carro Alugado
+          </button>
+          <button class="mode-btn active" data-mode="proprio" role="tab" aria-selected="true">
+            Carro Próprio
+          </button>
+        </div>
+
+        <div class="field-grid">
+
+          <!-- Operação diária -->
+          <div class="field">
+            <label for="km-dia">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M12 2a8 8 0 0 0-8 8c0 1.7 1 3.9 2.4 6 1.3 1.9 2.9 3.7 4.3 5.1a1.8 1.8 0 0 0 2.6 0c1.4-1.4 3-3.2 4.3-5.1C19 13.9 20 11.7 20 10a8 8 0 0 0-8-8Z"/></svg>
+              KM Rodado no Dia
+            </label>
+            <div class="field-input">
+              <input id="km-dia" type="number" inputmode="decimal" min="0" step="1" value="280" />
+              <span class="unit">km</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="horas">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z M12 7v5l3 2"/></svg>
+              Horas Trabalhadas
+            </label>
+            <div class="field-input">
+              <input id="horas" type="number" inputmode="decimal" min="0" step="0.5" value="14" />
+              <span class="unit">h</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="preco-comb">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3M8 8h4"/></svg>
+              Preço Combustível
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="preco-comb" type="number" inputmode="decimal" min="0" step="0.01" value="4.99" />
+              <span class="unit">/ L</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="consumo">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M3 17a9 9 0 0 1 18 0M12 17l4-5"/><circle cx="12" cy="17" r="1.2"/></svg>
+              Consumo do Veículo
+            </label>
+            <div class="field-input">
+              <input id="consumo" type="number" inputmode="decimal" min="0.1" step="0.1" value="7" />
+              <span class="unit">km/L</span>
+            </div>
+          </div>
+
+          <!-- Custos do carro PRÓPRIO -->
+          <div class="field mode-proprio">
+            <label for="prestacao">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M3 7h18v12H3z M3 11h18M7 15h4"/></svg>
+              Prestação / Reserva Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="prestacao" type="number" inputmode="decimal" min="0" step="1" value="1940" />
+            </div>
+          </div>
+
+          <div class="field mode-proprio">
+            <label for="seguro">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 3 5 6v5c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/></svg>
+              Seguro Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="seguro" type="number" inputmode="decimal" min="0" step="1" value="1155" />
+            </div>
+          </div>
+
+          <div class="field mode-proprio">
+            <label for="ipva">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 13 6 6h12l2 7M5 13h14v5H5z M7 18v2M17 18v2"/><circle cx="8" cy="15.5" r="1"/><circle cx="16" cy="15.5" r="1"/></svg>
+              IPVA + Licenc. Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="ipva" type="number" inputmode="decimal" min="0" step="1" value="325" />
+            </div>
+          </div>
+
+          <div class="field mode-proprio">
+            <label for="manutencao">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M14 7a3.5 3.5 0 0 1-4.7 4.7L5 16l-2 2 1 1 2-2 4.3-4.3A3.5 3.5 0 0 0 17 10l-3-3Z"/></svg>
+              Manutenção Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="manutencao" type="number" inputmode="decimal" min="0" step="1" value="1000" />
+            </div>
+          </div>
+
+          <!-- Custos do carro ALUGADO -->
+          <div class="field mode-alugado">
+            <label for="aluguel">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 13 6 6h12l2 7M5 13h14v5H5z M7 18v2M17 18v2"/><circle cx="8" cy="15.5" r="1"/><circle cx="16" cy="15.5" r="1"/></svg>
+              Aluguel do Carro (Semanal)
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="aluguel" type="number" inputmode="decimal" min="0" step="10" value="650" />
+              <span class="unit">/ sem</span>
+            </div>
+          </div>
+
+          <div class="field mode-alugado">
+            <label for="extras">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M14 7a3.5 3.5 0 0 1-4.7 4.7L5 16l-2 2 1 1 2-2 4.3-4.3A3.5 3.5 0 0 0 17 10l-3-3Z"/></svg>
+              Outros Custos Mensais
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="extras" type="number" inputmode="decimal" min="0" step="10" value="200" />
+            </div>
+            <small class="hint">Limpeza, app, lavagem, multas etc.</small>
+          </div>
+
+          <!-- Jornada -->
+          <div class="field">
+            <label for="dias-semana">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 5h16v15H4z M4 9h16M8 3v4M16 3v4"/></svg>
+              Dias Trabalhados / Semana
+            </label>
+            <div class="field-input">
+              <input id="dias-semana" type="number" inputmode="numeric" min="1" max="7" step="1" value="6" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="dias-mes">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 5h16v15H4z M4 9h16M8 3v4M16 3v4M8 13h2M14 13h2M8 16h2M14 16h2"/></svg>
+              Dias Trabalhados / Mês
+            </label>
+            <div class="field-input">
+              <input id="dias-mes" type="number" inputmode="numeric" min="1" max="31" step="1" value="26" />
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Simulação de ganhos -->
+        <div class="sim-block">
+          <h2 class="sim-title">Simulação de Ganhos (Diário)</h2>
+          <div class="field">
+            <label for="bruto-dia">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 18 10 12l4 4 6-7M14 9h6v6"/></svg>
+              Faturamento Bruto do Dia
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="bruto-dia" type="number" inputmode="decimal" min="0" step="10" value="520" />
+            </div>
+            <small class="hint">Total que entra no app antes de descontar custos.</small>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====================== PAINEL DE ANÁLISE ====================== -->
+      <aside class="calc-analysis" aria-label="Análise financeira">
+
+        <div class="analysis-head">
+          <h2 class="analysis-title">Análise Financeira</h2>
+          <select id="periodo" class="period-select" aria-label="Período">
+            <option value="dia">Dia</option>
+            <option value="semana">Semana</option>
+            <option value="mes" selected>Mês</option>
+            <option value="ano">Ano</option>
+          </select>
+        </div>
+
+        <div class="cost-bar" aria-hidden="true">
+          <div class="cost-bar-cost" id="bar-cost"></div>
+          <div class="cost-bar-profit" id="bar-profit"></div>
+        </div>
+
+        <div class="split-line">
+          <div class="split-item">
+            <span class="split-label cost">Custo Total</span>
+            <span class="split-value cost" id="out-custo">R$ 0,00</span>
+          </div>
+          <div class="split-item right">
+            <span class="split-label profit">Faturamento Líquido</span>
+            <span class="split-value profit" id="out-liquido-mini">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="headline">
+          <p class="headline-label">Faturamento Bruto no Período</p>
+          <p class="headline-value bruto" id="out-bruto">R$ 0,00</p>
+        </div>
+
+        <div class="headline">
+          <p class="headline-label">Faturamento Líquido no Período</p>
+          <p class="headline-value profit" id="out-liquido">R$ 0,00</p>
+        </div>
+
+        <!-- Indicadores extras -->
+        <div class="kpi-grid">
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-hora">R$ 0,00</span>
+            <span class="kpi-label">Líquido por hora</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-km">R$ 0,00</span>
+            <span class="kpi-label">Custo por km</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-margem">0%</span>
+            <span class="kpi-label">Margem de lucro</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-breakeven">R$ 0,00</span>
+            <span class="kpi-label">Meta p/ empatar (dia)</span>
+          </div>
+        </div>
+
+        <div class="summary-card" id="summary">
+          <span class="summary-ico">ⓘ</span>
+          <p id="summary-text"></p>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <footer class="calc-footer">
+      <p>Estimativa para fins de planejamento. Os valores reais variam conforme demanda, trânsito e tarifas dos apps.</p>
+    </footer>
+
+  </div>
+
+  <script src="js/calculadora.js"></script>
+</body>
+</html>
