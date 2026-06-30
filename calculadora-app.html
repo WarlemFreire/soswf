@@ -462,7 +462,7 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
               KM Rodado no Dia
             </label>
             <div class="field-input">
-              <input id="km-dia" type="number" inputmode="decimal" min="0" step="1" value="160" />
+              <input id="km-dia" type="number" inputmode="decimal" min="0" step="1" value="200" />
               <span class="unit">km</span>
             </div>
           </div>
@@ -473,7 +473,7 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
               Horas Trabalhadas
             </label>
             <div class="field-input">
-              <input id="horas" type="number" inputmode="decimal" min="0" step="0.5" value="14" />
+              <input id="horas" type="number" inputmode="decimal" min="0" step="0.5" value="12" />
               <span class="unit">h</span>
             </div>
           </div>
@@ -517,9 +517,10 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="ganho-km" type="number" inputmode="decimal" min="0" step="0.1" value="1.80" />
+              <input id="ganho-km" type="number" inputmode="decimal" min="0" step="0.1" value="1.50" />
               <span class="unit">/ km</span>
             </div>
+            <small class="hint">Referência Uber/99: ~R$ 1,30 a R$ 1,80 por km recebido.</small>
           </div>
 
           <div class="field">
@@ -529,9 +530,10 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="ganho-hora" type="number" inputmode="decimal" min="0" step="1" value="28" />
+              <input id="ganho-hora" type="number" inputmode="decimal" min="0" step="1" value="25" />
               <span class="unit">/ h</span>
             </div>
+            <small class="hint">Referência: ~R$ 20 a R$ 28 por hora rodada.</small>
           </div>
 
           <div class="field field-span">
@@ -540,10 +542,10 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
               Comissão do App
             </label>
             <div class="field-input">
-              <input id="comissao" type="number" inputmode="decimal" min="0" max="90" step="1" value="25" />
+              <input id="comissao" type="number" inputmode="decimal" min="0" max="90" step="1" value="0" />
               <span class="unit">%</span>
             </div>
-            <small class="hint">Fatia que Uber/99 tira. Se o ganho acima já é o que cai pra você, deixe 0.</small>
+            <small class="hint">Deixe 0 se os ganhos acima já são o que cai pra você (o normal). Use só se digitou a tarifa cheia paga pelo passageiro.</small>
           </div>
 
         </div>
