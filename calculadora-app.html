@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculadora de Ganhos em Apps | SOS WF</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+:root {
+  --bg-page: #eef1f5;
+  --bg-card: #ffffff;
+  --line: #e3e8ee;
+  --ink: #0f172a;
+  --ink-soft: #64748b;
+  --accent: #043052;
+  --accent-soft: #1c5d8c;
+  --cost: #e23744;
+  --profit: #15a05a;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg-page);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+.calc-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+/* ---------- Cabeçalho ---------- */
+.calc-header { margin-bottom: 20px; }
+
+.calc-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.calc-logo {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 15px;
+  color: var(--accent-soft);
+}
+
+.calc-tag {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.calc-intro {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+/* ---------- Layout ---------- */
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 820px) {
+  .calc-grid { grid-template-columns: 1.25fr 1fr; align-items: start; }
+  .calc-analysis { position: sticky; top: 16px; }
+}
+
+.calc-inputs,
+.calc-analysis {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Toggle de modo ---------- */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.mode-btn {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mode-btn.active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
+
+/* ---------- Campos ---------- */
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 420px) {
+  .field-grid { grid-template-columns: 1fr; }
+}
+
+.field { display: flex; flex-direction: column; }
+
+.field label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+  line-height: 1.25;
+}
+
+.ic {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--accent-soft);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.field-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d7dee6;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field-input:focus-within {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 3px rgba(28, 93, 140, 0.12);
+}
+
+.field-input input {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 11px 0;
+  min-width: 0;
+}
+
+/* remove setas dos number inputs */
+.field-input input::-webkit-outer-spin-button,
+.field-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.field-input input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+.prefix, .unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.hint {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* visibilidade por modo */
+body[data-mode="proprio"] .mode-alugado { display: none; }
+body[data-mode="alugado"] .mode-proprio { display: none; }
+
+/* ---------- Simulação ---------- */
+.sim-block {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.sim-title {
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: var(--accent);
+}
+
+/* ---------- Análise ---------- */
+.analysis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.analysis-title { font-size: 18px; margin: 0; color: var(--accent); }
+
+.period-select {
+  border: 1px solid #d7dee6;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fff;
+  cursor: pointer;
+}
+
+.cost-bar {
+  display: flex;
+  height: 34px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f5f9;
+  margin-bottom: 10px;
+}
+
+.cost-bar-cost { background: var(--cost); transition: width 0.35s ease; }
+.cost-bar-profit { background: var(--profit); transition: width 0.35s ease; }
+
+.split-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.split-item { display: flex; flex-direction: column; }
+.split-item.right { text-align: right; }
+
+.split-label { font-size: 13px; font-weight: 700; }
+.split-label.cost { color: var(--cost); }
+.split-label.profit { color: var(--profit); }
+
+.split-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
+.split-value.cost { color: var(--cost); }
+.split-value.profit { color: var(--profit); }
+
+.headline { text-align: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+
+.headline-label { margin: 0 0 4px; font-size: 13px; color: var(--ink-soft); }
+
+.headline-value { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+.headline-value.bruto { color: var(--ink); }
+.headline-value.profit { color: var(--profit); }
+
+/* ---------- KPIs ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.kpi {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: center;
+}
+
+.kpi-value { display: block; font-size: 18px; font-weight: 800; color: var(--accent); }
+.kpi-label { display: block; font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+
+/* ---------- Resumo ---------- */
+.summary-card {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  background: #f1f5f9;
+  border-radius: var(--radius-md);
+}
+
+.summary-ico { color: var(--accent-soft); font-size: 16px; line-height: 1.5; }
+
+.summary-card p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #334155; }
+
+.summary-card strong.cost { color: var(--cost); }
+.summary-card strong.profit { color: var(--profit); }
+
+.calc-footer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.calc-footer p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+</style>
+</head>
+<body>
+
+  <div class="calc-container">
+
+    <header class="calc-header">
+      <div class="calc-brand">
+        <span class="calc-logo">SOS WF</span>
+        <span class="calc-tag">Calculadora de Ganhos em Apps</span>
+      </div>
+      <p class="calc-intro">
+        Estime quanto você realmente leva para casa dirigindo para
+        Uber, 99 e outros apps — descontando combustível e custos do carro.
+      </p>
+    </header>
+
+    <div class="calc-grid">
+
+      <!-- ====================== COLUNA DE ENTRADAS ====================== -->
+      <section class="calc-inputs" aria-label="Dados da operação">
+
+        <!-- Alternador Alugado / Próprio -->
+        <div class="mode-toggle" role="tablist" aria-label="Tipo de carro">
+          <button class="mode-btn" data-mode="alugado" role="tab" aria-selected="false">
+            Carro Alugado
+          </button>
+          <button class="mode-btn active" data-mode="proprio" role="tab" aria-selected="true">
+            Carro Próprio
+          </button>
+        </div>
+
+        <div class="field-grid">
+
+          <!-- Operação diária -->
+          <div class="field">
+            <label for="km-dia">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M12 2a8 8 0 0 0-8 8c0 1.7 1 3.9 2.4 6 1.3 1.9 2.9 3.7 4.3 5.1a1.8 1.8 0 0 0 2.6 0c1.4-1.4 3-3.2 4.3-5.1C19 13.9 20 11.7 20 10a8 8 0 0 0-8-8Z"/></svg>
+              KM Rodado no Dia
+            </label>
+            <div class="field-input">
+              <input id="km-dia" type="number" inputmode="decimal" min="0" step="1" value="280" />
+              <span class="unit">km</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="horas">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z M12 7v5l3 2"/></svg>
+              Horas Trabalhadas
+            </label>
+            <div class="field-input">
+              <input id="horas" type="number" inputmode="decimal" min="0" step="0.5" value="14" />
+              <span class="unit">h</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="preco-comb">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h14M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3M8 8h4"/></svg>
+              Preço Combustível
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="preco-comb" type="number" inputmode="decimal" min="0" step="0.01" value="4.99" />
+              <span class="unit">/ L</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="consumo">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M3 17a9 9 0 0 1 18 0M12 17l4-5"/><circle cx="12" cy="17" r="1.2"/></svg>
+              Consumo do Veículo
+            </label>
+            <div class="field-input">
+              <input id="consumo" type="number" inputmode="decimal" min="0.1" step="0.1" value="7" />
+              <span class="unit">km/L</span>
+            </div>
+          </div>
+
+          <!-- Custos do carro PRÓPRIO -->
+          <div class="field mode-proprio">
+            <label for="prestacao">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M3 7h18v12H3z M3 11h18M7 15h4"/></svg>
+              Prestação / Reserva Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="prestacao" type="number" inputmode="decimal" min="0" step="1" value="1940" />
+            </div>
+          </div>
+
+          <div class="field mode-proprio">
+            <label for="seguro">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 3 5 6v5c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/></svg>
+              Seguro Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="seguro" type="number" inputmode="decimal" min="0" step="1" value="1155" />
+            </div>
+          </div>
+
+          <div class="field mode-proprio">
+            <label for="ipva">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 13 6 6h12l2 7M5 13h14v5H5z M7 18v2M17 18v2"/><circle cx="8" cy="15.5" r="1"/><circle cx="16" cy="15.5" r="1"/></svg>
+              IPVA + Licenc. Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="ipva" type="number" inputmode="decimal" min="0" step="1" value="325" />
+            </div>
+          </div>
+
+          <div class="field mode-proprio">
+            <label for="manutencao">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M14 7a3.5 3.5 0 0 1-4.7 4.7L5 16l-2 2 1 1 2-2 4.3-4.3A3.5 3.5 0 0 0 17 10l-3-3Z"/></svg>
+              Manutenção Mensal
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="manutencao" type="number" inputmode="decimal" min="0" step="1" value="1000" />
+            </div>
+          </div>
+
+          <!-- Custos do carro ALUGADO -->
+          <div class="field mode-alugado">
+            <label for="aluguel">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 13 6 6h12l2 7M5 13h14v5H5z M7 18v2M17 18v2"/><circle cx="8" cy="15.5" r="1"/><circle cx="16" cy="15.5" r="1"/></svg>
+              Aluguel do Carro (Semanal)
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="aluguel" type="number" inputmode="decimal" min="0" step="10" value="650" />
+              <span class="unit">/ sem</span>
+            </div>
+          </div>
+
+          <div class="field mode-alugado">
+            <label for="extras">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M14 7a3.5 3.5 0 0 1-4.7 4.7L5 16l-2 2 1 1 2-2 4.3-4.3A3.5 3.5 0 0 0 17 10l-3-3Z"/></svg>
+              Outros Custos Mensais
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="extras" type="number" inputmode="decimal" min="0" step="10" value="200" />
+            </div>
+            <small class="hint">Limpeza, app, lavagem, multas etc.</small>
+          </div>
+
+          <!-- Jornada -->
+          <div class="field">
+            <label for="dias-semana">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 5h16v15H4z M4 9h16M8 3v4M16 3v4"/></svg>
+              Dias Trabalhados / Semana
+            </label>
+            <div class="field-input">
+              <input id="dias-semana" type="number" inputmode="numeric" min="1" max="7" step="1" value="6" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="dias-mes">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 5h16v15H4z M4 9h16M8 3v4M16 3v4M8 13h2M14 13h2M8 16h2M14 16h2"/></svg>
+              Dias Trabalhados / Mês
+            </label>
+            <div class="field-input">
+              <input id="dias-mes" type="number" inputmode="numeric" min="1" max="31" step="1" value="26" />
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Simulação de ganhos -->
+        <div class="sim-block">
+          <h2 class="sim-title">Simulação de Ganhos (Diário)</h2>
+          <div class="field">
+            <label for="bruto-dia">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M4 18 10 12l4 4 6-7M14 9h6v6"/></svg>
+              Faturamento Bruto do Dia
+            </label>
+            <div class="field-input">
+              <span class="prefix">R$</span>
+              <input id="bruto-dia" type="number" inputmode="decimal" min="0" step="10" value="520" />
+            </div>
+            <small class="hint">Total que entra no app antes de descontar custos.</small>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====================== PAINEL DE ANÁLISE ====================== -->
+      <aside class="calc-analysis" aria-label="Análise financeira">
+
+        <div class="analysis-head">
+          <h2 class="analysis-title">Análise Financeira</h2>
+          <select id="periodo" class="period-select" aria-label="Período">
+            <option value="dia">Dia</option>
+            <option value="semana">Semana</option>
+            <option value="mes" selected>Mês</option>
+            <option value="ano">Ano</option>
+          </select>
+        </div>
+
+        <div class="cost-bar" aria-hidden="true">
+          <div class="cost-bar-cost" id="bar-cost"></div>
+          <div class="cost-bar-profit" id="bar-profit"></div>
+        </div>
+
+        <div class="split-line">
+          <div class="split-item">
+            <span class="split-label cost">Custo Total</span>
+            <span class="split-value cost" id="out-custo">R$ 0,00</span>
+          </div>
+          <div class="split-item right">
+            <span class="split-label profit">Faturamento Líquido</span>
+            <span class="split-value profit" id="out-liquido-mini">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="headline">
+          <p class="headline-label">Faturamento Bruto no Período</p>
+          <p class="headline-value bruto" id="out-bruto">R$ 0,00</p>
+        </div>
+
+        <div class="headline">
+          <p class="headline-label">Faturamento Líquido no Período</p>
+          <p class="headline-value profit" id="out-liquido">R$ 0,00</p>
+        </div>
+
+        <!-- Indicadores extras -->
+        <div class="kpi-grid">
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-hora">R$ 0,00</span>
+            <span class="kpi-label">Líquido por hora</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-km">R$ 0,00</span>
+            <span class="kpi-label">Custo por km</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-margem">0%</span>
+            <span class="kpi-label">Margem de lucro</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-value" id="kpi-breakeven">R$ 0,00</span>
+            <span class="kpi-label">Meta p/ empatar (dia)</span>
+          </div>
+        </div>
+
+        <div class="summary-card" id="summary">
+          <span class="summary-ico">ⓘ</span>
+          <p id="summary-text"></p>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <footer class="calc-footer">
+      <p>Estimativa para fins de planejamento. Os valores reais variam conforme demanda, trânsito e tarifas dos apps.</p>
+    </footer>
+
+  </div>
+
+  <script>
+/* =========================================================
+   Calculadora de Ganhos em Apps — SOS WF
+   Estima o lucro líquido dirigindo para apps de transporte,
+   descontando combustível e os custos fixos do veículo.
+   ========================================================= */
+
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "soswf-calc-ganhos";
+
+  // Campos numéricos que entram no cálculo / são persistidos.
+  var FIELDS = [
+    "km-dia", "horas", "preco-comb", "consumo",
+    "prestacao", "seguro", "ipva", "manutencao",
+    "aluguel", "extras",
+    "dias-semana", "dias-mes", "bruto-dia"
+  ];
+
+  var DIAS_UTEIS_MES = 21.7; // referência p/ aluguel (52 sem / 12 meses ≈ 4,33)
+  var SEMANAS_MES = 52 / 12;
+
+  var brl = new Intl.NumberFormat("pt-BR", {
+    style: "currency", currency: "BRL"
+  });
+
+  function $(id) { return document.getElementById(id); }
+
+  function num(id) {
+    var v = parseFloat(($(id) && $(id).value || "").replace(",", "."));
+    return isFinite(v) && v > 0 ? v : 0;
+  }
+
+  function getMode() {
+    return document.body.getAttribute("data-mode") || "proprio";
+  }
+
+  /* -------------------- Cálculo -------------------- */
+  function calcular() {
+    var kmDia    = num("km-dia");
+    var horas    = num("horas");
+    var preco    = num("preco-comb");
+    var consumo  = num("consumo");
+    var diasSem  = num("dias-semana") || 1;
+    var diasMes  = num("dias-mes") || 1;
+    var brutoDia = num("bruto-dia");
+
+    // Combustível por dia e por mês
+    var combDia = consumo > 0 ? (kmDia / consumo) * preco : 0;
+    var combMes = combDia * diasMes;
+
+    // Custos fixos mensais do veículo
+    var fixosMes;
+    if (getMode() === "alugado") {
+      fixosMes = num("aluguel") * SEMANAS_MES + num("extras");
+    } else {
+      fixosMes = num("prestacao") + num("seguro") + num("ipva") + num("manutencao");
+    }
+
+    var custoMes = combMes + fixosMes;
+    var brutoMes = brutoDia * diasMes;
+
+    // Custo médio por dia trabalhado (distribui os fixos pelos dias do mês)
+    var custoDia = custoMes / diasMes;
+
+    return {
+      diasSem: diasSem,
+      diasMes: diasMes,
+      horasDia: horas,
+      kmDia: kmDia,
+      combDia: combDia,
+      custoDia: custoDia,
+      brutoDia: brutoDia,
+      custoMes: custoMes,
+      brutoMes: brutoMes
+    };
+  }
+
+  /* -------------------- Escala por período -------------------- */
+  function escala(r, periodo) {
+    var fator, dias;
+    switch (periodo) {
+      case "dia":    fator = 1;            dias = 1;          break;
+      case "semana": fator = r.diasSem;    dias = r.diasSem;  break;
+      case "ano":    fator = r.diasMes*12; dias = r.diasMes*12; break;
+      default:       fator = r.diasMes;    dias = r.diasMes;  break; // mês
+    }
+    var bruto = r.brutoDia * fator;
+    var custo = r.custoDia * fator;
+    return {
+      dias: dias,
+      bruto: bruto,
+      custo: custo,
+      liquido: bruto - custo,
+      horas: r.horasDia * fator,
+      km: r.kmDia * fator
+    };
+  }
+
+  /* -------------------- Render -------------------- */
+  function render() {
+    var r = calcular();
+    var periodo = $("periodo").value;
+    var p = escala(r, periodo);
+
+    var margem = p.bruto > 0 ? (p.liquido / p.bruto) * 100 : 0;
+    var liqHora = p.horas > 0 ? p.liquido / p.horas : 0;
+    var custoKm = p.km > 0 ? p.custo / p.km : 0;
+    var metaDia = r.custoDia; // faturamento bruto diário para empatar
+
+    $("out-custo").textContent = brl.format(p.custo);
+    $("out-liquido-mini").textContent = brl.format(p.liquido);
+    $("out-bruto").textContent = brl.format(p.bruto);
+    $("out-liquido").textContent = brl.format(p.liquido);
+
+    $("kpi-hora").textContent = brl.format(liqHora);
+    $("kpi-km").textContent = brl.format(custoKm);
+    $("kpi-margem").textContent = (margem >= 0 ? "+" : "") + margem.toFixed(1) + "%";
+    $("kpi-breakeven").textContent = brl.format(metaDia);
+
+    // cor do líquido conforme resultado
+    var liqEls = [$("out-liquido"), $("out-liquido-mini")];
+    liqEls.forEach(function (el) {
+      el.style.color = p.liquido >= 0 ? "var(--profit)" : "var(--cost)";
+    });
+    $("kpi-margem").style.color = p.liquido >= 0 ? "var(--profit)" : "var(--cost)";
+
+    // barra custo x lucro
+    var total = p.custo + Math.max(p.liquido, 0);
+    var custoPct = total > 0 ? (p.custo / total) * 100 : 100;
+    var lucroPct = 100 - custoPct;
+    $("bar-cost").style.width = custoPct + "%";
+    $("bar-profit").style.width = lucroPct + "%";
+    if (p.liquido < 0) {
+      $("bar-cost").style.width = "100%";
+      $("bar-profit").style.width = "0%";
+    }
+
+    renderResumo(p, periodo, margem, liqHora);
+    salvar();
+  }
+
+  var NOME_PERIODO = { dia: "um dia", semana: "uma semana", mes: "um mês", ano: "um ano" };
+
+  function renderResumo(p, periodo, margem, liqHora) {
+    var nome = NOME_PERIODO[periodo] || "o período";
+    var txt;
+    if (p.liquido >= 0) {
+      txt = "Em <strong>" + nome + "</strong>, com custo total de " +
+        "<strong class='cost'>" + brl.format(p.custo) + "</strong> e faturamento de " +
+        brl.format(p.bruto) + ", seu lucro líquido é de " +
+        "<strong class='profit'>" + brl.format(p.liquido) + "</strong> (" +
+        margem.toFixed(1) + "% de margem), o equivalente a " +
+        "<strong>" + brl.format(liqHora) + "/hora</strong>.";
+    } else {
+      txt = "Atenção: em <strong>" + nome + "</strong> os custos (" +
+        "<strong class='cost'>" + brl.format(p.custo) + "</strong>) superam o faturamento (" +
+        brl.format(p.bruto) + "), gerando prejuízo de " +
+        "<strong class='cost'>" + brl.format(Math.abs(p.liquido)) + "</strong>. " +
+        "Aumente o faturamento diário ou reduza os custos do carro.";
+    }
+    $("summary-text").innerHTML = txt;
+  }
+
+  /* -------------------- Persistência -------------------- */
+  function salvar() {
+    try {
+      var data = { mode: getMode(), periodo: $("periodo").value };
+      FIELDS.forEach(function (id) { if ($(id)) data[id] = $(id).value; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) { /* ignora storage indisponível */ }
+  }
+
+  function carregar() {
+    try {
+      var data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (!data) return;
+      FIELDS.forEach(function (id) {
+        if ($(id) && data[id] !== undefined) $(id).value = data[id];
+      });
+      if (data.periodo) $("periodo").value = data.periodo;
+      if (data.mode) setMode(data.mode);
+    } catch (e) { /* ignora dados corrompidos */ }
+  }
+
+  /* -------------------- Modo (próprio / alugado) -------------------- */
+  function setMode(mode) {
+    document.body.setAttribute("data-mode", mode);
+    document.querySelectorAll(".mode-btn").forEach(function (btn) {
+      var on = btn.getAttribute("data-mode") === mode;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+  }
+
+  /* -------------------- Init -------------------- */
+  function init() {
+    setMode("proprio");
+    carregar();
+
+    document.querySelectorAll(".mode-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        setMode(btn.getAttribute("data-mode"));
+        render();
+      });
+    });
+
+    FIELDS.forEach(function (id) {
+      if ($(id)) $(id).addEventListener("input", render);
+    });
+    $("periodo").addEventListener("change", render);
+
+    render();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+
+</script>
+</body>
+</html>
