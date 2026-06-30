@@ -85,8 +85,10 @@
       pneuDia = 0; // no aluguel, pneu/desgaste é por conta da locadora
     } else {
       fixosMes = num("prestacao") + num("seguro") + num("ipva");
-      manutMes = num("manut-oleo") + num("manut-revisao") +
-                 num("manut-freios") + num("manut-outros");
+      // itens de manutenção são informados por ANO -> rateia por mês
+      var manutAno = num("manut-oleo") + num("manut-revisao") +
+                     num("manut-freios") + num("manut-outros");
+      manutMes = manutAno / 12;
     }
 
     var combMes     = combDia * diasMes;

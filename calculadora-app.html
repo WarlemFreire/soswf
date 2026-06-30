@@ -589,7 +589,7 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
 
         <!-- ---------- Manutenção destrinchada ---------- -->
         <h3 class="sub-head mode-proprio">
-          Manutenção <small>itens mensais — a soma é calculada</small>
+          Manutenção <small>valores por ANO — a calculadora divide por 12</small>
         </h3>
         <div class="field-grid mode-proprio">
 
@@ -600,7 +600,8 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="manut-oleo" type="number" inputmode="decimal" min="0" step="5" value="120" />
+              <input id="manut-oleo" type="number" inputmode="decimal" min="0" step="10" value="600" />
+              <span class="unit">/ ano</span>
             </div>
           </div>
 
@@ -611,7 +612,8 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="manut-revisao" type="number" inputmode="decimal" min="0" step="5" value="80" />
+              <input id="manut-revisao" type="number" inputmode="decimal" min="0" step="10" value="800" />
+              <span class="unit">/ ano</span>
             </div>
           </div>
 
@@ -622,7 +624,8 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="manut-freios" type="number" inputmode="decimal" min="0" step="5" value="50" />
+              <input id="manut-freios" type="number" inputmode="decimal" min="0" step="10" value="600" />
+              <span class="unit">/ ano</span>
             </div>
           </div>
 
@@ -633,7 +636,8 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
             </label>
             <div class="field-input">
               <span class="prefix">R$</span>
-              <input id="manut-outros" type="number" inputmode="decimal" min="0" step="5" value="60" />
+              <input id="manut-outros" type="number" inputmode="decimal" min="0" step="10" value="720" />
+              <span class="unit">/ ano</span>
             </div>
           </div>
 
@@ -896,8 +900,10 @@ body[data-mode="alugado"] .mode-proprio { display: none; }
       pneuDia = 0; // no aluguel, pneu/desgaste é por conta da locadora
     } else {
       fixosMes = num("prestacao") + num("seguro") + num("ipva");
-      manutMes = num("manut-oleo") + num("manut-revisao") +
-                 num("manut-freios") + num("manut-outros");
+      // itens de manutenção são informados por ANO -> rateia por mês
+      var manutAno = num("manut-oleo") + num("manut-revisao") +
+                     num("manut-freios") + num("manut-outros");
+      manutMes = manutAno / 12;
     }
 
     var combMes     = combDia * diasMes;
