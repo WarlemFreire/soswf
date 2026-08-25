@@ -9,6 +9,9 @@ import { RastreadorKm, manterTelaLigada, liberarTela } from "./geo.js";
 const estado = {
   jornada: null,
   registros: [],
+  corridas: [],
+  corridaEmCurso: null,
+  bairros: [],
   pausas: [],
   gpsAcum: null,
   posicao: null,
@@ -50,9 +53,11 @@ export async function carregarJornadaAberta() {
   const jornadas = await db.porIndice("jornadas", "status", "aberta");
   const aberta = jornadas.sort((a, b) => b.horaInicio - a.horaInicio)[0] || null;
   estado.jornada = aberta;
+  await carregarBairros();
   if (aberta) {
     estado.registros = await db.porIndice("registros", "jornadaId", aberta.id);
     estado.pausas = await db.porIndice("pausas", "jornadaId", aberta.id);
+    estado.corridas = await db.porIndice("corridas", "jornadaId", aberta.id);
     // A quilometragem de GPS acumulada morre quando o app é fechado; retomamos
     // do ultimo valor gravado para nao perder o trecho ja rodado.
     estado.gpsAcum = ultimoGpsConhecido(aberta, estado.registros);
@@ -61,6 +66,7 @@ export async function carregarJornadaAberta() {
   } else {
     estado.registros = [];
     estado.pausas = [];
+    estado.corridas = [];
     estado.gpsAcum = null;
   }
   notificar();
@@ -137,6 +143,7 @@ export async function abrirJornada({ odometroInicio, metas }) {
   estado.jornada = jornada;
   estado.registros = [];
   estado.pausas = [];
+  estado.corridas = [];
   estado.gpsAcum = 0;
   if (cfg("usarGps")) iniciarGps();
   if (cfg("manterTelaLigada")) manterTelaLigada();
@@ -251,6 +258,117 @@ export function deltaSimulado({ saldos, avulso }) {
   return simulado - atual;
 }
 
+/* --------------------------------------------------------------- corridas */
+
+/**
+ * O cronometro de corrida. Com o GPS ligado, dois toques (embarcou / desceu)
+ * entregam km e duracao sem digitacao — e, de quebra, o km de deslocamento
+ * gasto para chegar ate o passageiro, que é justamente o dado que a planilha
+ * nao tem como saber.
+ */
+export function iniciarCorrida() {
+  const jornada = jornadaAtiva();
+  if (!jornada || estado.corridaEmCurso) return null;
+
+  const anterior = M.corridasValidas(estado.corridas).at(-1);
+  estado.corridaEmCurso = {
+    inicio: Date.now(),
+    gpsInicio: estado.gpsAcum,
+    posicaoOrigem: estado.posicao,
+    // Deslocamento = o que rodou entre o fim da corrida anterior e agora.
+    kmDeslocamento:
+      anterior?.gpsFim != null && estado.gpsAcum != null
+        ? Math.max(0, estado.gpsAcum - anterior.gpsFim)
+        : null,
+    minEspera: anterior?.timestampFim ? Math.round((Date.now() - anterior.timestampFim) / M.MINUTO) : null,
+  };
+  notificar();
+  return estado.corridaEmCurso;
+}
+
+export function cancelarCorridaEmCurso() {
+  estado.corridaEmCurso = null;
+  notificar();
+}
+
+export function corridaEmCurso() {
+  return estado.corridaEmCurso;
+}
+
+/** Fecha o cronômetro e devolve os campos medidos, sem gravar ainda. */
+export function medirCorrida() {
+  const curso = estado.corridaEmCurso;
+  if (!curso) return null;
+  const fim = Date.now();
+  return {
+    ...curso,
+    fim,
+    duracaoMin: Number(Math.max(0.1, (fim - curso.inicio) / M.MINUTO).toFixed(1)),
+    km:
+      curso.gpsInicio != null && estado.gpsAcum != null
+        ? Number((estado.gpsAcum - curso.gpsInicio).toFixed(2))
+        : null,
+    gpsFim: estado.gpsAcum,
+    posicaoDestino: estado.posicao,
+  };
+}
+
+export async function salvarCorrida(dados) {
+  const jornada = jornadaAtiva();
+  const corrida = {
+    id: dados.id || novoId(),
+    jornadaId: jornada?.id ?? dados.jornadaId ?? null,
+    timestamp: dados.timestamp ?? Date.now(),
+    timestampFim: dados.timestampFim ?? null,
+    plataforma: dados.plataforma || cfg("plataformaPrincipal"),
+    valorBruto: Number(dados.valorBruto) || 0,
+    valorDinamico: Number(dados.valorDinamico) || 0,
+    km: dados.km != null ? Number(dados.km) : null,
+    duracaoMin: dados.duracaoMin != null ? Number(dados.duracaoMin) : null,
+    bairroOrigem: (dados.bairroOrigem || "").trim(),
+    bairroDestino: (dados.bairroDestino || "").trim(),
+    tipoCorrida: dados.tipoCorrida || "normal",
+    kmDeslocamento: dados.kmDeslocamento != null ? Number(dados.kmDeslocamento) : null,
+    minEspera: dados.minEspera != null ? Number(dados.minEspera) : null,
+    gpsInicio: dados.gpsInicio ?? null,
+    gpsFim: dados.gpsFim ?? null,
+    posicaoOrigem: dados.posicaoOrigem ?? null,
+    posicaoDestino: dados.posicaoDestino ?? null,
+    origem: dados.origem || "app",
+    criadoEm: Date.now(),
+  };
+
+  await db.put("corridas", corrida);
+  estado.corridas = [...estado.corridas.filter((c) => c.id !== corrida.id), corrida];
+  estado.corridaEmCurso = null;
+  await carregarBairros();
+  notificar();
+  return corrida;
+}
+
+export async function removerCorrida(id) {
+  await db.remover("corridas", id);
+  estado.corridas = estado.corridas.filter((c) => c.id !== id);
+  notificar();
+}
+
+export function corridasDoDia() {
+  return M.corridasValidas(estado.corridas);
+}
+
+/** Confere as corridas lançadas contra o saldo dos checkpoints. */
+export function conferencia() {
+  return M.conferenciaCorridas(estado.registros, estado.corridas);
+}
+
+async function carregarBairros() {
+  estado.bairros = M.bairrosUsados(await db.todos("corridas"));
+}
+
+export function bairros() {
+  return estado.bairros;
+}
+
 /* ------------------------------------------------------------------ pausa */
 
 export async function iniciarPausa(motivo) {
@@ -295,6 +413,7 @@ export async function historico() {
   const jornadas = await db.todos("jornadas");
   const registros = await db.todos("registros");
   const pausas = await db.todos("pausas");
+  const corridas = await db.todos("corridas");
 
   const porJornada = (lista, id) => lista.filter((x) => x.jornadaId === id);
 
@@ -303,22 +422,37 @@ export async function historico() {
     .map((j) => {
       const rs = M.registrosValidos(porJornada(registros, j.id));
       const ps = porJornada(pausas, j.id);
+      const cs = M.corridasValidas(porJornada(corridas, j.id));
       const fim = j.horaFim ?? Date.now();
-      const saldo = M.saldoTotal(rs);
+      const importada = j.origem === "planilha";
+      const saldo = M.brutoDoDia(rs, cs);
       const km = M.kmPercorrido(j, rs, j.gpsFim ?? null);
-      const ativo = M.msAtivo(j, ps, fim);
+
+      // Num dia importado da planilha, o intervalo entre a primeira e a última
+      // corrida nao é jornada trabalhada — usar isso como denominador de R$/h
+      // inventaria um numero e ainda contaminaria as medias de 7 e 30 dias.
+      // Só vale a hora que o motorista informou na propria planilha.
+      const ativo = importada
+        ? (j.horasAtivasInformadas > 0 ? j.horasAtivasInformadas * M.HORA : null)
+        : M.msAtivo(j, ps, fim);
       return {
         jornada: j,
         registros: rs,
         pausas: ps,
+        corridas: cs,
+        importada,
+        conferencia: M.conferenciaCorridas(rs, cs),
+        aproveitamento: M.aproveitamentoKm(cs, km),
         saldo,
         km,
         msAtivo: ativo,
-        msRua: M.msRua(j, fim),
-        msPausado: M.msPausado(ps, fim),
-        reaisPorHora: M.reaisPorHora(saldo, ativo),
+        msRua: importada ? null : M.msRua(j, fim),
+        msPausado: importada ? null : M.msPausado(ps, fim),
+        reaisPorHora: ativo == null ? null : M.reaisPorHora(saldo, ativo),
         reaisPorKm: M.reaisPorKm(saldo, km),
-        liquido: M.liquidoEstimado(saldo, km, configAtual()),
+        // Sem odômetro nao ha km, e sem km nao ha custo — melhor nao mostrar
+        // liquido do que mostrar o bruto disfarçado de liquido.
+        liquido: km > 0 ? M.liquidoEstimado(saldo, km, configAtual()) : null,
         fontes: M.saldoPorFonte(rs),
       };
     });

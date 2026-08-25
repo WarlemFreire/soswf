@@ -320,6 +320,37 @@ button { cursor: pointer; border: 0; background: none; }
 
 .acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
 .acoes:not(.acoes--coluna) .botao--gigante { font-size: 19px; padding: 12px 8px; }
+.acoes__larga { grid-column: 1 / -1; }
+.acoes__dupla { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+.botao--corrida { background: var(--nivel-otimo); color: #04161f; font-variant-numeric: tabular-nums; }
+.dados__fontes--alerta { color: var(--nivel-piso); }
+
+/* ------------------------------------------------------------ corrida */
+
+.corrida__teclado { display: contents; }
+.corrida__medidos { background: var(--fundo-cartao); border: 1px solid var(--nivel-otimo); border-radius: var(--raio); padding: 10px 12px; }
+.corrida__medidos-texto { font-size: 16px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+.corrida__bairros { display: flex; align-items: center; gap: 8px; }
+.corrida__seta { color: var(--tinta-fraca); font-size: 20px; }
+.chips--tipos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.chips--tipos .chip { padding: 10px 4px; font-size: 15px; }
+.chips--bairros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chips--bairros .chip { padding: 10px 8px; font-size: 16px; white-space: normal; }
+.chip--novo { border-color: var(--primario); color: var(--tinta); }
+
+.campo-bairro {
+  flex: 1;
+  min-height: var(--toque);
+  border-radius: var(--raio);
+  background: var(--fundo-cartao);
+  border: 2px solid var(--linha);
+  color: var(--tinta);
+  font-size: 17px;
+  font-weight: 600;
+  padding: 10px 12px;
+}
+
+.campo-bairro--vazio { color: var(--tinta-fraca); font-weight: 400; }
 .acoes--coluna { grid-template-columns: 1fr; }
 
 .botao {
@@ -623,6 +654,7 @@ button { cursor: pointer; border: 0; background: none; }
 .cartao__bruto { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .cartao__linha { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 16px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
 .cartao__aviso { margin-top: 6px; font-size: 14px; color: var(--primario); text-transform: uppercase; letter-spacing: 0.06em; }
+.cartao__aviso--importado { color: var(--tinta-fraca); }
 
 /* ------------------------------------------------------------------ resumo */
 
@@ -735,6 +767,23 @@ button { cursor: pointer; border: 0; background: none; }
   -webkit-user-select: text;
   user-select: text;
 }
+
+.secao__titulo--espacado { margin-top: 30px; }
+.previa {
+  margin: 6px 0 0;
+  padding: 12px;
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  font-size: 14px;
+  color: var(--tinta-suave);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.folha__ajuda--alerta { color: var(--nivel-piso); }
+.planilha { margin-top: 6px; display: flex; flex-direction: column; gap: 10px; }
+.planilha .resumo__linha { align-items: center; }
 
 .versao { font-size: 14px; color: var(--tinta-fraca); text-align: center; margin-top: 22px; }
 

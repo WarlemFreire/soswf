@@ -8,7 +8,12 @@ import {
 } from "./config.js";
 import * as store from "./store.js";
 import { vibrar, mostrarToast } from "./feedback.js";
-import { exportarJson, exportarCsvJornadas, exportarCsvRegistros, exportarCsvPausas, importarJson, apagarTudo } from "./export.js";
+import {
+  exportarJson, exportarCsvJornadas, exportarCsvRegistros, exportarCsvPausas,
+  exportarCsvPlanilha, exportarCsvCorridasRico, tsvPlanilha, linhaPlanilha, copiarParaAreaDeTransferencia,
+  importarJson, apagarTudo,
+} from "./export.js";
+import { db } from "./db.js";
 import { manterTelaLigada, liberarTela } from "./geo.js";
 
 export function montarConfig(raiz) {
@@ -278,6 +283,24 @@ function resumoCusto() {
   return caixa;
 }
 
+/**
+ * Prévia da primeira linha que sera colada. Colar numero como texto zera as
+ * formulas da planilha sem avisar; ver a linha antes evita a surpresa.
+ */
+function previaPlanilha() {
+  const caixa = el("pre", { class: "previa" });
+  const pintar = async () => {
+    const corridas = (await db.todos("corridas")).sort((a, b) => b.timestamp - a.timestamp);
+    caixa.textContent = corridas.length
+      ? linhaPlanilha(corridas[0]).join("  |  ")
+      : "Sem corridas registradas — nada para pré-visualizar.";
+  };
+  pintar();
+  store.assinar(pintar);
+  document.addEventListener("copiloto:tema", pintar);
+  return el("div", {}, el("p", { class: "folha__ajuda" }, "Prévia da linha mais recente:"), caixa);
+}
+
 /* -------------------------------------------------------------- dados */
 
 function secaoDados() {
@@ -313,7 +336,43 @@ function secaoDados() {
   return el(
     "section",
     { class: "config__secao" },
-    el("h2", { class: "secao__titulo" }, "Backup e dados"),
+    el("h2", { class: "secao__titulo" }, "Para a planilha"),
+    el(
+      "p",
+      { class: "folha__ajuda" },
+      "As colunas saem na ordem exata da aba Corridas (Data até Destino). " +
+        "As colunas de fórmula da planilha não são tocadas."
+    ),
+    escolha("Separador decimal da planilha", "separadorDecimal", [
+      { valor: ",", nome: "Vírgula  1.234,56" },
+      { valor: ".", nome: "Ponto  1234.56" },
+    ]),
+    previaPlanilha(),
+    el(
+      "div",
+      { class: "config__botoes" },
+      acao("Copiar todas as corridas", async () => {
+        const corridas = (await db.todos("corridas")).sort((a, b) => a.timestamp - b.timestamp);
+        if (!corridas.length) {
+          mostrarToast({ titulo: "Nenhuma corrida registrada ainda", tom: "alerta" });
+          return;
+        }
+        const deu = await copiarParaAreaDeTransferencia(tsvPlanilha(corridas));
+        mostrarToast({
+          titulo: deu ? `${corridas.length} corridas copiadas` : "Não deu para copiar",
+          detalhe: deu ? "Cole na primeira linha vazia da aba Corridas." : "Use o CSV abaixo.",
+          tom: deu ? "ok" : "alerta",
+          duracao: 6000,
+        });
+      }, "botao--primario"),
+      acao("CSV no formato da planilha", async () => {
+        const corridas = (await db.todos("corridas")).sort((a, b) => a.timestamp - b.timestamp);
+        await exportarCsvPlanilha(corridas);
+      }),
+      acao("CSV completo das corridas", exportarCsvCorridasRico)
+    ),
+
+    el("h2", { class: "secao__titulo secao__titulo--espacado" }, "Backup e dados"),
     el(
       "p",
       { class: "folha__ajuda" },

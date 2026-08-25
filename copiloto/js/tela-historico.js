@@ -24,19 +24,20 @@ export async function montarHistorico(raiz) {
 function cabecalho(fechadas) {
   const bruto = fechadas.reduce((s, r) => s + r.saldo, 0);
   const km = fechadas.reduce((s, r) => s + r.km, 0);
-  const liquido = fechadas.reduce((s, r) => s + r.liquido, 0);
+  const comLiquido = fechadas.filter((r) => r.liquido != null);
+  const liquido = comLiquido.reduce((s, r) => s + r.liquido, 0);
+  const corridas = fechadas.reduce((s, r) => s + r.corridas.length, 0);
+
+  const partes = [`R$ ${M.formatarReais(bruto, { comCentavos: false })} brutos`];
+  if (comLiquido.length) partes.push(`R$ ${M.formatarReais(liquido, { comCentavos: false })} líquidos`);
+  if (km > 0) partes.push(`${km.toFixed(0)} km`);
+  if (corridas) partes.push(`${corridas} corridas`);
 
   return el(
     "section",
     { class: "historico__topo" },
     el("div", { class: "historico__numero" }, el("strong", {}, String(fechadas.length)), " dias fechados"),
-    el(
-      "div",
-      { class: "historico__totais" },
-      `R$ ${M.formatarReais(bruto, { comCentavos: false })} brutos · ` +
-        `R$ ${M.formatarReais(liquido, { comCentavos: false })} líquidos · ` +
-        `${km.toFixed(0)} km`
-    )
+    el("div", { class: "historico__totais" }, partes.join(" · "))
   );
 }
 
@@ -63,10 +64,12 @@ function cartao(resumo) {
       { class: "cartao__linha" },
       el("span", {}, resumo.reaisPorHora == null ? "—" : `${resumo.reaisPorHora.toFixed(0)} R$/h`),
       el("span", {}, resumo.reaisPorKm == null ? "—" : `${resumo.reaisPorKm.toFixed(2).replace(".", ",")} R$/km`),
-      el("span", {}, `${resumo.km.toFixed(0)} km`),
-      el("span", {}, M.formatarDuracao(resumo.msAtivo))
+      el("span", {}, resumo.km > 0 ? `${resumo.km.toFixed(0)} km` : "sem odômetro"),
+      el("span", {}, resumo.msAtivo == null ? "—" : M.formatarDuracao(resumo.msAtivo)),
+      resumo.corridas.length ? el("span", {}, `${resumo.corridas.length} corridas`) : null
     ),
-    aberta ? el("div", { class: "cartao__aviso" }, "em andamento") : null
+    aberta ? el("div", { class: "cartao__aviso" }, "em andamento") : null,
+    resumo.importada ? el("div", { class: "cartao__aviso cartao__aviso--importado" }, "importado da planilha") : null
   );
 }
 

@@ -255,6 +255,68 @@ teste("líquido do dia típico", () => {
   assert.ok(perto(liquido, 212.6, 1), `líquido foi ${liquido}`);
 });
 
+/* -------------------------------------------------------------- corridas */
+
+const corrida = (h, valor, km, extra = {}) => ({
+  id: `c${h}`,
+  timestamp: new Date(2026, 7, 25, h, 0).getTime(),
+  plataforma: "uber",
+  valorBruto: valor,
+  valorDinamico: 0,
+  km,
+  duracaoMin: 10,
+  bairroOrigem: "Luz",
+  bairroDestino: "Centro NI",
+  ...extra,
+});
+
+teste("checkpoints mandam quando existem; corridas só quando não há checkpoint", () => {
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 309 } }];
+  const corridas = [corrida(20, 100, 10), corrida(21, 90, 12)];
+  // Com checkpoint, o total da plataforma é a verdade — somar os dois contaria
+  // o mesmo dinheiro duas vezes.
+  assert.equal(M.brutoDoDia(registros, corridas), 309);
+  assert.equal(M.brutoDoDia([], corridas), 190);
+  assert.equal(M.brutoDoDia([], []), 0);
+});
+
+teste("conferência acusa corrida faltando no lançamento", () => {
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 300 } }];
+  assert.equal(M.conferenciaCorridas(registros, [corrida(20, 290, 10)]).fecha, true, "10 de folga passa");
+  const falta = M.conferenciaCorridas(registros, [corrida(20, 200, 10)]);
+  assert.equal(falta.fecha, false);
+  assert.equal(falta.diferenca, 100);
+  assert.equal(M.conferenciaCorridas([], [corrida(20, 200, 10)]), null, "sem checkpoint não há o que conferir");
+});
+
+teste("R$/km real inclui o deslocamento até o passageiro", () => {
+  // R$20 numa corrida de 4 km parece 5,00/km — mas foram 3 km só para chegar.
+  const c = corrida(20, 20, 4, { kmDeslocamento: 3 });
+  assert.ok(perto(20 / 4, 5.0));
+  assert.ok(perto(M.reaisPorKmReal(c), 20 / 7), "deve considerar 7 km, não 4");
+  assert.equal(M.reaisPorKmReal(corrida(20, 20, 0, { kmDeslocamento: 0 })), null);
+});
+
+teste("aproveitamento de km compara km pago com km de odômetro", () => {
+  const cs = [corrida(20, 100, 30), corrida(21, 80, 40)];
+  const a = M.aproveitamentoKm(cs, 200);
+  assert.equal(a.kmPago, 70);
+  assert.ok(perto(a.fracao, 0.35));
+  assert.equal(M.aproveitamentoKm(cs, 0).fracao, null);
+});
+
+teste("bairros usados saem por frequência, sem vazios nem '?'", () => {
+  const cs = [
+    corrida(20, 10, 2),
+    corrida(21, 10, 2, { bairroOrigem: "Luz", bairroDestino: "Queimados" }),
+    corrida(22, 10, 2, { bairroOrigem: "?", bairroDestino: "" }),
+  ];
+  const lista = M.bairrosUsados(cs);
+  assert.equal(lista[0], "Luz", "Luz aparece 2x, vem primeiro");
+  assert.ok(lista.includes("Queimados"));
+  assert.ok(!lista.includes("?") && !lista.includes(""));
+});
+
 /* ----------------------------------------------------------- formatacao */
 
 teste("formatação", () => {

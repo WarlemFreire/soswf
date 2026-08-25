@@ -1,4 +1,4 @@
-# Copiloto — Fase 1
+# Copiloto
 
 Assistente de jornada para motorista de aplicativo. Roda no navegador, instala
 como app (PWA), funciona 100% offline e não manda dado nenhum para lugar nenhum.
@@ -6,7 +6,7 @@ como app (PWA), funciona 100% offline e não manda dado nenhum para lugar nenhum
 **Endereço:** `/copiloto/` no mesmo site. Sem link no menu — só quem sabe o
 endereço chega.
 
-## O que a Fase 1 faz
+## O que o app faz
 
 - Abrir e fechar jornada (odômetro do painel só duas vezes por dia)
 - Checkpoint parcial de saldo: Uber, 99, inDrive e avulsos (frete/particular)
@@ -17,10 +17,57 @@ endereço chega.
 - Medição de km por GPS, ancorada no odômetro
 - Modo noturno automático, modo dirigindo, wake lock, vibração e leitura em voz alta
 - Desfazer de 8 segundos em todo registro — o app nunca pergunta "tem certeza?"
-- Backup em JSON e exportação em CSV (dias, registros e pausas)
+- Registro granular de corrida, com cronômetro por GPS que mede km, duração,
+  deslocamento até o passageiro e espera desde a corrida anterior
+- Saída no formato exato da planilha de histórico (ver abaixo)
+- Backup em JSON e exportação em CSV (dias, registros, pausas e corridas)
 
-Fases seguintes: abastecimento com consumo real (2), alertas e contexto (3),
-dashboards de análise (4).
+Fases seguintes: abastecimento com consumo real, alertas determinísticos,
+contexto (clima/trânsito) e os dashboards de análise.
+
+## A planilha
+
+O app alimenta a planilha `Historico_Corridas_Uber1.xlsx` sem substituí-la.
+
+**Copiar as corridas** (no fechamento do dia ou em Ajustes) põe na área de
+transferência linhas tabuladas nas colunas **A–I da aba Corridas**:
+
+```
+Data · Hora · Plataforma · Valor · Dinâmico · KM · Tempo (min) · Origem · Destino
+```
+
+Cola-se na primeira linha vazia, na coluna Data. As colunas J–M já têm fórmula
+até a linha 1000 e se recalculam sozinhas, assim como o Resumo Diário e o
+Dashboard — por isso a exportação para em Destino, para não sobrescrever nada.
+O separador decimal é configurável (vírgula por padrão), com prévia da linha
+antes de copiar: número colado como texto zera as fórmulas sem avisar.
+
+**As Horas Ativas** do Resumo Diário aparecem no fechamento com um botão de
+copiar — o app mede esse número descontando as pausas, coisa que a planilha
+não tem como saber.
+
+O caminho é copiar/colar em vez de baixar arquivo porque baixar um CSV e
+importar no Sheets pelo celular é sofrido; colar tabulado divide as colunas
+sozinho e deixa a planilha interpretar os números no idioma dela.
+
+### O que o app registra e a planilha não tem
+
+| campo | por quê |
+|---|---|
+| KM de deslocamento | quanto rodou só para buscar o passageiro |
+| R$/km real | valor ÷ (km da corrida + deslocamento) — responde de verdade se compensou |
+| Espera (min) | tempo ocioso desde a corrida anterior |
+| Custo e líquido por corrida | usando o custo por km calibrado |
+| Coordenada de origem | análise por zona sem digitar bairro |
+
+Sai tudo em **CSV completo das corridas**, nos Ajustes.
+
+### Checkpoints e corridas juntos
+
+As duas coisas convivem, mas nunca somam: quando existem checkpoints de saldo,
+eles mandam — vêm do total da própria plataforma. As corridas só respondem pelo
+bruto do dia quando não há checkpoint nenhum (caso do histórico importado).
+Quando os dois existem, o app compara e avisa se faltou lançar corrida.
 
 ## Os números que o app usa
 
@@ -112,5 +159,10 @@ copiloto/test/check.sh                # sintaxe dos módulos
 - **GPS em segundo plano.** Com a tela apagada o navegador suspende a
   amostragem. O wake lock cobre a jornada ativa; fora disso o km avança quando
   um odômetro é informado.
-- **O líquido é estimado**, calculado pelo custo por km configurado. A Fase 2
-  troca a estimativa pelo consumo real medido entre abastecimentos.
+- **O líquido é estimado**, calculado pelo custo por km configurado. A fase
+  seguinte troca a estimativa pelo consumo real medido entre abastecimentos.
+- **Dias importados da planilha não têm odômetro nem horas trabalhadas.** Eles
+  ficam de fora das médias de R$/km, e só entram na média de R$/hora quando a
+  coluna Horas Ativas estava preenchida. É de propósito: o intervalo entre a
+  primeira e a última corrida do dia não é jornada trabalhada, e usar isso como
+  denominador inventaria um número.

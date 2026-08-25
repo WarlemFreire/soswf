@@ -66,6 +66,8 @@ export const CONFIG_PADRAO = {
   kmPorLitro: 7,
   custoDesgasteKm: 0.25,
 
+  separadorDecimal: ",",
+
   usarGps: true,
   manterTelaLigada: true,
   vibrar: true,
