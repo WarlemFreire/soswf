@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+  <meta charset="UTF-8" />
+  <title>Copiloto</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="description" content="Assistente de jornada para motorista de aplicativo. Funciona offline." />
+  <meta name="theme-color" content="#0b0f14" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icone-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="icons/icone-192.png" />
+  <link rel="stylesheet" href="css/copiloto.css" />
+</head>
+<body>
+
+  <div class="app">
+    <main class="conteudo">
+      <section id="tela-agora" class="tela tela--ativa" aria-label="Agora"></section>
+      <section id="tela-historico" class="tela" aria-label="Histórico"></section>
+      <section id="tela-analise" class="tela" aria-label="Análise"></section>
+      <section id="tela-config" class="tela" aria-label="Configurações"></section>
+    </main>
+
+    <nav class="rodape" aria-label="Navegação principal">
+      <button type="button" class="rodape__item rodape__item--ativo" data-tela="agora">
+        <span aria-hidden="true">📍</span><span>Agora</span>
+      </button>
+      <button type="button" class="rodape__item" data-tela="historico">
+        <span aria-hidden="true">📅</span><span>Histórico</span>
+      </button>
+      <button type="button" class="rodape__item" data-tela="analise">
+        <span aria-hidden="true">📊</span><span>Análise</span>
+      </button>
+      <button type="button" class="rodape__item" data-tela="config">
+        <span aria-hidden="true">⚙️</span><span>Ajustes</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="toast-area" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
