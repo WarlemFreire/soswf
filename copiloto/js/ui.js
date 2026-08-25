@@ -1,6 +1,8 @@
 // ui.js — helpers de DOM. Nada de framework: o app é pequeno, offline e o repo
 // nao tem build step.
 
+import { fecharToast } from "./feedback.js";
+
 export function el(tag, props = {}, ...filhos) {
   const node = document.createElement(tag);
   for (const [chave, valor] of Object.entries(props)) {
@@ -26,6 +28,7 @@ export function limpar(node) {
   return node;
 }
 
+
 const pilhaDeFolhas = [];
 
 /**
@@ -36,6 +39,7 @@ const pilhaDeFolhas = [];
  * ja digitados, em vez de ser destruida.
  */
 export function abrirFolha({ titulo, conteudo, rodape, classe = "", aoFechar }) {
+  fecharToast();
   pilhaDeFolhas.at(-1)?.fundo.classList.add("folha-fundo--atras");
 
   const corpo = el("div", { class: "folha__corpo" });

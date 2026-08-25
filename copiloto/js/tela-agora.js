@@ -7,6 +7,7 @@ import * as store from "./store.js";
 import { cfg, configAtual, salvarConfig, MOTIVOS_PAUSA, PLATAFORMAS } from "./config.js";
 import { vibrar, falar } from "./feedback.js";
 import { abrirRegistro } from "./tela-registro.js";
+import { abrirCorrida, iniciarCronometro } from "./tela-corrida.js";
 import { abrirFechamento } from "./tela-fechamento.js";
 import { Teclado } from "./keypad.js";
 
@@ -302,6 +303,32 @@ function blocoAcoes(pausa, reduzido) {
   );
   if (reduzido) return el("div", { class: "acoes" }, registrar);
 
+  const emCurso = store.corridaEmCurso();
+  const corrida = emCurso
+    ? el(
+        "button",
+        {
+          type: "button",
+          class: "botao botao--corrida botao--gigante acoes__larga",
+          onClick: () => abrirCorrida(),
+        },
+        `■ FIM DA CORRIDA · ${M.formatarDuracao(Date.now() - emCurso.inicio)}`
+      )
+    : el(
+        "div",
+        { class: "acoes__larga acoes__dupla" },
+        el(
+          "button",
+          { type: "button", class: "botao botao--secundario botao--gigante", onClick: iniciarCronometro },
+          "▶ INICIAR CORRIDA"
+        ),
+        el(
+          "button",
+          { type: "button", class: "botao botao--secundario botao--gigante", onClick: () => abrirCorrida() },
+          "✎ LANÇAR"
+        )
+      );
+
   const pausar = pausa
     ? el(
         "button",
@@ -322,7 +349,7 @@ function blocoAcoes(pausa, reduzido) {
         "⏸ PAUSAR"
       );
 
-  return el("div", { class: "acoes" }, registrar, pausar);
+  return el("div", { class: "acoes" }, registrar, pausar, corrida);
 }
 
 function escolherPausa() {
@@ -338,6 +365,31 @@ function escolherPausa() {
     },
   });
   folha = abrirFolha({ titulo: "Pausa — por quê?", conteudo: [grade] });
+}
+
+/**
+ * Quantas corridas foram lancadas e se elas batem com o saldo. Uma diferenca
+ * grande quase sempre é corrida esquecida — melhor descobrir hoje do que na
+ * hora de fechar a planilha.
+ */
+function linhaCorridas() {
+  const corridas = store.corridasDoDia();
+  if (!corridas.length) return null;
+  const conferencia = store.conferencia();
+  const somado = M.somaCorridas(corridas);
+
+  const texto = `${corridas.length} corrida${corridas.length > 1 ? "s" : ""} lançada${
+    corridas.length > 1 ? "s" : ""
+  } · R$ ${M.formatarReais(somado, { comCentavos: false })}`;
+
+  if (!conferencia || conferencia.fecha) {
+    return el("div", { class: "dados__fontes" }, texto);
+  }
+  return el(
+    "div",
+    { class: "dados__fontes dados__fontes--alerta" },
+    `${texto} · faltam R$ ${M.formatarReais(Math.abs(conferencia.diferenca), { comCentavos: false })} para bater com o saldo`
+  );
 }
 
 function rodapeDados(m, config) {
@@ -370,6 +422,7 @@ function rodapeDados(m, config) {
       el("span", { class: "dados__gps" }, gps)
     ),
     fontes.length ? el("div", { class: "dados__fontes" }, fontes.join(" · ")) : null,
+    linhaCorridas(),
     el(
       "div",
       { class: "dados__botoes" },

@@ -199,6 +199,77 @@ export function metricasAoVivo({ jornada, registros, pausas, gpsAcum, config, ag
   };
 }
 
+/* ---------------------------------------------------------------- corridas */
+
+export function corridasValidas(corridas) {
+  return [...(corridas || [])].sort((a, b) => a.timestamp - b.timestamp);
+}
+
+export function somaCorridas(corridas) {
+  return corridasValidas(corridas).reduce((soma, c) => soma + (Number(c.valorBruto) || 0), 0);
+}
+
+/**
+ * Bruto do dia. Os checkpoints mandam quando existem — eles vêm do total da
+ * propria plataforma, entao sao a verdade. As corridas so respondem pelo dia
+ * quando nao ha checkpoint nenhum (caso do historico importado da planilha).
+ * Somar os dois contaria o mesmo dinheiro duas vezes.
+ */
+export function brutoDoDia(registros, corridas) {
+  const validos = registrosValidos(registros);
+  if (validos.length) return saldoTotal(validos);
+  return somaCorridas(corridas);
+}
+
+/**
+ * Confere o lançamento de corridas contra o saldo dos checkpoints. Uma
+ * diferença grande normalmente significa corrida esquecida no lançamento.
+ */
+export function conferenciaCorridas(registros, corridas) {
+  const validos = registrosValidos(registros);
+  if (!validos.length || !(corridas || []).length) return null;
+  const saldo = saldoTotal(validos);
+  const somado = somaCorridas(corridas);
+  const diferenca = saldo - somado;
+  return {
+    saldo,
+    somado,
+    diferenca,
+    // 5% ou R$ 10 de folga cobrem gorjeta e arredondamento.
+    fecha: Math.abs(diferenca) <= Math.max(10, saldo * 0.05),
+  };
+}
+
+/** Quilometragem paga (dentro de corrida) sobre a quilometragem total rodada. */
+export function aproveitamentoKm(corridas, kmJornada) {
+  const kmPago = corridasValidas(corridas).reduce((s, c) => s + (Number(c.km) || 0), 0);
+  if (!(kmJornada > 0)) return { kmPago, kmTotal: kmJornada, fracao: null };
+  return { kmPago, kmTotal: kmJornada, fracao: kmPago / kmJornada };
+}
+
+/**
+ * R$/km real da corrida: inclui o deslocamento feito para buscar o passageiro.
+ * É o número que a planilha nao consegue calcular, e o que de fato responde se
+ * a corrida valeu a pena.
+ */
+export function reaisPorKmReal(corrida) {
+  const km = (Number(corrida.km) || 0) + (Number(corrida.kmDeslocamento) || 0);
+  return km > 0 ? corrida.valorBruto / km : null;
+}
+
+/** Lista de bairros já usados, mais frequentes primeiro (para o autocomplete). */
+export function bairrosUsados(corridas) {
+  const contagem = new Map();
+  for (const c of corridas || []) {
+    for (const bairro of [c.bairroOrigem, c.bairroDestino]) {
+      const nome = (bairro || "").trim();
+      if (!nome || nome === "?") continue;
+      contagem.set(nome, (contagem.get(nome) || 0) + 1);
+    }
+  }
+  return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([nome]) => nome);
+}
+
 /* ------------------------------------------------------------------ trecho */
 
 /**

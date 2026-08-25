@@ -2,7 +2,7 @@
 // unico caminho de saida é este, e é o motorista quem aperta.
 
 import { db, NOMES_STORES } from "./db.js";
-import { configAtual, aplicarConfig } from "./config.js";
+import { cfg, configAtual, aplicarConfig } from "./config.js";
 import * as M from "./metrics.js";
 
 const VERSAO_BACKUP = 1;
@@ -48,6 +48,13 @@ function csv(linhas) {
 }
 
 const numeroBr = (v, casas = 2) => (v == null ? "" : v.toFixed(casas).replace(".", ","));
+
+/** Número para colar na planilha, no separador que ela espera. */
+const numeroPlanilha = (v, casas = 2) => {
+  if (v == null) return "";
+  const fixo = v.toFixed(casas);
+  return cfg("separadorDecimal") === "." ? fixo : fixo.replace(".", ",");
+};
 
 export async function exportarCsvJornadas() {
   const jornadas = await db.todos("jornadas");
@@ -158,6 +165,122 @@ export async function exportarCsvPausas() {
     ]);
   }
   baixar(`copiloto-pausas-${carimbo()}.csv`, csv(linhas), "text/csv");
+  return linhas.length - 1;
+}
+
+/* --------------------------------------------------- planilha do motorista */
+
+// Colunas A–I da aba "Corridas". As colunas J–M (R$/km, R$/min, dia da semana,
+// hora) ja tem formula na planilha ate a linha 1000 e se preenchem sozinhas —
+// por isso paramos em Destino. Mexer nelas apagaria as formulas.
+const COLUNAS_PLANILHA = [
+  "Data", "Hora", "Plataforma", "Valor (R$)", "Dinâmico (R$)",
+  "KM", "Tempo (min)", "Origem", "Destino",
+];
+
+const NOME_PLATAFORMA = { uber: "Uber", "99": "99", indrive: "inDrive" };
+
+function dataIso(quando) {
+  const d = new Date(quando);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function horaHhMm(quando) {
+  const d = new Date(quando);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Uma corrida no formato exato de uma linha da aba "Corridas". */
+export function linhaPlanilha(corrida) {
+  return [
+    dataIso(corrida.timestamp),
+    horaHhMm(corrida.timestamp),
+    NOME_PLATAFORMA[corrida.plataforma] || corrida.plataforma,
+    numeroPlanilha(corrida.valorBruto),
+    numeroPlanilha(corrida.valorDinamico || 0),
+    numeroPlanilha(corrida.km, 2),
+    numeroPlanilha(corrida.duracaoMin, 1),
+    corrida.bairroOrigem || "",
+    corrida.bairroDestino || "",
+  ];
+}
+
+/**
+ * TSV para a área de transferência. Colar tabulado numa planilha divide as
+ * colunas certinho e deixa o Sheets/Excel interpretar os números no idioma
+ * dele — no celular isso é muito menos sofrido que baixar arquivo e importar.
+ */
+export function tsvPlanilha(corridas, { comCabecalho = false } = {}) {
+  const linhas = corridas.map(linhaPlanilha);
+  if (comCabecalho) linhas.unshift(COLUNAS_PLANILHA);
+  return linhas.map((l) => l.join("\t")).join("\n");
+}
+
+export async function copiarParaAreaDeTransferencia(texto) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    return true;
+  } catch {
+    // Alguns navegadores só liberam a área de transferência via seleção.
+    const campo = document.createElement("textarea");
+    campo.value = texto;
+    campo.setAttribute("readonly", "");
+    campo.style.cssText = "position:fixed;top:-1000px;opacity:0";
+    document.body.append(campo);
+    campo.select();
+    const deu = document.execCommand?.("copy");
+    campo.remove();
+    return !!deu;
+  }
+}
+
+export async function exportarCsvPlanilha(corridas) {
+  const linhas = [COLUNAS_PLANILHA, ...corridas.map(linhaPlanilha)];
+  baixar(`copiloto-corridas-${carimbo()}.csv`, csv(linhas), "text/csv");
+  return linhas.length - 1;
+}
+
+/**
+ * Exportação rica: tudo o que a planilha tem, mais o que só o app sabe —
+ * deslocamento até o passageiro, espera, R$/km real e custo por corrida.
+ */
+export async function exportarCsvCorridasRico() {
+  const corridas = await db.todos("corridas");
+  const config = configAtual();
+  const custoKm = M.custosEstimados(1, config).totalKm;
+
+  const linhas = [
+    [
+      ...COLUNAS_PLANILHA,
+      "R$/km corrida", "KM deslocamento", "R$/km real", "Espera (min)",
+      "R$/h em corrida", "Tipo", "Custo estimado", "Líquido estimado",
+      "Dia semana", "Hora", "Lat origem", "Lon origem", "Origem do dado",
+    ],
+  ];
+
+  for (const c of corridas.sort((a, b) => a.timestamp - b.timestamp)) {
+    const kmReal = (c.km || 0) + (c.kmDeslocamento || 0);
+    const custo = kmReal * custoKm;
+    linhas.push([
+      ...linhaPlanilha(c),
+      numeroBr(c.km > 0 ? c.valorBruto / c.km : null),
+      numeroBr(c.kmDeslocamento, 2),
+      numeroBr(M.reaisPorKmReal(c)),
+      c.minEspera != null ? String(c.minEspera) : "",
+      numeroBr(c.duracaoMin > 0 ? (c.valorBruto / c.duracaoMin) * 60 : null),
+      c.tipoCorrida || "",
+      numeroBr(kmReal > 0 ? custo : null),
+      numeroBr(kmReal > 0 ? c.valorBruto - custo : null),
+      new Date(c.timestamp).toLocaleDateString("pt-BR", { weekday: "short" }),
+      String(new Date(c.timestamp).getHours()),
+      c.posicaoOrigem?.lat ?? "",
+      c.posicaoOrigem?.lon ?? "",
+      c.origem || "app",
+    ]);
+  }
+
+  baixar(`copiloto-corridas-rico-${carimbo()}.csv`, csv(linhas), "text/csv");
   return linhas.length - 1;
 }
 

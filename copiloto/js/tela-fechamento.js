@@ -6,7 +6,8 @@ import { Teclado } from "./keypad.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
 import { configAtual } from "./config.js";
-import { vibrar, falar } from "./feedback.js";
+import { vibrar, falar, mostrarToast } from "./feedback.js";
+import { tsvPlanilha, copiarParaAreaDeTransferencia } from "./export.js";
 
 export function abrirFechamento() {
   const jornada = store.jornadaAtiva();
@@ -105,7 +106,7 @@ export async function mostrarResumo(jornada) {
       extra || null
     );
 
-  const pct = (ms) => (atual.msRua > 0 ? `${Math.round((ms / atual.msRua) * 100)}%` : "—");
+  const pct = (ms) => (atual.msRua > 0 && ms != null ? `${Math.round((ms / atual.msRua) * 100)}%` : "—");
 
   falar(
     `Dia fechado. Bruto ${Math.round(atual.saldo)} reais, ` +
@@ -119,8 +120,8 @@ export async function mostrarResumo(jornada) {
       el(
         "div",
         { class: "resumo__destaque" },
-        el("div", { class: "resumo__destaque-rotulo" }, "Líquido estimado"),
-        el("div", { class: "resumo__destaque-valor" }, `R$ ${M.formatarReais(atual.liquido)}`),
+        el("div", { class: "resumo__destaque-rotulo" }, atual.liquido == null ? "Bruto do dia" : "Líquido estimado"),
+        el("div", { class: "resumo__destaque-valor" }, `R$ ${M.formatarReais(atual.liquido ?? atual.saldo)}`),
         el("div", { class: "resumo__destaque-nota" }, `bruto R$ ${M.formatarReais(atual.saldo)}`)
       ),
 
@@ -136,9 +137,9 @@ export async function mostrarResumo(jornada) {
       linha("Total", `R$ ${M.formatarReais(custos.total)}`),
 
       el("h3", { class: "resumo__secao" }, "Tempo e distância"),
-      linha("Tempo de rua", M.formatarDuracao(atual.msRua)),
-      linha("Tempo ativo", M.formatarDuracao(atual.msAtivo), el("span", { class: "comparacao" }, pct(atual.msAtivo))),
-      linha("Tempo parado", M.formatarDuracao(atual.msPausado), el("span", { class: "comparacao" }, pct(atual.msPausado))),
+      linha("Tempo de rua", atual.msRua == null ? "—" : M.formatarDuracao(atual.msRua)),
+      linha("Tempo ativo", atual.msAtivo == null ? "—" : M.formatarDuracao(atual.msAtivo), el("span", { class: "comparacao" }, pct(atual.msAtivo))),
+      linha("Tempo parado", atual.msPausado == null ? "—" : M.formatarDuracao(atual.msPausado), el("span", { class: "comparacao" }, pct(atual.msPausado))),
       linha("Distância", `${atual.km.toFixed(1).replace(".", ",")} km`),
 
       el("h3", { class: "resumo__secao" }, "Rendimento"),
@@ -146,7 +147,75 @@ export async function mostrarResumo(jornada) {
       linha("R$/km", atual.reaisPorKm == null ? "—" : M.formatarReais(atual.reaisPorKm), comparar("reaisPorKm", atual.reaisPorKm)),
       linha("Bruto", `R$ ${M.formatarReais(atual.saldo)}`, comparar("saldo", atual.saldo, 0)),
 
+      blocoPlanilha(atual),
+
       jornada.observacoes ? el("p", { class: "resumo__obs" }, jornada.observacoes) : null,
     ],
   });
+}
+
+/**
+ * O que levar deste dia para a planilha. Copiar/colar tabulado é o caminho
+ * menos sofrido no celular — baixar CSV e importar no Sheets pelo telefone é
+ * um martírio.
+ */
+function blocoPlanilha(resumo) {
+  const corridas = resumo.corridas || [];
+  const horas = resumo.msAtivo == null ? "—" : (resumo.msAtivo / M.HORA).toFixed(1).replace(".", ",");
+
+  const copiar = async (texto, oQue) => {
+    const deu = await copiarParaAreaDeTransferencia(texto);
+    vibrar(deu ? 40 : [20, 60, 20]);
+    mostrarToast({
+      titulo: deu ? `${oQue} copiado` : "Não deu para copiar",
+      detalhe: deu ? "Cole na primeira linha vazia da aba Corridas." : "Use a exportação em CSV nos Ajustes.",
+      tom: deu ? "ok" : "alerta",
+      duracao: 6000,
+    });
+  };
+
+  const aviso =
+    resumo.conferencia && !resumo.conferencia.fecha
+      ? el(
+          "p",
+          { class: "folha__ajuda folha__ajuda--alerta" },
+          `As corridas lançadas somam R$ ${M.formatarReais(resumo.conferencia.somado)}, ` +
+            `mas o saldo do dia deu R$ ${M.formatarReais(resumo.conferencia.saldo)}. ` +
+            "Provavelmente há corrida faltando no lançamento."
+        )
+      : null;
+
+  return el(
+    "div",
+    { class: "planilha" },
+    el("h3", { class: "resumo__secao" }, "Para a planilha"),
+    aviso,
+    el(
+      "div",
+      { class: "resumo__linha" },
+      el("span", { class: "resumo__rotulo" }, "Horas ativas"),
+      el("span", { class: "resumo__valor" }, horas),
+      el(
+        "button",
+        { type: "button", class: "chip chip--pequeno", onClick: () => copiar(horas, "Valor") },
+        "copiar"
+      )
+    ),
+    corridas.length
+      ? el(
+          "button",
+          {
+            type: "button",
+            class: "botao botao--secundario",
+            onClick: () => copiar(tsvPlanilha(corridas), `${corridas.length} corridas`),
+          },
+          `Copiar ${corridas.length} corrida${corridas.length > 1 ? "s" : ""} do dia`
+        )
+      : el("p", { class: "folha__ajuda" }, "Nenhuma corrida lançada hoje — nada a levar para a aba Corridas."),
+    el(
+      "p",
+      { class: "folha__ajuda" },
+      "Cole na primeira linha vazia da aba Corridas (coluna Data). As colunas verdes e o Dashboard se recalculam sozinhos."
+    )
+  );
 }
