@@ -83,7 +83,7 @@ export function abrirCorrida({ medida = null } = {}) {
   );
 
   const folha = abrirFolha({
-    titulo: medido ? "Corrida — medida pelo GPS" : "Corrida detalhada",
+    titulo: medido ? "Corrida — cronometrada" : "Corrida detalhada",
     classe: "folha--alta",
     conteudo: [
       chips(PLATAFORMAS, {
@@ -174,14 +174,11 @@ export function abrirCorrida({ medida = null } = {}) {
     }
     medidos.classList.remove("oculto");
     const itens = [];
-    if (medido.km != null) itens.push(`${medido.km.toFixed(2).replace(".", ",")} km medidos`);
     if (medido.duracaoMin != null) {
-      itens.push(`${String(medido.duracaoMin).replace(".", ",")} min`);
-    }
-    if (medido.kmDeslocamento != null) {
-      itens.push(`${medido.kmDeslocamento.toFixed(2).replace(".", ",")} km até o passageiro`);
+      itens.push(`${String(medido.duracaoMin).replace(".", ",")} min cronometrados`);
     }
     if (medido.minEspera != null) itens.push(`${medido.minEspera} min de espera antes`);
+    itens.push("o KM vem da tela da plataforma");
     medidos.append(el("div", { class: "corrida__medidos-texto" }, itens.join(" · ")));
   }
 
@@ -217,8 +214,6 @@ export function abrirCorrida({ medida = null } = {}) {
       tipoCorrida: tipo,
       kmDeslocamento: medido?.kmDeslocamento ?? null,
       minEspera: medido?.minEspera ?? null,
-      gpsInicio: medido?.gpsInicio ?? null,
-      gpsFim: medido?.gpsFim ?? null,
       posicaoOrigem: medido?.posicaoOrigem ?? null,
       posicaoDestino: medido?.posicaoDestino ?? null,
     });

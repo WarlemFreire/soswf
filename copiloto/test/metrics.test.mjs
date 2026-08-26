@@ -104,28 +104,25 @@ teste("msPausadoEntre recorta a sobreposição com o trecho", () => {
 
 /* --------------------------------------------------------------------- km */
 
-teste("sem GPS, o km só avança com odômetro digitado", () => {
+teste("km só avança com odômetro digitado", () => {
   const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 80 }, odometro: 100042 }];
-  assert.equal(M.kmPercorrido(jornada, registros, null), 42);
+  assert.equal(M.kmPercorrido(jornada, registros), 42);
+  assert.equal(M.kmPercorrido(jornada, []), 0, "sem âncora, sem km — nunca um número inventado");
 });
 
-teste("GPS soma a partir da última âncora de odômetro", () => {
-  const registros = [
-    { id: "a", timestamp: t0 + H, saldos: { uber: 80 }, odometro: 100042, gpsAcum: 40 },
-  ];
-  // GPS marcou 40 km na ancora e 55 agora: 42 confirmados + 15 desde entao
-  assert.equal(M.kmPercorrido(jornada, registros, 55), 57);
-});
-
-teste("odômetro final fecha o km e ignora o GPS", () => {
+teste("odômetro final fecha o km do dia", () => {
   const fechada = { ...jornada, odometroFim: 100200, horaFim: t0 + 10 * H };
-  assert.equal(M.kmPercorrido(fechada, [], 999), 200);
+  assert.equal(M.kmPercorrido(fechada, []), 200);
 });
 
-teste("fator de correção do GPS mede o escorregamento", () => {
-  const fechada = { ...jornada, odometroFim: 100200, gpsInicio: 0, gpsFim: 194 };
-  assert.ok(perto(M.fatorCorrecaoGps(fechada), 200 / 194, 0.001));
-  assert.equal(M.fatorCorrecaoGps(jornada), null, "jornada aberta não tem fator");
+teste("kmAte recorta o km até um instante", () => {
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: {}, odometro: 100030 },
+    { id: "b", timestamp: t0 + 2 * H, saldos: {}, odometro: 100055 },
+  ];
+  assert.equal(M.kmAte(jornada, registros, t0 + H), 30);
+  assert.equal(M.kmAte(jornada, registros, t0 + 2 * H), 55);
+  assert.equal(M.ancorasOdometro(registros), 2);
 });
 
 /* -------------------------------------------------------------- metricas */
@@ -255,6 +252,167 @@ teste("líquido do dia típico", () => {
   assert.ok(perto(liquido, 212.6, 1), `líquido foi ${liquido}`);
 });
 
+/* --------------------------------------------- linha de base da jornada */
+
+teste("linha de base separa o ganho da jornada do saldo do dia", () => {
+  // Jornada da manhã fechou com R$180 na Uber. A tarde abre com essa base:
+  // a plataforma continua mostrando o acumulado do dia.
+  const inicial = { uber: 180 };
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 240 } },
+    { id: "b", timestamp: t0 + 2 * H, saldos: { uber: 300 } },
+  ];
+  assert.equal(M.ganhoJornada(registros, inicial), 120, "a tarde rendeu 120, não 300");
+  assert.equal(M.saldoTotal(registros, inicial), 300, "o saldo do dia continua sendo 300");
+  assert.equal(M.ganhoJornada(registros, {}), 300, "sem base, ganho e saldo coincidem");
+});
+
+teste("plataforma sem checkpoint na jornada mantém a base e não gera ganho", () => {
+  const inicial = { uber: 180, "99": 40 };
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 240 } }];
+  const fontes = M.saldoPorFonte(registros, inicial);
+  assert.equal(fontes["99"].valor, 40);
+  assert.equal(M.ganhoJornada(registros, inicial), 60, "só a Uber rendeu");
+});
+
+teste("avulso entra inteiro no ganho, não tem linha de base", () => {
+  const registros = [{ id: "a", timestamp: t0 + H, avulso: { valor: 80, tipo: "frete" } }];
+  assert.equal(M.ganhoJornada(registros, { uber: 180 }), 80);
+});
+
+/* ------------------------------------------------------------------ bloco */
+
+const JANELA = 2 * H;
+
+teste("bloco mede a janela recente, não o acumulado do dia", () => {
+  // Começo fraco (R$20 na primeira hora) e um pedaço forte depois.
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 20 } },
+    { id: "b", timestamp: t0 + 3 * H, saldos: { uber: 40 } },
+    { id: "c", timestamp: t0 + 5 * H, saldos: { uber: 200 } },
+  ];
+  const b = M.bloco({ jornada, registros, pausas: [], duracaoMs: JANELA, agora: t0 + 5 * H });
+  assert.equal(b.delta, 160, "só o que entrou na janela");
+  assert.equal(b.msAtivo, 2 * H);
+  assert.ok(perto(b.reaisPorHora, 80), `bloco deu ${b.reaisPorHora}`);
+  // O dia inteiro daria 200/5h = 40 R$/h. O bloco mostra o dobro.
+  assert.ok(perto(M.reaisPorHora(200, 5 * H), 40));
+  assert.equal(b.confiavel, true);
+});
+
+teste("bloco também protege do contrário: janela pior que o dia", () => {
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 200 } },
+    { id: "b", timestamp: t0 + 3 * H, saldos: { uber: 220 } },
+    { id: "c", timestamp: t0 + 5 * H, saldos: { uber: 230 } },
+  ];
+  const b = M.bloco({ jornada, registros, pausas: [], duracaoMs: JANELA, agora: t0 + 5 * H });
+  assert.ok(perto(b.reaisPorHora, 5), `bloco deu ${b.reaisPorHora}`);
+  assert.ok(perto(M.reaisPorHora(230, 5 * H), 46), "o dia acumulado mostraria 46 R$/h");
+  assert.ok(b.reaisPorHora < 10, "o bloco denuncia o esfriamento que a média do dia esconde");
+});
+
+teste("bloco não existe sem registro dentro da janela", () => {
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 100 } }];
+  assert.equal(M.bloco({ jornada, registros, pausas: [], duracaoMs: JANELA, agora: t0 + 6 * H }), null);
+  assert.equal(M.bloco({ jornada, registros: [], pausas: [], duracaoMs: JANELA, agora: t0 + H }), null);
+});
+
+teste("janela magra não vira número, vira travessão", () => {
+  // Nos primeiros minutos da jornada a janela ainda não tem tempo medido
+  // suficiente; um R$/h daí seria espetacular e falso.
+  const registros = [{ id: "a", timestamp: t0 + 12 * M.MINUTO, saldos: { uber: 50 } }];
+  const b = M.bloco({ jornada, registros, pausas: [], duracaoMs: JANELA, agora: t0 + 12 * M.MINUTO });
+  assert.equal(b.confiavel, false, "12 minutos não sustentam um R$/h");
+  assert.equal(b.reaisPorHora, null);
+  assert.equal(b.delta, 50, "o delta continua disponível");
+});
+
+teste("no começo da jornada o bloco recua até a abertura", () => {
+  // Antes de completar a janela inteira nao ha ancora anterior, entao o bloco
+  // coincide com o dia — que é o certo: nao ha outro pedaço com que comparar.
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 45 } }];
+  const b = M.bloco({ jornada, registros, pausas: [], duracaoMs: JANELA, agora: t0 + H });
+  assert.equal(b.inicio, jornada.horaInicio);
+  assert.equal(b.msAtivo, H);
+  assert.ok(perto(b.reaisPorHora, 45));
+});
+
+teste("bloco desconta pausa e usa a linha de base", () => {
+  const inicial = { uber: 100 };
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 140 } },
+    { id: "b", timestamp: t0 + 4 * H, saldos: { uber: 200 } },
+  ];
+  const pausas = [{ horaInicio: t0 + 2 * H, horaFim: t0 + 3 * H }];
+  const b = M.bloco({ jornada, registros, pausas, saldoInicial: inicial, duracaoMs: JANELA, agora: t0 + 4 * H });
+  assert.equal(b.delta, 60);
+  assert.equal(b.msAtivo, 2 * H, "3h de janela menos 1h de pausa");
+  assert.ok(perto(b.reaisPorHora, 30));
+});
+
+teste("bloco pega R$/km quando há âncora de odômetro dentro da janela", () => {
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 40 }, odometro: 100020 },
+    { id: "b", timestamp: t0 + 3 * H, saldos: { uber: 120 }, odometro: 100060 },
+  ];
+  const b = M.bloco({ jornada, registros, pausas: [], duracaoMs: JANELA, agora: t0 + 3 * H });
+  assert.equal(b.km, 40);
+  assert.ok(perto(b.reaisPorKm, 2.0));
+  // Sem âncoras o km da janela é zero e o R$/km some, em vez de mentir.
+  const semOdo = M.bloco({
+    jornada,
+    registros: registros.map(({ odometro, ...r }) => r),
+    pausas: [],
+    duracaoMs: JANELA,
+    agora: t0 + 3 * H,
+  });
+  assert.equal(semOdo.reaisPorKm, null);
+});
+
+/* -------------------------------------------------------------- projecao */
+
+teste("projeção diz onde o ritmo termina e o que a meta pede", () => {
+  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
+  const agora = new Date(2026, 7, 25, 20, 0).getTime();
+  // R$200 em 5h ativas = 40 R$/h. Faltam 3h até as 23h -> projeta 320.
+  const p = M.projecaoDetalhada({ saldo: 200, msAtivos: 5 * H, metas, horaLimite: 23, agora });
+  assert.equal(p.alvo.id, "minima", "o alvo é sempre o próximo patamar, não o ideal");
+  assert.ok(perto(p.projetado, 320), `projetou ${p.projetado}`);
+  assert.equal(p.tipo, "alcancavel", "320 passa dos 280 da mínima");
+  assert.ok(perto(p.falta, 80));
+  assert.ok(perto(p.ritmoNecessario, 80 / 3, 0.01));
+});
+
+teste("projeção classifica alcançável e aperto", () => {
+  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
+  const agora = new Date(2026, 7, 25, 20, 0).getTime();
+
+  const facil = M.projecaoDetalhada({ saldo: 260, msAtivos: 5 * H, metas, horaLimite: 23, agora });
+  assert.equal(facil.tipo, "alcancavel");
+  assert.ok(facil.chegaEm > agora);
+
+  const dificil = M.projecaoDetalhada({ saldo: 100, msAtivos: 5 * H, metas, horaLimite: 21, agora });
+  assert.equal(dificil.tipo, "aperto");
+  assert.ok(perto(dificil.horasRestantes, 1, 0.01));
+  assert.ok(perto(dificil.ritmoNecessario, 180), `pediu ${dificil.ritmoNecessario}`);
+  assert.ok(perto(dificil.ritmo, 20));
+});
+
+teste("projeção sem ritmo e com tudo batido", () => {
+  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
+  assert.equal(M.projecaoDetalhada({ saldo: 0, msAtivos: 5 * H, metas, horaLimite: 23 }).tipo, "sem_ritmo");
+  assert.equal(M.projecaoDetalhada({ saldo: 500, msAtivos: 5 * H, metas, horaLimite: 23 }).tipo, "completa");
+});
+
+teste("hora limite já passada é amanhã, não um prazo negativo", () => {
+  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
+  const agora = new Date(2026, 7, 25, 23, 30).getTime();
+  const p = M.projecaoDetalhada({ saldo: 100, msAtivos: 5 * H, metas, horaLimite: 2, agora });
+  assert.ok(p.horasRestantes > 0, `restaram ${p.horasRestantes}h`);
+  assert.ok(perto(p.horasRestantes, 2.5, 0.01));
+});
+
 /* -------------------------------------------------------------- corridas */
 
 const corrida = (h, valor, km, extra = {}) => ({
@@ -315,6 +473,77 @@ teste("bairros usados saem por frequência, sem vazios nem '?'", () => {
   assert.equal(lista[0], "Luz", "Luz aparece 2x, vem primeiro");
   assert.ok(lista.includes("Queimados"));
   assert.ok(!lista.includes("?") && !lista.includes(""));
+});
+
+/* ------------------------------------------------------------ combustivel */
+
+const abastece = (odometro, valor, litros, tipo = "gnv") => ({
+  id: `f${odometro}`,
+  timestamp: t0 + odometro,
+  tipo,
+  valor,
+  litros,
+  odometro,
+});
+
+teste("custo por km precisa de dois abastecimentos", () => {
+  assert.equal(M.analiseAbastecimentos([]).suficiente, false);
+  assert.equal(M.analiseAbastecimentos([abastece(100000, 90, 21)]).suficiente, false);
+  assert.equal(M.analiseAbastecimentos([abastece(100000, 90, 21)]).porKm, null);
+});
+
+teste("convenção de tanque cheio: gasto conta do segundo em diante", () => {
+  // 100000 -> 100400 = 400 km, e o que pagou nesse trecho foram os R$180 dos
+  // dois abastecimentos seguintes. O primeiro pagou combustível queimado antes.
+  const a = M.analiseAbastecimentos([
+    abastece(100000, 90, 21),
+    abastece(100200, 90, 20),
+    abastece(100400, 90, 20),
+  ]);
+  assert.equal(a.suficiente, true);
+  assert.equal(a.kmPeriodo, 400);
+  assert.equal(a.gasto, 180, "o primeiro abastecimento fica fora do numerador");
+  assert.ok(perto(a.porKm, 0.45), `deu ${a.porKm}`);
+});
+
+teste("consumo por combustível só sai entre tanques do mesmo tipo", () => {
+  const a = M.analiseAbastecimentos([
+    abastece(100000, 90, 21, "gnv"),
+    abastece(100200, 90, 20, "gnv"),
+    abastece(100300, 60, 10, "etanol"),
+  ]);
+  // 200 km com 20 m³ = 10 km/m³
+  assert.ok(perto(a.consumos.gnv.media, 10));
+  assert.equal(a.consumos.gnv.amostras, 1);
+  assert.equal(a.consumos.etanol, undefined, "gnv -> etanol não é um tanque medível");
+});
+
+teste("abastecimento sem odômetro não entra na conta", () => {
+  const semOdo = { id: "x", timestamp: t0, tipo: "gnv", valor: 90, litros: 21, odometro: null };
+  assert.equal(M.analiseAbastecimentos([abastece(100000, 90, 21), semOdo]).suficiente, false);
+});
+
+teste("custo medido substitui a semente e recalcula o líquido", () => {
+  const semMedida = M.custosEstimados(200, CONFIG_PADRAO);
+  assert.equal(semMedida.medido, false);
+  assert.ok(perto(semMedida.energiaKm, 0.437, 0.002));
+
+  const comMedida = M.custosEstimados(200, CONFIG_PADRAO, 0.52);
+  assert.equal(comMedida.medido, true);
+  assert.ok(perto(comMedida.energiaKm, 0.52));
+  assert.ok(perto(comMedida.total, (0.52 + 0.25) * 200));
+  assert.ok(perto(M.liquidoEstimado(350, 200, CONFIG_PADRAO, 0.52), 350 - 154));
+});
+
+teste("gastos que não são combustível somam à parte", () => {
+  const lista = [
+    abastece(100000, 90, 21),
+    { id: "p", timestamp: t0, tipo: "pedagio", valor: 12 },
+    { id: "a", timestamp: t0, tipo: "alimentacao", valor: 25 },
+  ];
+  assert.equal(M.outrosCustos(lista), 37);
+  assert.equal(M.ehCombustivel("gnv"), true);
+  assert.equal(M.ehCombustivel("pedagio"), false);
 });
 
 /* ----------------------------------------------------------- formatacao */

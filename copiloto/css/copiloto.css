@@ -207,7 +207,9 @@ button { cursor: pointer; border: 0; background: none; }
 }
 
 .tile--neutro .tile__valor { color: var(--tinta); }
-.tile__nivel { font-size: 13px; color: var(--tinta-fraca); text-transform: uppercase; letter-spacing: 0.04em; }
+.tile__nivel { font-size: 12px; color: var(--tinta-fraca); text-transform: uppercase; letter-spacing: 0.01em; white-space: nowrap; }
+.tile__dia { font-size: 14px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; margin-top: 3px; padding-top: 3px; border-top: 1px solid var(--linha); }
+.tile__dia--fraco { color: var(--tinta-fraca); }
 
 .metricas--reduzida .tile { min-height: 140px; }
 .metricas--reduzida .tile__valor { font-size: clamp(48px, 16vw, 72px); }
@@ -313,6 +315,24 @@ button { cursor: pointer; border: 0; background: none; }
 .meta__texto--completa { color: var(--nivel-ideal); }
 
 .projecao { margin: 12px 0 0; font-size: 16px; color: var(--tinta-fraca); text-align: center; }
+
+.projecao--botao {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--toque);
+  padding: 10px 12px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  background: var(--fundo-cartao);
+  text-align: center;
+}
+
+.projecao__principal { font-size: 18px; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.projecao__detalhe { font-size: 15px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+.projecao--alerta .projecao__detalhe { color: var(--nivel-piso); }
+.projecao__toque { font-size: 12px; color: var(--tinta-fraca); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
 .projecao--alerta { color: var(--nivel-piso); }
 .projecao--fraca { opacity: 0.7; }
 
@@ -403,6 +423,9 @@ button { cursor: pointer; border: 0; background: none; }
 .vazio__marca { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
 .vazio__texto { font-size: 20px; color: var(--tinta-suave); margin: 12px 0 28px; }
 .vazio__dica { font-size: 16px; color: var(--tinta-fraca); margin-top: 16px; }
+.vazio__resumo { margin: 18px 0 26px; }
+.vazio__resumo-valor { font-size: 52px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.vazio__resumo-nota { font-size: 16px; color: var(--tinta-fraca); margin-top: 4px; }
 
 /* -------------------------------------------------------------------- folha */
 
@@ -751,7 +774,9 @@ button { cursor: pointer; border: 0; background: none; }
 
 .custo-resumo { margin-top: 12px; padding: 14px; background: var(--fundo-cartao); border: 1px solid var(--linha); border-radius: var(--raio); font-size: 17px; color: var(--tinta-suave); }
 .custo-resumo__total { font-size: 22px; font-weight: 800; color: var(--tinta); margin: 4px 0; font-variant-numeric: tabular-nums; }
-.custo-resumo__nota { font-size: 15px; color: var(--tinta-fraca); }
+.custo-resumo__nota { font-size: 15px; color: var(--tinta-fraca); line-height: 1.45; }
+.custo__resumo { display: flex; flex-direction: column; gap: 4px; min-height: 22px; }
+.custo__resumo-linha { font-size: 16px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
 
 .config__botoes { display: flex; flex-direction: column; gap: 10px; }
 .config__botoes--perigo { margin-top: 22px; }

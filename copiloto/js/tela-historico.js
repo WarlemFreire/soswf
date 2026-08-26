@@ -17,11 +17,11 @@ export async function montarHistorico(raiz) {
     return;
   }
 
-  raiz.append(cabecalho(fechadas));
+  raiz.append(cabecalho(fechadas, store.agruparPorDia(fechadas)));
   for (const resumo of resumos) raiz.append(cartao(resumo));
 }
 
-function cabecalho(fechadas) {
+function cabecalho(fechadas, dias) {
   const bruto = fechadas.reduce((s, r) => s + r.saldo, 0);
   const km = fechadas.reduce((s, r) => s + r.km, 0);
   const comLiquido = fechadas.filter((r) => r.liquido != null);
@@ -36,7 +36,13 @@ function cabecalho(fechadas) {
   return el(
     "section",
     { class: "historico__topo" },
-    el("div", { class: "historico__numero" }, el("strong", {}, String(fechadas.length)), " dias fechados"),
+    el(
+      "div",
+      { class: "historico__numero" },
+      el("strong", {}, String(dias.length)),
+      dias.length === 1 ? " dia" : " dias",
+      fechadas.length > dias.length ? ` · ${fechadas.length} jornadas` : ""
+    ),
     el("div", { class: "historico__totais" }, partes.join(" · "))
   );
 }

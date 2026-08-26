@@ -15,6 +15,7 @@ import {
 } from "./export.js";
 import { db } from "./db.js";
 import { manterTelaLigada, liberarTela } from "./geo.js";
+import { abrirCusto, painelCombustivel } from "./tela-custo.js";
 
 export function montarConfig(raiz) {
   limpar(raiz);
@@ -25,6 +26,13 @@ export function montarConfig(raiz) {
       numero("Ideal", "metaIdeal", { passo: 10, sufixo: "R$" }),
       numero("Ótima", "metaOtima", { passo: 10, sufixo: "R$" }),
       numero("Hora limite para a meta", "horaLimiteMeta", { passo: 1, min: 0, max: 23, sufixo: "h" }),
+      numero("Janela do bloco", "blocoMin", { passo: 15, min: 30, max: 300, sufixo: "min" }),
+      el(
+        "p",
+        { class: "folha__ajuda" },
+        "O bloco mostra como está indo o pedaço recente da jornada, sem o peso das horas fracas " +
+          "do começo do dia. Abaixo de 2h a janela costuma ficar magra demais para significar algo."
+      ),
     ]),
 
     secao("Faixa de R$/hora", [
@@ -45,6 +53,21 @@ export function montarConfig(raiz) {
       resumoCusto(),
     ]),
 
+    secao("Abastecimento", [
+      el(
+        "p",
+        { class: "folha__ajuda" },
+        "Os valores acima são semente. A partir do segundo abastecimento com odômetro, " +
+          "o custo por km passa a ser medido de bomba a bomba — e o histórico inteiro é recalculado."
+      ),
+      painelCombustivel(),
+      el(
+        "button",
+        { type: "button", class: "botao botao--primario", onClick: () => abrirCusto() },
+        "Registrar abastecimento ou gasto",
+      ),
+    ]),
+
     secao("Plataformas", [
       escolha("Principal (já vem selecionada)", "plataformaPrincipal", PLATAFORMAS.map((p) => ({ valor: p.id, nome: p.nome }))),
       ...PLATAFORMAS.map((p) =>
@@ -60,7 +83,7 @@ export function montarConfig(raiz) {
     ]),
 
     secao("No carro", [
-      interruptor("Usar GPS para medir km", "usarGps"),
+      interruptor("Marcar a zona no registro (GPS)", "marcarPosicao"),
       interruptor("Manter a tela ligada", "manterTelaLigada", {
         aoMudar: (ligado) => (ligado ? manterTelaLigada() : liberarTela()),
       }),
@@ -271,11 +294,14 @@ function resumoCusto() {
   const caixa = el("div", { class: "custo-resumo" });
   const pintar = () => {
     const c = configAtual();
+    const medido = store.energiaKm();
+    const energia = medido > 0 ? medido : custoEnergiaKm(c);
+    const total = energia + (c.custoDesgasteKm || 0);
     limpar(caixa);
     caixa.append(
-      el("div", {}, `Energia: R$ ${M.formatarReais(custoEnergiaKm(c))}/km`),
-      el("div", { class: "custo-resumo__total" }, `Break-even: R$ ${M.formatarReais(custoTotalKm(c))}/km`),
-      el("div", { class: "custo-resumo__nota" }, `Num dia de 200 km: R$ ${M.formatarReais(custoTotalKm(c) * 200, { comCentavos: false })} de custo`)
+      el("div", {}, `Energia: R$ ${M.formatarReais(energia)}/km ${medido > 0 ? "(medido)" : "(semente)"}`),
+      el("div", { class: "custo-resumo__total" }, `Break-even: R$ ${M.formatarReais(total)}/km`),
+      el("div", { class: "custo-resumo__nota" }, `Num dia de 200 km: R$ ${M.formatarReais(total * 200, { comCentavos: false })} de custo`)
     );
   };
   pintar();

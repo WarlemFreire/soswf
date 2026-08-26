@@ -61,6 +61,7 @@ export async function exportarCsvJornadas() {
   const registros = await db.todos("registros");
   const pausas = await db.todos("pausas");
   const config = configAtual();
+  const energiaKm = M.analiseAbastecimentos(await db.todos("custos")).porKm;
 
   const linhas = [
     [
@@ -77,10 +78,10 @@ export async function exportarCsvJornadas() {
     const ps = pausas.filter((p) => p.jornadaId === j.id);
     const fim = j.horaFim ?? Date.now();
     const saldo = M.saldoTotal(rs);
-    const km = M.kmPercorrido(j, rs, j.gpsFim ?? null);
+    const km = M.kmPercorrido(j, rs);
     const ativo = M.msAtivo(j, ps, fim);
     const fontes = M.saldoPorFonte(rs);
-    const custos = M.custosEstimados(km, config);
+    const custos = M.custosEstimados(km, config, energiaKm);
 
     linhas.push([
       j.data,
@@ -120,7 +121,7 @@ export async function exportarCsvRegistros() {
   const linhas = [
     [
       "data", "hora", "jornada_id", "tipo", "uber", "99", "indrive",
-      "avulso_valor", "avulso_tipo", "odometro", "km_gps", "lat", "lon", "desfeito",
+      "avulso_valor", "avulso_tipo", "odometro", "lat", "lon", "desfeito",
     ],
   ];
 
@@ -137,7 +138,6 @@ export async function exportarCsvRegistros() {
       numeroBr(r.avulso?.valor),
       r.avulso?.tipo ?? "",
       r.odometro ?? "",
-      numeroBr(r.gpsAcum, 3),
       r.posicao?.lat ?? "",
       r.posicao?.lon ?? "",
       r.desfeito ? "sim" : "nao",
@@ -248,7 +248,8 @@ export async function exportarCsvPlanilha(corridas) {
 export async function exportarCsvCorridasRico() {
   const corridas = await db.todos("corridas");
   const config = configAtual();
-  const custoKm = M.custosEstimados(1, config).totalKm;
+  const energiaKm = M.analiseAbastecimentos(await db.todos("custos")).porKm;
+  const custoKm = M.custosEstimados(1, config, energiaKm).totalKm;
 
   const linhas = [
     [

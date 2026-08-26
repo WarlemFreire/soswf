@@ -9,6 +9,7 @@ import { vibrar, falar } from "./feedback.js";
 import { abrirRegistro } from "./tela-registro.js";
 import { abrirCorrida, iniciarCronometro } from "./tela-corrida.js";
 import { abrirFechamento } from "./tela-fechamento.js";
+import { abrirCusto } from "./tela-custo.js";
 import { Teclado } from "./keypad.js";
 
 const NOME_NIVEL = { abaixo: "abaixo", piso: "piso", ideal: "ideal", otimo: "ótimo" };
@@ -35,54 +36,123 @@ function render(raiz) {
 /* ------------------------------------------------------ jornada parada */
 
 function painelParado() {
+  const base = store.baseDia();
+  const anteriores = store.jornadasDoDia().length;
+
   return el(
     "div",
     { class: "vazio" },
     el("div", { class: "vazio__marca" }, "Copiloto"),
-    el("p", { class: "vazio__texto" }, "Nenhuma jornada aberta."),
+    anteriores
+      ? el(
+          "div",
+          { class: "vazio__resumo" },
+          el("div", { class: "vazio__resumo-valor" }, `R$ ${M.formatarReais(base, { comCentavos: false })}`),
+          el(
+            "div",
+            { class: "vazio__resumo-nota" },
+            `hoje, em ${anteriores} jornada${anteriores > 1 ? "s" : ""} encerrada${anteriores > 1 ? "s" : ""}`
+          )
+        )
+      : el("p", { class: "vazio__texto" }, "Nenhuma jornada aberta."),
     el(
       "button",
-      { type: "button", class: "botao botao--primario botao--gigante", onClick: perguntarOdometro },
-      "ABRIR JORNADA"
+      { type: "button", class: "botao botao--primario botao--gigante", onClick: abrirNovaJornada },
+      anteriores ? "ABRIR OUTRA JORNADA" : "ABRIR JORNADA"
     ),
     el("p", { class: "vazio__dica" }, "Um toque aqui, o odômetro, e você está rodando.")
   );
 }
 
-function perguntarOdometro() {
+/**
+ * Abertura de jornada. Quando já houve jornada hoje, pede também o saldo atual
+ * de cada plataforma: a Uber não zera "ganhos de hoje" ao meio-dia, então sem
+ * essa linha de base a jornada da tarde nasceria herdando o dinheiro da manhã
+ * e mostrando um R$/hora que ela não produziu.
+ */
+async function abrirNovaJornada() {
   vibrar();
-  const teclado = new Teclado({ modo: "inteiro", aoMudar: () => atualizar() });
+  const sugestao = await store.saldoInicialSugerido();
+  const temAnterior = Object.keys(sugestao).length > 0;
+
+  const alvos = [
+    { id: "odometro", nome: "Odômetro" },
+    ...(temAnterior
+      ? PLATAFORMAS.filter((p) => cfg("plataformasAtivas").includes(p.id)).map((p) => ({
+          id: p.id,
+          nome: p.nome,
+        }))
+      : []),
+  ];
+
+  const valores = { odometro: null, ...sugestao };
+  let alvo = "odometro";
+
   const visor = el("div", { class: "visor visor--odometro" }, "—");
+  const legenda = el("div", { class: "visor__legenda" }, "");
+  const caixaTeclado = el("div", { class: "registro__teclado" });
+  const teclados = {
+    odometro: new Teclado({ modo: "inteiro", aoMudar: aoDigitar }),
+    ...Object.fromEntries(PLATAFORMAS.map((p) => [p.id, new Teclado({ modo: "dinheiro", aoMudar: aoDigitar })])),
+  };
+
+  const linhaAlvos = chips(alvos, { selecionado: alvo, classe: "chips--alvos", aoEscolher: selecionar });
   const botao = el(
     "button",
-    { type: "button", class: "botao botao--primario botao--gigante", disabled: true, onClick: confirmar },
+    { type: "button", class: "botao botao--primario botao--gigante", disabled: true, onClick: comecar },
     "COMEÇAR"
   );
 
-  function atualizar() {
-    visor.textContent = teclado.exibicao;
-    botao.disabled = teclado.valor == null || teclado.valor <= 0;
+  const folha = abrirFolha({
+    titulo: temAnterior ? "Nova jornada de hoje" : "Odômetro agora",
+    classe: "folha--alta folha--registro",
+    conteudo: [
+      temAnterior ? el("p", { class: "folha__ajuda" }, "Confira o saldo em que cada plataforma está agora — é a partir dele que esta jornada conta.") : null,
+      alvos.length > 1 ? linhaAlvos : null,
+      visor,
+      legenda,
+      caixaTeclado,
+    ],
+    rodape: [botao],
+  });
+
+  selecionar(alvo);
+
+  function selecionar(id) {
+    valores[alvo] = teclados[alvo].valor;
+    alvo = id;
+    caixaTeclado.replaceChildren(teclados[id].el);
+    teclados[id].definir(valores[id] ?? null);
+    visor.classList.toggle("visor--odometro", id === "odometro");
+    atualizar();
   }
 
-  let folha;
-  async function confirmar() {
-    if (teclado.valor == null) return;
-    await store.abrirJornada({ odometroInicio: teclado.valor });
+  function aoDigitar() {
+    valores[alvo] = teclados[alvo].valor;
+    atualizar();
+  }
+
+  function atualizar() {
+    visor.textContent = teclados[alvo].exibicao;
+    legenda.textContent =
+      alvo === "odometro"
+        ? "O número do painel. Entra duas vezes por dia: agora e no fim."
+        : `Saldo atual na ${PLATAFORMAS.find((p) => p.id === alvo)?.nome} — o que já está no bolso hoje`;
+    botao.disabled = !(valores.odometro > 0);
+  }
+
+  async function comecar() {
+    valores[alvo] = teclados[alvo].valor;
+    if (!(valores.odometro > 0)) return;
+
+    const saldoInicial = {};
+    for (const p of PLATAFORMAS) if (valores[p.id] > 0) saldoInicial[p.id] = valores[p.id];
+
+    await store.abrirJornada({ odometroInicio: valores.odometro, saldoInicial });
     vibrar([30, 40, 30]);
     falar("Jornada aberta.");
     folha.fechar();
   }
-
-  folha = abrirFolha({
-    titulo: "Odômetro agora",
-    classe: "folha--alta",
-    conteudo: [
-      el("p", { class: "folha__ajuda" }, "O número do painel. Só entra duas vezes por dia: agora e no fim."),
-      visor,
-      teclado.el,
-    ],
-    rodape: [botao],
-  });
 }
 
 /* ------------------------------------------------------ jornada ativa */
@@ -94,33 +164,20 @@ function painelAtivo() {
   const dirigindo = cfg("modoDirigindo");
 
   const raiz = el("div", { class: `agora ${pausa ? "agora--pausado" : ""}`.trim() });
-
   raiz.append(blocoSaldo(m, pausa));
 
   if (dirigindo) {
-    raiz.append(
-      el("div", { class: "metricas metricas--reduzida" }, tile("R$/hora", m.reaisPorHora, m.nivelHora, 2))
-    );
+    raiz.append(el("div", { class: "metricas metricas--reduzida" }, tileHora(m)));
     raiz.append(blocoAcoes(pausa, true));
     return raiz;
   }
 
-  raiz.append(
-    el(
-      "div",
-      { class: "metricas" },
-      tile("R$/hora", m.reaisPorHora, m.nivelHora, 2),
-      tile("R$/km", m.reaisPorKm, m.nivelKm, 2),
-      tileTempo(m)
-    )
-  );
-
+  raiz.append(el("div", { class: "metricas" }, tileHora(m), tileKm(m), tileTempo(m)));
   raiz.append(medidorKm(m, config));
   raiz.append(barraMeta(m));
   raiz.append(linhaProjecao(m));
   raiz.append(blocoAcoes(pausa, false));
   raiz.append(rodapeDados(m, config));
-
   return raiz;
 }
 
@@ -144,18 +201,64 @@ function blocoSaldo(m, pausa) {
       { class: "saldo__valor" },
       el("span", { class: "saldo__cifrao" }, "R$"),
       M.formatarReais(m.saldo, { comCentavos: false })
-    )
+    ),
+    // Com duas jornadas no mesmo dia, deixa claro de onde vem o número grande.
+    m.baseDia > 0
+      ? el(
+          "div",
+          { class: "saldo__nota" },
+          `R$ ${M.formatarReais(m.baseDia, { comCentavos: false })} antes desta jornada · ` +
+            `R$ ${M.formatarReais(m.ganho, { comCentavos: false })} nela`
+        )
+      : null
   );
 }
 
-function tile(rotulo, valor, nivel, casas) {
+/**
+ * O número grande é o do bloco, não o do dia. A cor é o que se lê de relance, e
+ * ela precisa dizer "como estou agora" — a média acumulada do dia, na oitava
+ * hora, já está quase toda decidida pelo passado. O dia continua visível na
+ * linha de baixo, e a barra de meta logo abaixo é onde ele realmente importa.
+ */
+function tile(rotulo, { valorBloco, nivelBloco, valorDia, nivelDia, casas, sufixoDia }) {
+  const temBloco = valorBloco != null;
+  const grande = temBloco ? valorBloco : valorDia;
+  const nivel = temBloco ? nivelBloco : nivelDia;
+
   return el(
     "div",
     { class: `tile tile--${nivel || "neutro"}` },
     el("div", { class: "tile__rotulo" }, rotulo),
-    el("div", { class: "tile__valor" }, valor == null ? "—" : valor.toFixed(casas).replace(".", ",")),
-    el("div", { class: "tile__nivel" }, nivel ? NOME_NIVEL[nivel] : "sem dados")
+    el("div", { class: "tile__valor" }, grande == null ? "—" : grande.toFixed(casas).replace(".", ",")),
+    el("div", { class: "tile__nivel" }, temBloco ? `bloco · ${NOME_NIVEL[nivel] || ""}`.trim() : "dia"),
+    el(
+      "div",
+      { class: `tile__dia ${temBloco ? "" : "tile__dia--fraco"}`.trim() },
+      temBloco
+        ? `dia ${valorDia == null ? "—" : valorDia.toFixed(casas).replace(".", ",")}${sufixoDia || ""}`
+        : "bloco —"
+    )
   );
+}
+
+function tileHora(m) {
+  return tile("R$/hora", {
+    valorBloco: m.bloco?.reaisPorHora ?? null,
+    nivelBloco: m.bloco?.nivelHora,
+    valorDia: m.reaisPorHora,
+    nivelDia: m.nivelHora,
+    casas: 0,
+  });
+}
+
+function tileKm(m) {
+  return tile("R$/km", {
+    valorBloco: m.bloco?.reaisPorKm ?? null,
+    nivelBloco: m.bloco?.nivelKm,
+    valorDia: m.reaisPorKm,
+    nivelDia: m.nivelKm,
+    casas: 2,
+  });
 }
 
 function tileTempo(m) {
@@ -164,7 +267,12 @@ function tileTempo(m) {
     { class: "tile tile--neutro" },
     el("div", { class: "tile__rotulo" }, "Ativo"),
     el("div", { class: "tile__valor" }, M.formatarDuracao(m.msAtivo)),
-    el("div", { class: "tile__nivel" }, `rua ${M.formatarDuracao(m.msRua)}`)
+    el("div", { class: "tile__nivel" }, `rua ${M.formatarDuracao(m.msRua)}`),
+    el(
+      "div",
+      { class: "tile__dia tile__dia--fraco" },
+      m.bloco ? `bloco ${M.formatarDuracao(m.bloco.msAtivo)}` : "—"
+    )
   );
 }
 
@@ -173,35 +281,27 @@ function tileTempo(m) {
  * o unico numero do app que nao é opiniao: abaixo dele o dia dá prejuízo.
  */
 function medidorKm(m, config) {
-  const custos = M.custosEstimados(1, config);
-  const teto = Math.max(m.faixaKm.otimo * 1.25, (m.reaisPorKm ?? 0) * 1.1, custos.totalKm * 1.5);
+  const custos = M.custosEstimados(1, config, store.energiaKm());
+  const agulha = m.bloco?.reaisPorKm ?? m.reaisPorKm;
+  const teto = Math.max(m.faixaKm.otimo * 1.25, (agulha ?? 0) * 1.1, custos.totalKm * 1.5);
   const piso = custos.totalKm * 0.6;
   const faixa = teto - piso;
   const pct = (v) => `${Math.min(100, Math.max(0, ((v - piso) / faixa) * 100))}%`;
-  // Larguras das zonas sao proporcionais a mesma escala deslocada.
   const largura = (v) => `${Math.min(100, Math.max(0, (v / faixa) * 100))}%`;
 
   const trilha = el(
     "div",
     { class: "medidor__trilha" },
     el("div", { class: "medidor__zona medidor__zona--abaixo", style: { width: pct(m.faixaKm.piso) } }),
-    el("div", {
-      class: "medidor__zona medidor__zona--piso",
-      style: { width: largura(m.faixaKm.ideal - m.faixaKm.piso) },
-    }),
-    el("div", {
-      class: "medidor__zona medidor__zona--ideal",
-      style: { width: largura(m.faixaKm.otimo - m.faixaKm.ideal) },
-    }),
+    el("div", { class: "medidor__zona medidor__zona--piso", style: { width: largura(m.faixaKm.ideal - m.faixaKm.piso) } }),
+    el("div", { class: "medidor__zona medidor__zona--ideal", style: { width: largura(m.faixaKm.otimo - m.faixaKm.ideal) } }),
     el("div", { class: "medidor__zona medidor__zona--otimo", style: { flex: "1" } }),
     el("div", {
       class: "medidor__breakeven",
       style: { left: pct(custos.totalKm) },
       title: `Custo real R$ ${M.formatarReais(custos.totalKm)}/km`,
     }),
-    m.reaisPorKm != null
-      ? el("div", { class: "medidor__agulha", style: { left: pct(m.reaisPorKm) } })
-      : null
+    agulha != null ? el("div", { class: "medidor__agulha", style: { left: pct(agulha) } }) : null
   );
 
   return el(
@@ -211,7 +311,7 @@ function medidorKm(m, config) {
     el(
       "div",
       { class: "medidor__legenda" },
-      el("span", {}, `chão R$ ${M.formatarReais(custos.totalKm)}`),
+      el("span", {}, `chão ${M.formatarReais(custos.totalKm)}`),
       el("span", {}, `piso ${m.faixaKm.piso.toFixed(2).replace(".", ",")}`),
       el("span", {}, `ideal ${m.faixaKm.ideal.toFixed(2).replace(".", ",")}`),
       el("span", {}, `ótimo ${m.faixaKm.otimo.toFixed(2).replace(".", ",")}`)
@@ -219,13 +319,13 @@ function medidorKm(m, config) {
   );
 }
 
+function metasDaJornada() {
+  const j = store.jornadaAtiva();
+  return { metaMinima: j.metaMinima, metaIdeal: j.metaIdeal, metaOtima: j.metaOtima };
+}
+
 function barraMeta(m) {
-  const jornada = store.jornadaAtiva();
-  const metas = {
-    metaMinima: jornada.metaMinima,
-    metaIdeal: jornada.metaIdeal,
-    metaOtima: jornada.metaOtima,
-  };
+  const metas = metasDaJornada();
   const lista = M.patamares(metas);
   const teto = Math.max(lista[lista.length - 1].alvo, m.saldo) * 1.02;
   const pct = (v) => `${Math.min(100, (v / teto) * 100)}%`;
@@ -245,8 +345,6 @@ function barraMeta(m) {
             class: `meta__marca ${m.saldo >= p.alvo ? "meta__marca--batida" : ""}`.trim(),
             style: { left: pct(p.alvo) },
           },
-          // O ultimo marcador encosta na borda: ancorar pela direita evita que
-          // o rotulo saia da tela.
           el(
             "span",
             { class: `meta__marca-rotulo ${i === lista.length - 1 ? "meta__marca-rotulo--fim" : ""}`.trim() },
@@ -271,28 +369,121 @@ function barraMeta(m) {
   );
 }
 
+/**
+ * A versão anterior dizia só "meta fora de alcance no ritmo atual" — um
+ * veredito sem dado nenhum. Aqui saem os números que permitem decidir:
+ * onde o ritmo atual termina, quanto falta e que ritmo seria preciso. A linha
+ * é tocável para ajustar a meta na hora.
+ */
 function linhaProjecao(m) {
-  const jornada = store.jornadaAtiva();
-  const alvo = M.proximoPatamar(m.saldo, {
-    metaMinima: jornada.metaMinima,
-    metaIdeal: jornada.metaIdeal,
-    metaOtima: jornada.metaOtima,
+  const p = M.projecaoDetalhada({
+    saldo: m.saldo,
+    msAtivos: m.msAtivo,
+    metas: metasDaJornada(),
+    horaLimite: cfg("horaLimiteMeta"),
   });
-  if (!alvo) return el("p", { class: "projecao" }, "Tudo batido. O resto do dia é lucro.");
 
-  const p = M.projecao(m.saldo, m.msAtivo, alvo.alvo);
-  if (!p) return el("p", { class: "projecao projecao--fraca" }, "Ritmo ainda sem medida — registre um saldo.");
+  const linhas = [];
+  let classe = "projecao";
 
-  const limite = new Date();
-  limite.setHours(cfg("horaLimiteMeta"), 0, 0, 0);
-  if (p.quando > limite.getTime()) {
-    return el(
-      "p",
-      { class: "projecao projecao--alerta" },
-      `Meta ${alvo.nome.toLowerCase()} fora de alcance no ritmo atual`
+  if (p.tipo === "completa") {
+    linhas.push("Tudo batido. O resto do dia é lucro.");
+  } else if (p.tipo === "sem_ritmo") {
+    linhas.push("Ritmo ainda sem medida — registre um saldo.");
+    classe += " projecao--fraca";
+  } else {
+    linhas.push(
+      `No ritmo atual: R$ ${M.formatarReais(p.projetado, { comCentavos: false })} até ${M.formatarHora(p.limite)}`
     );
+    if (p.tipo === "alcancavel") {
+      linhas.push(`${p.alvo.nome} (${M.formatarReais(p.alvo.alvo, { comCentavos: false })}) às ${M.formatarHora(p.chegaEm)}`);
+    } else {
+      linhas.push(
+        `${p.alvo.nome} pede R$ ${p.ritmoNecessario.toFixed(0)}/h nas próximas ` +
+          `${p.horasRestantes.toFixed(1).replace(".", ",")}h · você está em ${p.ritmo.toFixed(0)}/h`
+      );
+      classe += " projecao--alerta";
+    }
   }
-  return el("p", { class: "projecao" }, `No ritmo atual, meta ${alvo.nome.toLowerCase()} às ${M.formatarHora(p.quando)}`);
+
+  return el(
+    "button",
+    { type: "button", class: `${classe} projecao--botao`, onClick: ajustarMetas },
+    ...linhas.map((texto, i) => el("span", { class: i ? "projecao__detalhe" : "projecao__principal" }, texto)),
+    el("span", { class: "projecao__toque" }, "tocar para ajustar a meta")
+  );
+}
+
+function ajustarMetas() {
+  vibrar();
+  const jornada = store.jornadaAtiva();
+  const metas = {
+    minima: jornada.metaMinima,
+    ideal: jornada.metaIdeal,
+    otima: jornada.metaOtima,
+  };
+  let virarPadrao = false;
+
+  const campo = (chave, rotulo) => {
+    const valorEl = el("span", { class: "campo__valor" }, "");
+    const pintar = () => (valorEl.textContent = `R$ ${M.formatarReais(metas[chave], { comCentavos: false })}`);
+    const ajustar = (dir) => {
+      metas[chave] = Math.max(0, metas[chave] + dir * 10);
+      pintar();
+      vibrar(8);
+    };
+    pintar();
+    return el(
+      "div",
+      { class: "campo" },
+      el("span", { class: "campo__rotulo" }, rotulo),
+      el(
+        "div",
+        { class: "campo__stepper" },
+        el("button", { type: "button", class: "stepper", onClick: () => ajustar(-1) }, "−"),
+        valorEl,
+        el("button", { type: "button", class: "stepper", onClick: () => ajustar(1) }, "+")
+      )
+    );
+  };
+
+  const padrao = el("button", { type: "button", class: "chip", onClick: () => {
+    virarPadrao = !virarPadrao;
+    padrao.classList.toggle("chip--ativo", virarPadrao);
+    vibrar(8);
+  } }, "Usar também como padrão");
+
+  let folha;
+  folha = abrirFolha({
+    titulo: "Metas de hoje",
+    conteudo: [
+      el("p", { class: "folha__ajuda" }, "Vale para esta jornada. Marque abaixo para valer também nos próximos dias."),
+      campo("minima", "Mínima"),
+      campo("ideal", "Ideal"),
+      campo("otima", "Ótima"),
+      padrao,
+    ],
+    rodape: [
+      el(
+        "button",
+        {
+          type: "button",
+          class: "botao botao--primario botao--gigante",
+          onClick: async () => {
+            await store.ajustarMetas(metas);
+            if (virarPadrao) {
+              await salvarConfig("metaMinima", metas.minima);
+              await salvarConfig("metaIdeal", metas.ideal);
+              await salvarConfig("metaOtima", metas.otima);
+            }
+            vibrar(40);
+            folha.fechar();
+          },
+        },
+        "SALVAR"
+      ),
+    ],
+  });
 }
 
 function blocoAcoes(pausa, reduzido) {
@@ -307,11 +498,7 @@ function blocoAcoes(pausa, reduzido) {
   const corrida = emCurso
     ? el(
         "button",
-        {
-          type: "button",
-          class: "botao botao--corrida botao--gigante acoes__larga",
-          onClick: () => abrirCorrida(),
-        },
+        { type: "button", class: "botao botao--corrida botao--gigante acoes__larga", onClick: () => abrirCorrida() },
         `■ FIM DA CORRIDA · ${M.formatarDuracao(Date.now() - emCurso.inicio)}`
       )
     : el(
@@ -362,6 +549,9 @@ function escolherPausa() {
       vibrar([25, 30, 25]);
       falar("Pausa iniciada. Relógio parado.");
       folha.fechar();
+      // Parou para abastecer: o formulário já vem junto, com o odômetro
+      // enquanto ele ainda está no posto e consegue olhar o painel.
+      if (id === "abastecimento") setTimeout(() => abrirCusto({ tipoInicial: "gnv" }), 260);
     },
   });
   folha = abrirFolha({ titulo: "Pausa — por quê?", conteudo: [grade] });
@@ -377,14 +567,9 @@ function linhaCorridas() {
   if (!corridas.length) return null;
   const conferencia = store.conferencia();
   const somado = M.somaCorridas(corridas);
+  const texto = `${corridas.length} corrida${corridas.length > 1 ? "s" : ""} · R$ ${M.formatarReais(somado, { comCentavos: false })}`;
 
-  const texto = `${corridas.length} corrida${corridas.length > 1 ? "s" : ""} lançada${
-    corridas.length > 1 ? "s" : ""
-  } · R$ ${M.formatarReais(somado, { comCentavos: false })}`;
-
-  if (!conferencia || conferencia.fecha) {
-    return el("div", { class: "dados__fontes" }, texto);
-  }
+  if (!conferencia || conferencia.fecha) return el("div", { class: "dados__fontes" }, texto);
   return el(
     "div",
     { class: "dados__fontes dados__fontes--alerta" },
@@ -392,8 +577,19 @@ function linhaCorridas() {
   );
 }
 
+function linhaCustos() {
+  const custos = store.custosDaJornada();
+  if (!custos.length) return null;
+  const total = custos.reduce((soma, c) => soma + (c.valor || 0), 0);
+  return el(
+    "div",
+    { class: "dados__fontes" },
+    `${custos.length} gasto${custos.length > 1 ? "s" : ""} · R$ ${M.formatarReais(total, { comCentavos: false })}`
+  );
+}
+
 function rodapeDados(m, config) {
-  const custos = M.custosEstimados(m.km, config);
+  const custos = M.custosEstimados(m.km, config, store.energiaKm());
   const liquido = m.saldo - custos.total;
   const fontes = PLATAFORMAS.filter((p) => m.fontes[p.id]?.valor > 0).map(
     (p) => `${p.nome} ${M.formatarReais(m.fontes[p.id].valor, { comCentavos: false })}`
@@ -402,14 +598,12 @@ function rodapeDados(m, config) {
     fontes.push(`avulso ${M.formatarReais(m.fontes.avulso.valor, { comCentavos: false })}`);
   }
 
-  const estado = store.snapshot();
-  const gps = !cfg("usarGps")
-    ? "GPS desligado"
-    : estado.gpsErro
-      ? "GPS sem sinal"
-      : estado.gpsAtivo
-        ? "GPS ativo"
-        : "GPS aguardando";
+  // Sem âncora de odômetro não há km, e sem km o R$/km some. Vale avisar em
+  // vez de deixar o traço no tile sem explicação.
+  const km =
+    m.km > 0
+      ? `${m.km.toFixed(1).replace(".", ",")} km`
+      : "sem km — informe o odômetro";
 
   return el(
     "section",
@@ -417,12 +611,13 @@ function rodapeDados(m, config) {
     el(
       "div",
       { class: "dados__linha" },
-      el("span", {}, `${m.km.toFixed(1).replace(".", ",")} km`),
-      el("span", {}, `líquido ≈ R$ ${M.formatarReais(liquido, { comCentavos: false })}`),
-      el("span", { class: "dados__gps" }, gps)
+      el("span", { class: m.km > 0 ? "" : "dados__gps" }, km),
+      m.km > 0 ? el("span", {}, `líquido ≈ R$ ${M.formatarReais(liquido, { comCentavos: false })}`) : null,
+      el("span", { class: "dados__gps" }, `${m.ancoras} âncora${m.ancoras === 1 ? "" : "s"}`)
     ),
     fontes.length ? el("div", { class: "dados__fontes" }, fontes.join(" · ")) : null,
     linhaCorridas(),
+    linhaCustos(),
     el(
       "div",
       { class: "dados__botoes" },

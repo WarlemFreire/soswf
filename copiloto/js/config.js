@@ -68,7 +68,9 @@ export const CONFIG_PADRAO = {
 
   separadorDecimal: ",",
 
-  usarGps: true,
+  blocoMin: 120,
+
+  marcarPosicao: true,
   manterTelaLigada: true,
   vibrar: true,
   tts: false,

@@ -28,7 +28,7 @@ export function abrirRegistro() {
     { id: "avulso", nome: "Avulso", tipo: "avulso" },
   ];
 
-  const valores = { odometro: store.odometroSugerido() };
+  const valores = { odometro: null };
   let alvo = cfg("plataformaPrincipal");
   let tipoAvulso = "particular";
   let ajusteMs = 0;
@@ -162,8 +162,12 @@ export function abrirRegistro() {
   function atualizarLegenda() {
     visor.textContent = tecladoDoAlvo().exibicao;
     if (alvo === "odometro") {
+      const ultimo = store.ultimoOdometro();
       const inicio = store.jornadaAtiva()?.odometroInicio;
-      legenda.textContent = `Abertura: ${inicio?.toLocaleString("pt-BR") ?? "—"} km`;
+      legenda.textContent =
+        ultimo != null && ultimo !== inicio
+          ? `Última âncora: ${ultimo.toLocaleString("pt-BR")} km · opcional`
+          : `Abertura: ${inicio?.toLocaleString("pt-BR") ?? "—"} km · opcional, dá o R$/km do bloco`;
       visor.classList.add("visor--odometro");
       return;
     }
@@ -196,7 +200,7 @@ export function abrirRegistro() {
   function temAlgoParaGravar() {
     if (valores.avulso > 0) return true;
     if (PLATAFORMAS.some((p) => valores[p.id] != null)) return true;
-    return valores.odometro != null && valores.odometro !== store.odometroSugerido();
+    return valores.odometro != null && valores.odometro > 0;
   }
 
   function payload() {

@@ -14,7 +14,10 @@ endereço chega.
 - Linha de break-even no medidor de R$/km
 - Barra de meta tripla (mínima / ideal / ótima) e projeção de horário
 - Pausas com motivo, descontadas automaticamente do tempo ativo
-- Medição de km por GPS, ancorada no odômetro
+- Odômetro digitado na abertura e no fechamento (e opcionalmente nos checkpoints)
+- Métricas em três escalas: dia, bloco recente e trecho
+- Várias jornadas no mesmo dia, com linha de base por plataforma
+- Abastecimento com custo de energia medido de bomba a bomba
 - Modo noturno automático, modo dirigindo, wake lock, vibração e leitura em voz alta
 - Desfazer de 8 segundos em todo registro — o app nunca pergunta "tem certeza?"
 - Registro granular de corrida, com cronômetro por GPS que mede km, duração,
@@ -69,6 +72,53 @@ eles mandam — vêm do total da própria plataforma. As corridas só respondem 
 bruto do dia quando não há checkpoint nenhum (caso do histórico importado).
 Quando os dois existem, o app compara e avisa se faltou lançar corrida.
 
+## Três escalas, três perguntas
+
+| escala | responde | denominador de tempo |
+|---|---|---|
+| **Dia** | vou bater a meta? | tempo ativo até agora |
+| **Bloco** (2h, ajustável) | este pedaço está valendo? | do checkpoint-âncora ao último |
+| **Trecho** | o último pulso | entre os dois últimos checkpoints |
+
+O tile mostra o bloco como número grande, com o dia na linha de baixo. A cor do
+semáforo é o que se lê de relance, e ela precisa dizer *como estou agora*: média
+acumulada tem memória, e na oitava hora já está quase toda decidida pelo passado
+— um começo fraco faz o dia inteiro parecer ruim mesmo quando o pedaço atual
+está ótimo, e o contrário também.
+
+A janela é deslizante, não bloco fixo de relógio: bloco fixo reseta a cada duas
+horas e, com checkpoint a cada 1–2h, ficaria vazio boa parte do tempo. O tempo
+do bloco é medido até o último checkpoint, não até agora — o dia é ritmo (hora
+ociosa conta contra a meta), o bloco é desempenho medido.
+
+## Várias jornadas no mesmo dia
+
+A plataforma não zera "ganhos de hoje" quando a segunda jornada começa. Por isso
+a jornada guarda uma **linha de base** por plataforma, pré-preenchida com o saldo
+em que a anterior parou:
+
+```
+saldo do dia   = base do dia + ganho desta jornada   ← meta e barra de progresso
+ganho da jornada = último saldo − linha de base      ← R$/hora e R$/km
+```
+
+Sem isso a jornada da tarde nasceria herdando o dinheiro da manhã e exibindo um
+rendimento que não produziu.
+
+## Abastecimento
+
+O custo de energia por km é medido de bomba a bomba, na convenção de tanque
+cheio: a distância conta do primeiro ao último abastecimento, e o gasto conta do
+segundo em diante — o combustível do primeiro foi queimado antes da medição.
+A partir do segundo abastecimento com odômetro, o valor medido substitui a
+semente das configurações e **todo o histórico é recalculado**, porque o app não
+armazena nada que consiga recalcular.
+
+Consumo separado por combustível (km/m³, km/l) só sai quando dois abastecimentos
+seguidos são do mesmo tipo. Num carro bicombustível que alterna no meio do
+trajeto isso é impossível de medir com exatidão, e o app não finge que dá — o
+custo por km agregado, que não precisa separar nada, é o número confiável.
+
 ## Os números que o app usa
 
 Calibrados sobre a operação real do motorista — 10h de rua, 200 km, R$ 350
@@ -80,7 +130,7 @@ brutos num dia típico — e todos editáveis em Ajustes.
 | Faixa de R$/hora | piso 32 · ideal 40 · ótimo 50 |
 | Energia | GNV R$ 4,30/m³ a 10 km/m³ (95% do rodado) |
 | Desgaste | R$ 0,25/km |
-| Break-even | **R$ 0,69/km** |
+| Break-even | **R$ 0,69/km** (até o segundo abastecimento medir o real) |
 
 As faixas de R$/km por período são do **rendimento da jornada** (contando km
 vazio), não da corrida ofertada — são coisas diferentes, e as tabelas genéricas
@@ -156,9 +206,18 @@ copiloto/test/check.sh                # sintaxe dos módulos
   se o celular sumir, o histórico vai junto.
 - **R$/km é sempre agregado.** O odômetro é um só; não há como separar quantos
   km foram de Uber e quantos foram de 99.
-- **GPS em segundo plano.** Com a tela apagada o navegador suspende a
-  amostragem. O wake lock cobre a jornada ativa; fora disso o km avança quando
-  um odômetro é informado.
+- **Não existe medição de km por GPS.** Havia, e mediu menos da metade da
+  distância real na primeira noite de uso. A causa não tem conserto no
+  navegador: o motorista passa a jornada com o app da plataforma em primeiro
+  plano, e o Android suspende o `watchPosition` de uma aba que não está visível.
+  Não há geolocalização em segundo plano na web, e service worker não acessa
+  geolocation. O GPS ficou com uma função só, que não depende de continuidade:
+  uma leitura pontual no instante do registro, para marcar a zona.
+- **Sem odômetro digitado não há km**, e o R$/km mostra "—". É de propósito:
+  melhor não ter número do que ter um inventado. O odômetro no checkpoint é
+  opcional e é o que destrava o R$/km do bloco.
+- **O km de deslocamento por corrida morreu junto com o GPS contínuo.** Sobra a
+  versão diária: odômetro do dia menos a soma dos km das corridas.
 - **O líquido é estimado**, calculado pelo custo por km configurado. A fase
   seguinte troca a estimativa pelo consumo real medido entre abastecimentos.
 - **Dias importados da planilha não têm odômetro nem horas trabalhadas.** Eles
