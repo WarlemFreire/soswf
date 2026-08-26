@@ -29,72 +29,84 @@ export function faixaKmDe(quando, faixasKm) {
 /* ------------------------------------------------------------------ saldos */
 
 /**
- * Checkpoint parcial: cada plataforma guarda seu proprio ultimo valor
- * conhecido. O motorista atualiza so a que mexeu — os outros valores
- * permanecem validos. Avulsos (frete/particular) sao incrementos, nao saldos,
- * entao somam em vez de substituir.
+ * O dinheiro tem UMA fonte de verdade: a linha do tempo do dia.
+ *
+ * Cada evento é uma leitura do que a plataforma mostrava naquele instante. O
+ * saldo do dia é sempre o último valor lido de cada plataforma, mais os
+ * avulsos — nunca uma soma de pedaços.
+ *
+ * A versão anterior mantinha duas contas paralelas (o total das jornadas
+ * anteriores e a linha de base declarada na abertura) que precisavam
+ * concordar entre si. Quando discordavam, o mesmo dinheiro entrava duas
+ * vezes. Aqui isso é impossível: existe uma conta só.
  */
-export function saldoPorFonte(registros, saldoInicial = {}) {
-  const fontes = {};
-  // A plataforma nao zera "ganhos de hoje" quando uma segunda jornada comeca.
-  // A linha de base guarda onde a jornada anterior parou, para que o ganho
-  // desta seja o que veio depois dela.
-  for (const p of PLATAFORMAS) {
-    const inicial = Number(saldoInicial?.[p.id]) || 0;
-    fontes[p.id] = { valor: inicial, inicial, visto: null };
-  }
-  fontes.avulso = { valor: 0, inicial: 0, visto: null };
+export function eventosDoDia(jornadas, registros) {
+  const eventos = [];
 
-  for (const r of ordenados(registros)) {
-    if (r.desfeito) continue;
-    for (const [id, valor] of Object.entries(r.saldos || {})) {
-      if (!(id in fontes) || valor == null) continue;
-      fontes[id] = { valor: Number(valor), inicial: fontes[id].inicial, visto: r.timestamp };
+  // A abertura de jornada declara onde o dia estava naquele momento. Vale como
+  // leitura: se o motorista já tinha R$100 antes de começar, é isso que a
+  // plataforma mostrava.
+  for (const j of jornadas || []) {
+    const declarado = j.saldoInicial || {};
+    if (Object.keys(declarado).length) {
+      eventos.push({
+        id: `abertura-${j.id}`,
+        timestamp: j.horaInicio,
+        saldos: declarado,
+        abertura: true,
+      });
     }
-    if (r.avulso && r.avulso.valor != null) {
-      fontes.avulso = {
-        valor: fontes.avulso.valor + Number(r.avulso.valor),
-        inicial: 0,
-        visto: r.timestamp,
-      };
+  }
+
+  for (const r of registrosValidos(registros)) eventos.push(r);
+  return eventos.sort((a, b) => a.timestamp - b.timestamp);
+}
+
+/** Estado de cada fonte de dinheiro depois de percorrer os eventos. */
+export function saldoPorFonte(eventos) {
+  const fontes = {};
+  for (const p of PLATAFORMAS) fontes[p.id] = { valor: 0, visto: null };
+  fontes.avulso = { valor: 0, visto: null };
+
+  for (const e of ordenados(eventos)) {
+    if (e.desfeito) continue;
+    // Plataforma: o número novo SUBSTITUI o anterior, porque o app dela mostra
+    // o acumulado do dia, não o da última corrida.
+    for (const [id, valor] of Object.entries(e.saldos || {})) {
+      if (!(id in fontes) || valor == null) continue;
+      fontes[id] = { valor: Number(valor), visto: e.timestamp };
+    }
+    // Avulso é incremento: um frete de R$80 soma, não substitui.
+    if (e.avulso && e.avulso.valor != null) {
+      fontes.avulso = { valor: fontes.avulso.valor + Number(e.avulso.valor), visto: e.timestamp };
     }
   }
   return fontes;
 }
 
-export function saldoTotal(registros, saldoInicial = {}) {
-  const fontes = saldoPorFonte(registros, saldoInicial);
-  return Object.values(fontes).reduce((soma, f) => soma + f.valor, 0);
+export function saldoTotal(eventos) {
+  return Object.values(saldoPorFonte(eventos)).reduce((soma, f) => soma + f.valor, 0);
+}
+
+/** Saldo do dia num instante — a base de tudo o que se mede por diferença. */
+export function saldoEm(eventos, ate) {
+  return saldoTotal((eventos || []).filter((e) => e.timestamp <= ate));
 }
 
 /**
- * Ganho desta jornada: o que entrou depois da linha de base. É o numerador do
- * R$/hora e do R$/km — se contasse o saldo da jornada da manhã, a jornada da
- * tarde nasceria com um rendimento inflado que ela nao produziu.
+ * Ganho desta jornada: quanto o saldo do dia subiu desde a abertura dela.
+ *
+ * A declaração de abertura tem o mesmo timestamp da jornada, então entra nos
+ * dois lados da subtração e se cancela — é exatamente o que se quer: ela diz
+ * de onde a jornada parte, não o que ela produziu.
  */
-export function ganhoJornada(registros, saldoInicial = {}) {
-  const fontes = saldoPorFonte(registros, saldoInicial);
-  return Object.values(fontes).reduce((soma, f) => soma + (f.valor - f.inicial), 0);
+export function ganhoDaJornada(eventos, jornada, ate = Infinity) {
+  if (!jornada) return 0;
+  return saldoEm(eventos, ate) - saldoEm(eventos, jornada.horaInicio);
 }
 
-/** Ganho da jornada considerando apenas registros até `ate` (inclusive). */
-export function ganhoAte(registros, ate, saldoInicial = {}) {
-  return ganhoJornada(
-    registros.filter((r) => r.timestamp <= ate),
-    saldoInicial
-  );
-}
-
-/** Saldo total considerando apenas registros até `ate` (inclusive). */
-export function saldoAte(registros, ate, saldoInicial = {}) {
-  return saldoTotal(
-    registros.filter((r) => r.timestamp <= ate),
-    saldoInicial
-  );
-}
-
-function ordenados(registros) {
-  return [...(registros || [])].sort((a, b) => a.timestamp - b.timestamp);
+function ordenados(eventos) {
+  return [...(eventos || [])].sort((a, b) => a.timestamp - b.timestamp);
 }
 
 export function registrosValidos(registros) {
@@ -204,15 +216,15 @@ export function nivel(valor, faixa) {
  */
 export function metricasAoVivo({
   jornada,
+  eventos,
   registros,
   pausas,
   config,
-  baseDia = 0,
   agora = Date.now(),
 }) {
   const validos = registrosValidos(registros);
-  const saldoInicial = jornada?.saldoInicial || {};
-  const ganho = ganhoJornada(validos, saldoInicial);
+  const saldoDia = saldoEm(eventos, agora);
+  const ganho = ganhoDaJornada(eventos, jornada, agora);
   const ativo = msAtivo(jornada, pausas, agora);
   const km = kmPercorrido(jornada, validos);
 
@@ -222,19 +234,19 @@ export function metricasAoVivo({
 
   const janela = bloco({
     jornada,
+    eventos,
     registros: validos,
     pausas,
-    saldoInicial,
     duracaoMs: (config.blocoMin || 120) * MINUTO,
     agora,
   });
 
   return {
-    // Saldo do dia soma as jornadas anteriores; o ganho é só desta jornada.
-    saldo: baseDia + ganho,
+    saldo: saldoDia,
     ganho,
-    baseDia,
-    fontes: saldoPorFonte(validos, saldoInicial),
+    // Onde o dia estava quando esta jornada abriu.
+    base: saldoDia - ganho,
+    fontes: saldoPorFonte((eventos || []).filter((e) => e.timestamp <= agora)),
     msAtivo: ativo,
     msRua: msRua(jornada, agora),
     msPausado: msPausado(pausas, agora),
@@ -276,7 +288,7 @@ const MIN_ATIVO_BLOCO = 30 * MINUTO;
  *    contasse até agora, o bloco despencaria enquanto ele roda sem registrar —
  *    justamente o contrário do que a métrica serve para mostrar.
  */
-export function bloco({ jornada, registros, pausas, saldoInicial = {}, duracaoMs, agora = Date.now() }) {
+export function bloco({ jornada, eventos, registros, pausas, duracaoMs, agora = Date.now() }) {
   const validos = registrosValidos(registros);
   if (!jornada || !validos.length) return null;
 
@@ -288,9 +300,8 @@ export function bloco({ jornada, registros, pausas, saldoInicial = {}, duracaoMs
   const ancora = [...validos].reverse().find((r) => r.timestamp <= inicioJanela) || null;
   const inicio = ancora ? ancora.timestamp : jornada.horaInicio;
 
-  const delta =
-    ganhoAte(validos, ultimo.timestamp, saldoInicial) -
-    (ancora ? ganhoAte(validos, ancora.timestamp, saldoInicial) : 0);
+  const linha = eventos || validos;
+  const delta = saldoEm(linha, ultimo.timestamp) - saldoEm(linha, inicio);
 
   const ativo = Math.max(0, ultimo.timestamp - inicio - msPausadoEntre(pausas, inicio, ultimo.timestamp));
   const km = Math.max(0, kmAte(jornada, validos, ultimo.timestamp) - kmAte(jornada, validos, inicio));
@@ -324,9 +335,9 @@ export function somaCorridas(corridas) {
  * quando nao ha checkpoint nenhum (caso do historico importado da planilha).
  * Somar os dois contaria o mesmo dinheiro duas vezes.
  */
-export function brutoDoDia(registros, corridas) {
-  const validos = registrosValidos(registros);
-  if (validos.length) return saldoTotal(validos);
+export function brutoDoDia(eventos, corridas) {
+  const comSaldo = (eventos || []).filter((e) => !e.desfeito && (e.saldos || e.avulso));
+  if (comSaldo.length) return saldoTotal(comSaldo);
   return somaCorridas(corridas);
 }
 
@@ -334,10 +345,10 @@ export function brutoDoDia(registros, corridas) {
  * Confere o lançamento de corridas contra o saldo dos checkpoints. Uma
  * diferença grande normalmente significa corrida esquecida no lançamento.
  */
-export function conferenciaCorridas(registros, corridas) {
+export function conferenciaCorridas(registros, corridas, ganho = null) {
   const validos = registrosValidos(registros);
   if (!validos.length || !(corridas || []).length) return null;
-  const saldo = saldoTotal(validos);
+  const saldo = ganho != null ? ganho : saldoTotal(validos);
   const somado = somaCorridas(corridas);
   const diferenca = saldo - somado;
   return {
@@ -385,7 +396,7 @@ export function bairrosUsados(corridas) {
  * Desempenho entre os dois ultimos checkpoints. É o que o toast mostra logo
  * depois de confirmar um registro.
  */
-export function ultimoTrecho(jornada, registros, pausas, saldoInicial = {}) {
+export function ultimoTrecho(jornada, registros, pausas, eventos = null) {
   const validos = registrosValidos(registros);
   if (validos.length === 0) return null;
 
@@ -393,8 +404,9 @@ export function ultimoTrecho(jornada, registros, pausas, saldoInicial = {}) {
   const anterior = validos.length > 1 ? validos[validos.length - 2] : null;
 
   const inicio = anterior ? anterior.timestamp : jornada.horaInicio;
-  const saldoInicio = anterior ? ganhoAte(validos, anterior.timestamp, saldoInicial) : 0;
-  const saldoFim = ganhoAte(validos, atual.timestamp, saldoInicial);
+  const linha = eventos || validos;
+  const saldoInicio = saldoEm(linha, inicio);
+  const saldoFim = saldoEm(linha, atual.timestamp);
 
   const bruto = atual.timestamp - inicio;
   const pausado = msPausadoEntre(pausas, inicio, atual.timestamp);

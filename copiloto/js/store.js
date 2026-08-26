@@ -19,9 +19,9 @@ const estado = {
   corridaEmCurso: null,
   bairros: [],
   pausas: [],
-  // Total do dia acumulado nas jornadas anteriores a esta. O saldo do dia soma
-  // isso ao ganho da jornada atual; as métricas de rendimento, não.
-  baseDia: 0,
+  // Linha do tempo do dia inteiro: as declarações de abertura das jornadas de
+  // hoje e todos os registros de hoje, em ordem. É a única fonte do dinheiro.
+  eventosDoDia: [],
   jornadasDoDia: [],
 };
 
@@ -58,54 +58,47 @@ export async function carregarJornadaAberta() {
     estado.pausas = await db.porIndice("pausas", "jornadaId", aberta.id);
     estado.corridas = await db.porIndice("corridas", "jornadaId", aberta.id);
     estado.custos = await db.porIndice("custos", "jornadaId", aberta.id);
-    await carregarBaseDia(aberta);
+    await carregarDia(aberta.data);
     if (cfg("manterTelaLigada")) manterTelaLigada();
   } else {
     estado.registros = [];
     estado.pausas = [];
     estado.corridas = [];
     estado.custos = [];
-    await carregarBaseDia(null);
+    await carregarDia(M.chaveData(Date.now()));
   }
   notificar();
   return aberta;
 }
 
 /**
- * Soma o que as jornadas anteriores de hoje já renderam. É isso que permite
- * encerrar ao meio-dia, abrir outra às duas e continuar vendo o saldo do dia
- * inteiro na tela, sem que a jornada da tarde herde o rendimento da manhã.
+ * Monta a linha do tempo do dia. Chamada em toda mudança que mexe em dinheiro,
+ * porque é dela que sai o saldo do dia e o ganho de cada jornada.
  */
-async function carregarBaseDia(jornada, dataAlvo) {
-  const data = dataAlvo ?? jornada?.data ?? M.chaveData(Date.now());
-  // Sem jornada aberta, todas as de hoje entram: é o total do dia que a tela
-  // de "nenhuma jornada aberta" precisa mostrar antes de abrir a próxima.
-  const doDia = (await db.porIndice("jornadas", "data", data))
-    .filter((j) => !jornada || (j.id !== jornada.id && j.horaInicio < jornada.horaInicio))
-    .sort((a, b) => a.horaInicio - b.horaInicio);
+async function carregarDia(data) {
+  const dia = data ?? estado.jornada?.data ?? M.chaveData(Date.now());
+  const jornadas = (await db.porIndice("jornadas", "data", dia)).sort((a, b) => a.horaInicio - b.horaInicio);
 
-  let base = 0;
-  for (const anterior of doDia) {
-    const registros = await db.porIndice("registros", "jornadaId", anterior.id);
-    base += M.ganhoJornada(registros, anterior.saldoInicial || {});
+  let registros = [];
+  for (const j of jornadas) {
+    registros = registros.concat(await db.porIndice("registros", "jornadaId", j.id));
   }
-  estado.jornadasDoDia = doDia;
-  estado.baseDia = base;
-  return base;
+
+  estado.jornadasDoDia = jornadas;
+  estado.eventosDoDia = M.eventosDoDia(jornadas, registros);
+  return estado.eventosDoDia;
 }
 
-/** Onde cada plataforma parou hoje — sugestão de linha de base da próxima jornada. */
+/**
+ * Onde cada plataforma estava no fim da última jornada de hoje — sugestão de
+ * linha de base para a próxima. O motorista só confere o número.
+ */
 export async function saldoInicialSugerido() {
-  const hoje = M.chaveData(Date.now());
-  const doDia = (await db.porIndice("jornadas", "data", hoje)).sort((a, b) => a.horaInicio - b.horaInicio);
+  await carregarDia(M.chaveData(Date.now()));
+  const fontes = M.saldoPorFonte(estado.eventosDoDia);
   const sugestao = {};
-  for (const j of doDia) {
-    if (!j.horaFim) continue;
-    const registros = await db.porIndice("registros", "jornadaId", j.id);
-    const fontes = M.saldoPorFonte(registros, j.saldoInicial || {});
-    for (const plataforma of PLATAFORMAS) {
-      if (fontes[plataforma.id]?.visto) sugestao[plataforma.id] = fontes[plataforma.id].valor;
-    }
+  for (const plataforma of PLATAFORMAS) {
+    if (fontes[plataforma.id]?.valor > 0) sugestao[plataforma.id] = fontes[plataforma.id].valor;
   }
   return sugestao;
 }
@@ -116,21 +109,27 @@ export function metricas(agora = Date.now()) {
   if (!estado.jornada) return null;
   return M.metricasAoVivo({
     jornada: estado.jornada,
+    eventos: estado.eventosDoDia,
     registros: estado.registros,
     pausas: estado.pausas,
     config: configAtual(),
-    baseDia: estado.baseDia,
     agora,
   });
 }
 
-/**
- * Último odômetro que o motorista digitou de fato. Antes havia aqui um
- * `odometroSugerido` que extrapolava a partir do GPS e pré-preenchia o campo —
- * o resultado é que todo checkpoint gravava uma âncora fabricada, e a
- * estimativa passava a ter cara de leitura de painel. O campo agora nasce
- * vazio: ou ele digita o número real, ou não há âncora.
- */
+/** Saldo do dia agora — o que a tela mostra grande. */
+export function saldoDoDia(agora = Date.now()) {
+  return M.saldoEm(estado.eventosDoDia, agora);
+}
+
+export function eventosDoDia() {
+  return estado.eventosDoDia;
+}
+
+export function jornadasDoDia() {
+  return estado.jornadasDoDia;
+}
+
 export function ultimoOdometro() {
   const comOdometro = M.registrosValidos(estado.registros).filter((r) => r.odometro != null);
   if (comOdometro.length) return comOdometro[comOdometro.length - 1].odometro;
@@ -138,16 +137,8 @@ export function ultimoOdometro() {
 }
 
 export function saldoDaFonte(id) {
-  const fontes = M.saldoPorFonte(M.registrosValidos(estado.registros), estado.jornada?.saldoInicial || {});
-  return fontes[id] || { valor: 0, inicial: 0, visto: null };
-}
-
-export function baseDia() {
-  return estado.baseDia;
-}
-
-export function jornadasDoDia() {
-  return estado.jornadasDoDia;
+  const fontes = M.saldoPorFonte(estado.eventosDoDia);
+  return fontes[id] || { valor: 0, visto: null };
 }
 
 /* ---------------------------------------------------------------- jornada */
@@ -177,7 +168,7 @@ export async function abrirJornada({ odometroInicio, metas, saldoInicial }) {
   estado.pausas = [];
   estado.corridas = [];
   estado.custos = [];
-  await carregarBaseDia(jornada);
+  await carregarDia(jornada.data);
   if (cfg("manterTelaLigada")) manterTelaLigada();
   notificar();
   return jornada;
@@ -201,7 +192,7 @@ export async function fecharJornada({ odometroFim, observacoes } = {}) {
   estado.jornada = fechada;
   // O dia continua: recalcula para a tela já oferecer abrir a próxima jornada
   // mostrando quanto rendeu até aqui.
-  await carregarBaseDia(null, fechada.data);
+  await carregarDia(fechada.data);
   notificar();
   return fechada;
 }
@@ -271,6 +262,7 @@ export async function registrar({ saldos, avulso, odometro, timestamp, tipo = "c
 
   await db.put("registros", registro);
   estado.registros = [...estado.registros, registro];
+  await carregarDia(jornada.data);
   notificar();
 
   // A coordenada vem depois, em segundo plano. O GPS leva segundos para
@@ -289,6 +281,7 @@ async function marcarZona(id) {
   const comZona = { ...registro, posicao: { lat: posicao.lat, lon: posicao.lon } };
   await db.put("registros", comZona);
   estado.registros = estado.registros.map((r) => (r.id === id ? comZona : r));
+  await carregarDia(estado.jornada?.data);
 }
 
 function limparSaldos(saldos) {
@@ -308,27 +301,28 @@ export async function desfazerRegistro(id) {
   const marcado = { ...registro, desfeito: true, desfeitoEm: Date.now() };
   await db.put("registros", marcado);
   estado.registros = estado.registros.map((r) => (r.id === id ? marcado : r));
+  await carregarDia(estado.jornada?.data);
   notificar();
 }
 
 export function trechoAtual() {
   const jornada = estado.jornada;
   if (!jornada) return null;
-  return M.ultimoTrecho(jornada, estado.registros, estado.pausas, jornada.saldoInicial || {});
+  return M.ultimoTrecho(jornada, estado.registros, estado.pausas, estado.eventosDoDia);
 }
 
 /**
  * Diferença que o registro provocaria no saldo total. Usado para detectar
  * queda de saldo (estorno) ou valor digitado no chip errado antes de gravar.
  */
+/** Quanto este registro mudaria o saldo do dia, antes de gravar. */
 export function deltaSimulado({ saldos, avulso }) {
-  const inicial = estado.jornada?.saldoInicial || {};
-  const validos = M.registrosValidos(estado.registros);
-  const atual = M.ganhoJornada(validos, inicial);
-  const simulado = M.ganhoJornada(
-    [...validos, { id: "__sim__", timestamp: Date.now() + 1, saldos: limparSaldos(saldos), avulso }],
-    inicial
-  );
+  const agora = Date.now();
+  const atual = M.saldoEm(estado.eventosDoDia, agora);
+  const simulado = M.saldoTotal([
+    ...estado.eventosDoDia,
+    { id: "__sim__", timestamp: agora + 1, saldos: limparSaldos(saldos), avulso },
+  ]);
   return simulado - atual;
 }
 
@@ -421,7 +415,8 @@ export function corridasDoDia() {
 
 /** Confere as corridas lançadas contra o saldo dos checkpoints. */
 export function conferencia() {
-  return M.conferenciaCorridas(estado.registros, estado.corridas);
+  const ganho = M.ganhoDaJornada(estado.eventosDoDia, estado.jornada);
+  return M.conferenciaCorridas(estado.registros, estado.corridas, ganho);
 }
 
 async function carregarBairros() {
@@ -537,6 +532,7 @@ export async function historico() {
   const config = configAtual();
 
   const porJornada = (lista, id) => lista.filter((x) => x.jornadaId === id);
+  const porData = new Map(jornadas.map((j) => [j.id, j.data]));
 
   return jornadas
     .sort((a, b) => b.horaInicio - a.horaInicio)
@@ -547,9 +543,18 @@ export async function historico() {
       const gastos = porJornada(custos, j.id);
       const fim = j.horaFim ?? Date.now();
       const importada = j.origem === "planilha";
-      const inicial = j.saldoInicial || {};
 
-      const saldo = rs.length ? M.ganhoJornada(rs, inicial) : M.somaCorridas(cs);
+      const eventos = M.eventosDoDia(
+        jornadas.filter((x) => x.data === j.data),
+        registros.filter((x) => porData.get(x.jornadaId) === j.data)
+      );
+      const proxima = jornadas
+        .filter((x) => x.data === j.data && x.horaInicio > j.horaInicio)
+        .sort((a, b) => a.horaInicio - b.horaInicio)[0];
+      // A jornada rende até a próxima abrir (ou até o fim dela, se for a última).
+      const ate = proxima ? proxima.horaInicio : (j.horaFim ?? Date.now());
+      const ganho = M.ganhoDaJornada(eventos, j, ate);
+      const saldo = eventos.length ? ganho : M.somaCorridas(cs);
       const km = M.kmPercorrido(j, rs);
 
       // Num dia importado da planilha, o intervalo entre a primeira e a última
@@ -568,7 +573,7 @@ export async function historico() {
         custos: gastos,
         gastoReal: gastos.reduce((soma, g) => soma + (g.valor || 0), 0),
         importada,
-        conferencia: M.conferenciaCorridas(rs, cs),
+        conferencia: M.conferenciaCorridas(rs, cs, saldo),
         aproveitamento: M.aproveitamentoKm(cs, km),
         saldo,
         km,
@@ -580,7 +585,7 @@ export async function historico() {
         // Sem odômetro nao ha km, e sem km nao ha custo — melhor nao mostrar
         // liquido do que mostrar o bruto disfarçado de liquido.
         liquido: km > 0 ? M.liquidoEstimado(saldo, km, config, estado.energiaKm) : null,
-        fontes: M.saldoPorFonte(rs, inicial),
+        fontes: M.saldoPorFonte(rs),
       };
     });
 }

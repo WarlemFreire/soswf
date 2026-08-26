@@ -153,13 +153,14 @@ teste("o dia típico do motorista cai onde esperamos no semáforo", () => {
   const pausas = [{ horaInicio: inicioManha + 5 * H, horaFim: inicioManha + 6 * H }];
   const m = M.metricasAoVivo({
     jornada: j,
+    eventos: M.eventosDoDia([j], registros),
     registros,
     pausas,
-    gpsAcum: null,
     config: CONFIG_PADRAO,
     agora: inicioManha + 10 * H,
   });
   assert.equal(m.saldo, 350);
+  assert.equal(m.ganho, 350);
   assert.equal(m.km, 200);
   assert.ok(perto(m.reaisPorKm, 1.75), `R$/km foi ${m.reaisPorKm}`);
   assert.ok(perto(m.reaisPorHora, 350 / 9, 0.01), `R$/h foi ${m.reaisPorHora}`);
@@ -254,30 +255,97 @@ teste("líquido do dia típico", () => {
 
 /* --------------------------------------------- linha de base da jornada */
 
-teste("linha de base separa o ganho da jornada do saldo do dia", () => {
-  // Jornada da manhã fechou com R$180 na Uber. A tarde abre com essa base:
-  // a plataforma continua mostrando o acumulado do dia.
-  const inicial = { uber: 180 };
+// A abertura de jornada declara onde o dia estava. `eventosDoDia` transforma
+// essa declaração num evento da linha do tempo, junto com os registros.
+const comBase = (jornadaBase, registros) => M.eventosDoDia([jornadaBase], registros);
+
+teste("segunda jornada do dia: registrar o total NÃO soma com o turno anterior", () => {
+  // O caso relatado: turno da tarde terminou em R$100, o motorista abre outra
+  // jornada informando 100, faz uma corrida de R$10 e digita 110 (o total que
+  // a plataforma mostra). O dia tem que ficar em 110 — nunca 210.
+  const tarde = { id: "j1", horaInicio: t0, saldoInicial: {} };
+  const noite = { id: "j2", horaInicio: t0 + 4 * H, saldoInicial: { uber: 100 } };
   const registros = [
-    { id: "a", timestamp: t0 + H, saldos: { uber: 240 } },
-    { id: "b", timestamp: t0 + 2 * H, saldos: { uber: 300 } },
+    { id: "a", jornadaId: "j1", timestamp: t0 + H, saldos: { uber: 100 } },
+    { id: "b", jornadaId: "j2", timestamp: t0 + 5 * H, saldos: { uber: 110 } },
   ];
-  assert.equal(M.ganhoJornada(registros, inicial), 120, "a tarde rendeu 120, não 300");
-  assert.equal(M.saldoTotal(registros, inicial), 300, "o saldo do dia continua sendo 300");
-  assert.equal(M.ganhoJornada(registros, {}), 300, "sem base, ganho e saldo coincidem");
+  const eventos = M.eventosDoDia([tarde, noite], registros);
+
+  assert.equal(M.saldoEm(eventos, t0 + 5 * H), 110, "o saldo do dia é o último valor lido");
+  assert.equal(M.ganhoDaJornada(eventos, noite, t0 + 5 * H), 10, "a noite rendeu 10");
+  assert.equal(M.ganhoDaJornada(eventos, tarde, t0 + 4 * H), 100, "a tarde rendeu 100");
 });
 
-teste("plataforma sem checkpoint na jornada mantém a base e não gera ganho", () => {
-  const inicial = { uber: 180, "99": 40 };
-  const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 240 } }];
-  const fontes = M.saldoPorFonte(registros, inicial);
-  assert.equal(fontes["99"].valor, 40);
-  assert.equal(M.ganhoJornada(registros, inicial), 60, "só a Uber rendeu");
+teste("declaração de abertura não infla o dia quando repete o que já foi lido", () => {
+  // A declaração diz "o dia estava em 100" e o registro anterior já dizia 100.
+  // Substituir, não somar: continua 100.
+  const tarde = { id: "j1", horaInicio: t0, saldoInicial: {} };
+  const noite = { id: "j2", horaInicio: t0 + 4 * H, saldoInicial: { uber: 100 } };
+  const eventos = M.eventosDoDia([tarde, noite], [
+    { id: "a", jornadaId: "j1", timestamp: t0 + H, saldos: { uber: 100 } },
+  ]);
+  assert.equal(M.saldoEm(eventos, t0 + 4 * H), 100);
+  assert.equal(M.ganhoDaJornada(eventos, noite, t0 + 4 * H), 0);
 });
 
-teste("avulso entra inteiro no ganho, não tem linha de base", () => {
-  const registros = [{ id: "a", timestamp: t0 + H, avulso: { valor: 80, tipo: "frete" } }];
-  assert.equal(M.ganhoJornada(registros, { uber: 180 }), 80);
+teste("abertura sem jornada anterior semeia o dia", () => {
+  // Instalou o app no meio do dia com R$100 já feitos: a declaração é a única
+  // notícia que o app tem desse dinheiro.
+  const j = { id: "j1", horaInicio: t0, saldoInicial: { uber: 100 } };
+  const eventos = M.eventosDoDia([j], [{ id: "a", timestamp: t0 + H, saldos: { uber: 160 } }]);
+  assert.equal(M.saldoEm(eventos, t0 + H), 160);
+  assert.equal(M.ganhoDaJornada(eventos, j, t0 + H), 60);
+});
+
+teste("três jornadas no mesmo dia continuam sem duplicar", () => {
+  const js = [
+    { id: "j1", horaInicio: t0, saldoInicial: {} },
+    { id: "j2", horaInicio: t0 + 3 * H, saldoInicial: { uber: 100 } },
+    { id: "j3", horaInicio: t0 + 6 * H, saldoInicial: { uber: 150 } },
+  ];
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 100 } },
+    { id: "b", timestamp: t0 + 4 * H, saldos: { uber: 150 } },
+    { id: "c", timestamp: t0 + 7 * H, saldos: { uber: 220 } },
+  ];
+  const eventos = M.eventosDoDia(js, registros);
+  assert.equal(M.saldoEm(eventos, t0 + 7 * H), 220, "o dia é o último valor, não a soma dos pedaços");
+  assert.equal(M.ganhoDaJornada(eventos, js[2], t0 + 7 * H), 70);
+  assert.equal(M.ganhoDaJornada(eventos, js[1], t0 + 6 * H), 50);
+});
+
+teste("avulso soma; plataforma substitui", () => {
+  const j = { id: "j1", horaInicio: t0, saldoInicial: {} };
+  const eventos = M.eventosDoDia([j], [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 100 } },
+    { id: "b", timestamp: t0 + 2 * H, avulso: { valor: 80, tipo: "frete" } },
+    { id: "c", timestamp: t0 + 3 * H, saldos: { uber: 130 } },
+    { id: "d", timestamp: t0 + 4 * H, avulso: { valor: 50, tipo: "particular" } },
+  ]);
+  assert.equal(M.saldoEm(eventos, t0 + 4 * H), 130 + 130, "130 de Uber + 130 de avulsos");
+});
+
+teste("avulso de uma jornada não vaza para o ganho da seguinte", () => {
+  const js = [
+    { id: "j1", horaInicio: t0, saldoInicial: {} },
+    { id: "j2", horaInicio: t0 + 3 * H, saldoInicial: { uber: 100 } },
+  ];
+  const eventos = M.eventosDoDia(js, [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 100 } },
+    { id: "b", timestamp: t0 + 2 * H, avulso: { valor: 80 } },
+    { id: "c", timestamp: t0 + 4 * H, saldos: { uber: 110 } },
+  ]);
+  assert.equal(M.saldoEm(eventos, t0 + 4 * H), 190);
+  assert.equal(M.ganhoDaJornada(eventos, js[1], t0 + 4 * H), 10, "só os 10 da corrida da noite");
+});
+
+teste("registro desfeito sai da linha do tempo", () => {
+  const j = { id: "j1", horaInicio: t0, saldoInicial: {} };
+  const eventos = M.eventosDoDia([j], [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 100 } },
+    { id: "b", timestamp: t0 + 2 * H, saldos: { uber: 999 }, desfeito: true },
+  ]);
+  assert.equal(M.saldoEm(eventos, t0 + 3 * H), 100);
 });
 
 /* ------------------------------------------------------------------ bloco */

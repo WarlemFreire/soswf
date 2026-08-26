@@ -91,19 +91,36 @@ horas e, com checkpoint a cada 1–2h, ficaria vazio boa parte do tempo. O tempo
 do bloco é medido até o último checkpoint, não até agora — o dia é ritmo (hora
 ociosa conta contra a meta), o bloco é desempenho medido.
 
-## Várias jornadas no mesmo dia
+## O dinheiro tem uma fonte de verdade só
 
-A plataforma não zera "ganhos de hoje" quando a segunda jornada começa. Por isso
-a jornada guarda uma **linha de base** por plataforma, pré-preenchida com o saldo
-em que a anterior parou:
+O saldo do dia é o **fold sobre a linha do tempo do dia**: cada evento é uma
+leitura do que a plataforma mostrava naquele instante, e o saldo é sempre o
+último valor lido de cada plataforma mais os avulsos. Nunca uma soma de
+pedaços.
 
 ```
-saldo do dia   = base do dia + ganho desta jornada   ← meta e barra de progresso
-ganho da jornada = último saldo − linha de base      ← R$/hora e R$/km
+plataforma  →  o número novo SUBSTITUI o anterior   (o app dela mostra o dia)
+avulso      →  o número novo SOMA                   (é o valor da corrida)
 ```
 
-Sem isso a jornada da tarde nasceria herdando o dinheiro da manhã e exibindo um
-rendimento que não produziu.
+Abrir uma jornada declara onde o dia estava naquele momento, e essa declaração
+entra na linha do tempo como mais uma leitura. Como ela tem o mesmo instante da
+abertura, cai nos dois lados da subtração e se cancela:
+
+```
+saldo do dia     = último valor lido de cada fonte
+ganho da jornada = saldo do dia agora − saldo do dia na abertura
+```
+
+Uma versão anterior mantinha duas contas paralelas — o total das jornadas
+anteriores e a linha de base declarada — que precisavam concordar entre si.
+Quando discordavam (bastava não confirmar a base ao abrir a segunda jornada), o
+mesmo dinheiro entrava duas vezes e o dia aparecia com o dobro. Com uma conta só
+isso é estruturalmente impossível, e a declaração de base virou opcional: se a
+jornada anterior tem registros, o dia já sabe onde está.
+
+A tela mostra a conta (`100 ao abrir + 10 nesta jornada`) para que um número
+errado salte aos olhos na hora, em vez de virar uma noite de dado ruim.
 
 ## Abastecimento
 

@@ -36,7 +36,7 @@ function render(raiz) {
 /* ------------------------------------------------------ jornada parada */
 
 function painelParado() {
-  const base = store.baseDia();
+  const base = store.saldoDoDia();
   const anteriores = store.jornadasDoDia().length;
 
   return el(
@@ -202,13 +202,12 @@ function blocoSaldo(m, pausa) {
       el("span", { class: "saldo__cifrao" }, "R$"),
       M.formatarReais(m.saldo, { comCentavos: false })
     ),
-    // Com duas jornadas no mesmo dia, deixa claro de onde vem o número grande.
-    m.baseDia > 0
+    m.base > 0
       ? el(
           "div",
           { class: "saldo__nota" },
-          `R$ ${M.formatarReais(m.baseDia, { comCentavos: false })} antes desta jornada · ` +
-            `R$ ${M.formatarReais(m.ganho, { comCentavos: false })} nela`
+          `${M.formatarReais(m.base, { comCentavos: false })} ao abrir ` +
+            `+ ${M.formatarReais(m.ganho, { comCentavos: false })} nesta jornada`
         )
       : null
   );

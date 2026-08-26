@@ -77,7 +77,8 @@ export async function exportarCsvJornadas() {
     const rs = M.registrosValidos(registros.filter((r) => r.jornadaId === j.id));
     const ps = pausas.filter((p) => p.jornadaId === j.id);
     const fim = j.horaFim ?? Date.now();
-    const saldo = M.saldoTotal(rs);
+    const eventos = M.eventosDoDia([j], rs);
+    const saldo = M.ganhoDaJornada(eventos, j, j.horaFim ?? Date.now());
     const km = M.kmPercorrido(j, rs);
     const ativo = M.msAtivo(j, ps, fim);
     const fontes = M.saldoPorFonte(rs);

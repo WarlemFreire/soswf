@@ -173,13 +173,14 @@ export function abrirRegistro() {
     }
     visor.classList.remove("visor--odometro");
     if (alvo === "avulso") {
-      legenda.textContent = "Valor recebido nesta corrida (soma ao dia)";
+      legenda.textContent = "Valor DESTA corrida — soma ao dia";
       return;
     }
+    const nome = PLATAFORMAS.find((p) => p.id === alvo)?.nome || alvo;
     const fonte = store.saldoDaFonte(alvo);
     legenda.textContent = fonte.visto
-      ? `Último: R$ ${M.formatarReais(fonte.valor)} às ${M.formatarHora(fonte.visto)}`
-      : "Ainda sem valor hoje — digite o total do dia nesta plataforma";
+      ? `TOTAL do dia na ${nome}, não o valor da corrida · último R$ ${M.formatarReais(fonte.valor)} às ${M.formatarHora(fonte.visto)}`
+      : `TOTAL do dia na ${nome}, como aparece no app dela`;
   }
 
   function atualizarHorario() {

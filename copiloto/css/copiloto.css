@@ -556,7 +556,7 @@ button { cursor: pointer; border: 0; background: none; }
 }
 
 .visor--odometro { font-size: clamp(38px, 12vw, 54px); }
-.visor__legenda { font-size: 16px; color: var(--tinta-fraca); text-align: right; margin-top: -6px; }
+.visor__legenda { font-size: 15px; color: var(--tinta-suave); text-align: right; margin-top: -6px; line-height: 1.35; }
 
 .teclado { display: flex; flex-direction: column; gap: 10px; }
 .teclado__atalhos { display: flex; gap: 8px; }
