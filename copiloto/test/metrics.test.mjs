@@ -348,6 +348,38 @@ teste("registro desfeito sai da linha do tempo", () => {
   assert.equal(M.saldoEm(eventos, t0 + 3 * H), 100);
 });
 
+teste("a janela de uma jornada exclui a abertura da seguinte", () => {
+  // A jornada da tarde fechou marcando 90. A da noite abre declarando 100 —
+  // possivelmente horas depois. Esses 10 não são rendimento da tarde.
+  const tarde = { id: "j1", data: "d", horaInicio: t0, horaFim: t0 + 2 * H, saldoInicial: {} };
+  const noite = { id: "j2", data: "d", horaInicio: t0 + 5 * H, saldoInicial: { uber: 100 } };
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: { uber: 90 } },
+    { id: "b", timestamp: t0 + 6 * H, saldos: { uber: 130 } },
+  ];
+
+  const jTarde = M.janelaDaJornada([tarde, noite], registros, tarde);
+  assert.equal(jTarde.ganho, 90, "a tarde rendeu os 90 que ela mediu");
+  assert.equal(jTarde.proxima.id, "j2");
+  assert.equal(jTarde.fontesFim.uber.valor, 90);
+
+  const jNoite = M.janelaDaJornada([tarde, noite], registros, noite);
+  assert.equal(jNoite.ganho, 30, "a noite rendeu de 100 a 130");
+
+  // O dia inteiro é 130; a soma das jornadas dá 120. A diferença é o salto
+  // entre turnos, que não pertence a nenhuma das duas — e isso é honesto.
+  assert.equal(M.saldoEm(M.eventosDoDia([tarde, noite], registros), t0 + 6 * H), 130);
+});
+
+teste("última jornada do dia vai até o próprio fechamento", () => {
+  const unica = { id: "j1", data: "d", horaInicio: t0, horaFim: t0 + 3 * H, saldoInicial: {} };
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: { uber: 200 } }];
+  const janela = M.janelaDaJornada([unica], registros, unica);
+  assert.equal(janela.proxima, null);
+  assert.equal(janela.ate, t0 + 3 * H);
+  assert.equal(janela.ganho, 200);
+});
+
 /* ------------------------------------------------------------------ bloco */
 
 const JANELA = 2 * H;

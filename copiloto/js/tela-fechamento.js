@@ -1,11 +1,11 @@
-// tela-fechamento.js — resumo do dia. A Fase 2 acrescenta custos reais de
-// abastecimento; aqui o liquido ainda é estimado pelo custo por km configurado.
+// tela-fechamento.js — fechamento, resumo do dia e correção de jornadas
+// anteriores (odômetro e dinheiro).
 
-import { el, abrirFolha } from "./ui.js";
+import { el, limpar, abrirFolha } from "./ui.js";
 import { Teclado } from "./keypad.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
-import { configAtual } from "./config.js";
+import { cfg, configAtual, PLATAFORMAS } from "./config.js";
 import { vibrar, falar, mostrarToast } from "./feedback.js";
 import { tsvPlanilha, copiarParaAreaDeTransferencia } from "./export.js";
 
@@ -179,7 +179,7 @@ export async function mostrarResumo(jornada) {
 
       el(
         "button",
-        { type: "button", class: "botao botao--texto", onClick: () => abrirCorrecao(jornada) },
+        { type: "button", class: "botao botao--texto", onClick: () => abrirCorrecao(atual.jornada) },
         "Corrigir esta jornada"
       ),
 
@@ -258,26 +258,50 @@ function blocoPlanilha(resumo, dia) {
 
 
 /**
- * Correção de jornada já encerrada. Existe porque a primeira noite de uso saiu
- * com o km errado (o odômetro vinha do GPS, que media menos da metade) e não
- * havia como consertar aquele dia depois.
+ * Correção de jornada já encerrada — odômetro e dinheiro.
+ *
+ * O dinheiro se corrige pelos dois extremos: onde a jornada partiu (a linha de
+ * base) e onde ela terminou. O ganho é a diferença, e ele aparece na tela
+ * enquanto se digita, para que o número certo seja visível antes de salvar.
  */
-export function abrirCorrecao(jornada) {
+export async function abrirCorrecao(jornada) {
   vibrar();
+  const contorno = await store.contornoDaJornada(jornada.id);
+  if (!contorno) return;
+
+  const plataformas = PLATAFORMAS.filter(
+    (p) =>
+      cfg("plataformasAtivas").includes(p.id) ||
+      contorno.fontesFim[p.id]?.valor > 0 ||
+      jornada.saldoInicial?.[p.id] > 0
+  );
+
   const valores = {
     odometroInicio: jornada.odometroInicio,
     odometroFim: jornada.odometroFim,
   };
-  let campo = "odometroFim";
+  for (const p of plataformas) {
+    valores[`base_${p.id}`] = jornada.saldoInicial?.[p.id] ?? null;
+    valores[`fim_${p.id}`] = contorno.fontesFim[p.id]?.valor || null;
+  }
 
-  const teclados = {
-    odometroInicio: new Teclado({ modo: "inteiro", aoMudar: aoDigitar }),
-    odometroFim: new Teclado({ modo: "inteiro", aoMudar: aoDigitar }),
-  };
+  const campos = [
+    { id: "odometroInicio", nome: "Odô abertura", modo: "inteiro", grupo: "Odômetro" },
+    { id: "odometroFim", nome: "Odô fechamento", modo: "inteiro", grupo: "Odômetro" },
+    ...plataformas.map((p) => ({ id: `base_${p.id}`, nome: p.nome, modo: "dinheiro", grupo: "Saldo ao ABRIR" })),
+    ...plataformas.map((p) => ({ id: `fim_${p.id}`, nome: p.nome, modo: "dinheiro", grupo: "Saldo ao FECHAR" })),
+  ];
 
-  const visor = el("div", { class: "visor visor--odometro" }, "—");
+  let campo = plataformas.length ? `fim_${plataformas[0].id}` : "odometroFim";
+
+  const teclados = Object.fromEntries(
+    campos.map((c) => [c.id, new Teclado({ modo: c.modo, aoMudar: aoDigitar })])
+  );
+
+  const visor = el("div", { class: "visor" }, "—");
   const legenda = el("div", { class: "visor__legenda" }, "");
   const caixaTeclado = el("div", { class: "corrida__teclado" });
+  const resultado = el("div", { class: "custo__resumo" });
   const observacoes = el("textarea", {
     class: "campo-texto",
     rows: 2,
@@ -285,20 +309,22 @@ export function abrirCorrecao(jornada) {
     value: jornada.observacoes || "",
   });
 
-  const linhaCampos = el("div", { class: "chips chips--alvos" });
-  for (const [id, nome] of [["odometroInicio", "Abertura"], ["odometroFim", "Fechamento"]]) {
-    linhaCampos.append(
-      el(
+  const grupos = el("div", { class: "correcao__grupos" });
+  const botoes = new Map();
+  for (const nome of ["Odômetro", "Saldo ao ABRIR", "Saldo ao FECHAR"]) {
+    const doGrupo = campos.filter((c) => c.grupo === nome);
+    if (!doGrupo.length) continue;
+    const linha = el("div", { class: "chips chips--alvos" });
+    for (const c of doGrupo) {
+      const botao = el(
         "button",
-        {
-          type: "button",
-          class: `chip ${id === campo ? "chip--ativo" : ""}`.trim(),
-          dataset: { id },
-          onClick: () => selecionar(id),
-        },
-        nome
-      )
-    );
+        { type: "button", class: "chip", onClick: () => selecionar(c.id) },
+        c.nome
+      );
+      botoes.set(c.id, botao);
+      linha.append(botao);
+    }
+    grupos.append(el("div", { class: "correcao__grupo" }, el("span", { class: "correcao__rotulo" }, nome), linha));
   }
 
   let folha;
@@ -306,11 +332,17 @@ export function abrirCorrecao(jornada) {
     titulo: `Corrigir ${M.formatarData(jornada.horaInicio)}`,
     classe: "folha--alta",
     conteudo: [
-      el("p", { class: "folha__ajuda" }, "Odômetro do painel. O km e tudo que depende dele são recalculados."),
-      linhaCampos,
+      el(
+        "p",
+        { class: "folha__ajuda" },
+        "Os valores das plataformas são o TOTAL do dia que elas mostravam em cada momento — " +
+          "não o que a jornada rendeu. O ganho aparece calculado abaixo."
+      ),
+      grupos,
       visor,
       legenda,
       caixaTeclado,
+      resultado,
       observacoes,
     ],
     rodape: [
@@ -319,17 +351,7 @@ export function abrirCorrecao(jornada) {
         {
           type: "button",
           class: "botao botao--primario botao--gigante",
-          onClick: async () => {
-            valores[campo] = teclados[campo].valor;
-            await store.corrigirJornada(jornada.id, {
-              odometroInicio: valores.odometroInicio,
-              odometroFim: valores.odometroFim,
-              observacoes: observacoes.value.trim(),
-            });
-            folha.fechar();
-            vibrar(40);
-            mostrarToast({ titulo: "Jornada corrigida", detalhe: "As métricas do dia foram recalculadas." });
-          },
+          onClick: salvar,
         },
         "SALVAR CORREÇÃO"
       ),
@@ -343,7 +365,7 @@ export function abrirCorrecao(jornada) {
     campo = id;
     caixaTeclado.replaceChildren(teclados[id].el);
     teclados[id].definir(valores[id] ?? null);
-    for (const botao of linhaCampos.children) botao.classList.toggle("chip--ativo", botao.dataset.id === id);
+    for (const [chave, botao] of botoes) botao.classList.toggle("chip--ativo", chave === id);
     atualizar();
   }
 
@@ -353,16 +375,91 @@ export function abrirCorrecao(jornada) {
   }
 
   function atualizar() {
-    visor.textContent = teclados[campo].exibicao;
+    const def = campos.find((c) => c.id === campo);
+    visor.textContent = teclados[campo].valor == null ? "—" : teclados[campo].exibicao;
+    visor.classList.toggle("visor--odometro", def?.modo === "inteiro");
+    legenda.textContent =
+      def?.grupo === "Odômetro"
+        ? "Número do painel"
+        : `${def.grupo === "Saldo ao ABRIR" ? "Total do dia na" : "Total do dia na"} ${def.nome} ${
+            def.grupo === "Saldo ao ABRIR" ? "quando esta jornada começou" : "quando esta jornada terminou"
+          }`;
+    pintarResultado();
+  }
+
+  function pintarResultado() {
+    limpar(resultado);
+    let ganho = 0;
+    for (const p of plataformas) {
+      const base = valores[`base_${p.id}`] || 0;
+      const fim = valores[`fim_${p.id}`];
+      if (fim != null) ganho += fim - base;
+    }
     const km =
       valores.odometroFim != null && valores.odometroInicio != null
         ? valores.odometroFim - valores.odometroInicio
         : null;
-    legenda.textContent =
-      km == null
-        ? campo === "odometroInicio"
-          ? "Odômetro na abertura"
-          : "Odômetro no fechamento"
-        : `${km.toLocaleString("pt-BR")} km no dia`;
+
+    resultado.append(
+      el(
+        "div",
+        { class: "custo__resumo-linha custo-resumo__total" },
+        `Esta jornada rendeu R$ ${M.formatarReais(ganho)}`
+      )
+    );
+    if (km != null) {
+      resultado.append(
+        el("div", { class: "custo__resumo-linha" }, `${km.toLocaleString("pt-BR")} km${km > 0 ? ` · R$ ${M.formatarReais(ganho / km)}/km` : ""}`)
+      );
+    }
+
+    // Se a jornada seguinte parte de um valor que não bate mais com este
+    // fechamento, o dia fica contraditório — melhor dizer na hora.
+    const proxima = contorno.proxima;
+    if (proxima) {
+      const divergentes = plataformas.filter((p) => {
+        const fim = valores[`fim_${p.id}`];
+        const baseProxima = proxima.saldoInicial?.[p.id];
+        return fim != null && baseProxima != null && Math.abs(fim - baseProxima) > 0.005;
+      });
+      if (divergentes.length) {
+        resultado.append(
+          el(
+            "div",
+            { class: "custo__resumo-linha folha__ajuda--alerta" },
+            `A jornada seguinte parte de outro valor em ${divergentes.map((p) => p.nome).join(", ")}. ` +
+              "Corrija ela também para o dia fechar."
+          )
+        );
+      }
+    }
+  }
+
+  async function salvar() {
+    valores[campo] = teclados[campo].valor;
+
+    const saldoInicial = {};
+    const saldosFinais = {};
+    for (const p of plataformas) {
+      if (valores[`base_${p.id}`] > 0) saldoInicial[p.id] = valores[`base_${p.id}`];
+      if (valores[`fim_${p.id}`] != null) saldosFinais[p.id] = valores[`fim_${p.id}`];
+    }
+
+    await store.corrigirJornada(jornada.id, {
+      odometroInicio: valores.odometroInicio,
+      odometroFim: valores.odometroFim,
+      saldoInicial,
+      observacoes: observacoes.value.trim(),
+    });
+    await store.corrigirSaldoJornada(jornada.id, saldosFinais);
+
+    const depois = await store.contornoDaJornada(jornada.id);
+    folha.fechar();
+    vibrar(40);
+    mostrarToast({
+      titulo: `Jornada corrigida · R$ ${M.formatarReais(depois.ganho, { comCentavos: false })}`,
+      detalhe: `Dia em R$ ${M.formatarReais(depois.saldoDia, { comCentavos: false })}`,
+      duracao: 6000,
+    });
   }
 }

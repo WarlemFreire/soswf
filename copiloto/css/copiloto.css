@@ -776,6 +776,11 @@ button { cursor: pointer; border: 0; background: none; }
 .custo-resumo__total { font-size: 22px; font-weight: 800; color: var(--tinta); margin: 4px 0; font-variant-numeric: tabular-nums; }
 .custo-resumo__nota { font-size: 15px; color: var(--tinta-fraca); line-height: 1.45; }
 .custo__resumo { display: flex; flex-direction: column; gap: 4px; min-height: 22px; }
+.correcao__grupos { display: flex; flex-direction: column; gap: 10px; }
+.correcao__grupo { display: flex; flex-direction: column; gap: 5px; }
+.correcao__rotulo { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-fraca); }
+.correcao__grupo .chips--alvos { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+.correcao__grupo .chip { min-height: 54px; font-size: 16px; }
 .custo__resumo-linha { font-size: 16px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
 
 .config__botoes { display: flex; flex-direction: column; gap: 10px; }

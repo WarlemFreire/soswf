@@ -105,6 +105,39 @@ export function ganhoDaJornada(eventos, jornada, ate = Infinity) {
   return saldoEm(eventos, ate) - saldoEm(eventos, jornada.horaInicio);
 }
 
+/**
+ * A janela de uma jornada dentro do dia: do início dela até a abertura da
+ * seguinte (ou até o fechamento, se for a última).
+ *
+ * A declaração de abertura da jornada SEGUINTE fica de fora de propósito. Ela
+ * diz onde o dia estava quando o próximo turno começou — possivelmente horas
+ * depois, com o motorista em casa. Atribuir esse salto à jornada anterior
+ * inflaria o R$/hora dela com dinheiro que ela não produziu.
+ *
+ * O efeito colateral é que a soma dos ganhos das jornadas pode não fechar com o
+ * total do dia. Isso é honesto: dinheiro que apareceu entre turnos não é de
+ * nenhum dos dois.
+ */
+export function janelaDaJornada(jornadas, registros, jornada) {
+  const doDia = (jornadas || [])
+    .filter((j) => j.data === jornada.data)
+    .sort((a, b) => a.horaInicio - b.horaInicio);
+  const proxima = doDia.find((j) => j.horaInicio > jornada.horaInicio) || null;
+  const ate = proxima ? proxima.horaInicio : (jornada.horaFim ?? Date.now());
+
+  const eventos = eventosDoDia(doDia, registros).filter(
+    (e) => !(proxima && e.id === `abertura-${proxima.id}`)
+  );
+
+  return {
+    eventos,
+    proxima,
+    ate,
+    ganho: ganhoDaJornada(eventos, jornada, ate),
+    fontesFim: saldoPorFonte(eventos.filter((e) => e.timestamp <= ate)),
+  };
+}
+
 function ordenados(eventos) {
   return [...(eventos || [])].sort((a, b) => a.timestamp - b.timestamp);
 }

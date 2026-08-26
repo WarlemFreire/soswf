@@ -213,6 +213,73 @@ export async function ajustarMetas({ minima, ideal, otima }) {
   return atualizada;
 }
 
+/**
+ * Corrige o dinheiro de uma jornada. O saldo final entra como mais uma leitura
+ * na linha do tempo — do mesmo jeito que um checkpoint entraria —, gravada no
+ * instante do fechamento. Nada de campo especial: correção é leitura.
+ */
+export async function corrigirSaldoJornada(jornadaId, saldosFinais) {
+  const jornada = await db.get("jornadas", jornadaId);
+  if (!jornada) return null;
+
+  const limpos = limparSaldos(saldosFinais);
+  const quando = jornada.horaFim ?? Date.now();
+  const registros = await db.porIndice("registros", "jornadaId", jornadaId);
+  const existente = registros.find((r) => r.tipo === "correcao");
+
+  if (!Object.keys(limpos).length) {
+    if (existente) await db.remover("registros", existente.id);
+  } else {
+    const correcao = {
+      ...(existente || {}),
+      id: existente?.id || novoId(),
+      jornadaId,
+      timestamp: quando,
+      saldos: limpos,
+      odometro: existente?.odometro ?? null,
+      posicao: null,
+      tipo: "correcao",
+      desfeito: false,
+      criadoEm: existente?.criadoEm ?? Date.now(),
+      corrigidoEm: Date.now(),
+    };
+    await db.put("registros", correcao);
+  }
+
+  if (estado.jornada?.id === jornadaId) {
+    estado.registros = await db.porIndice("registros", "jornadaId", jornadaId);
+  }
+  await carregarDia(jornada.data);
+  notificar();
+  return db.porIndice("registros", "jornadaId", jornadaId);
+}
+
+/**
+ * Onde cada plataforma estava no fim de uma jornada, e onde a jornada seguinte
+ * do mesmo dia declara sua base. Serve para a tela de correção mostrar os dois
+ * lados e avisar quando eles deixam de bater.
+ */
+export async function contornoDaJornada(jornadaId) {
+  const jornada = await db.get("jornadas", jornadaId);
+  if (!jornada) return null;
+
+  const doDia = (await db.porIndice("jornadas", "data", jornada.data)).sort(
+    (a, b) => a.horaInicio - b.horaInicio
+  );
+  let registros = [];
+  for (const j of doDia) registros = registros.concat(await db.porIndice("registros", "jornadaId", j.id));
+
+  // Mesma janela que o histórico usa, para os dois nunca discordarem.
+  const janela = M.janelaDaJornada(doDia, registros, jornada);
+  return {
+    jornada,
+    proxima: janela.proxima,
+    fontesFim: janela.fontesFim,
+    ganho: janela.ganho,
+    saldoDia: M.saldoEm(M.eventosDoDia(doDia, registros), Date.now()),
+  };
+}
+
 /** Corrige uma jornada já encerrada (odômetro errado, metas, observações). */
 export async function corrigirJornada(id, campos) {
   const jornada = await db.get("jornadas", id);
@@ -544,17 +611,12 @@ export async function historico() {
       const fim = j.horaFim ?? Date.now();
       const importada = j.origem === "planilha";
 
-      const eventos = M.eventosDoDia(
-        jornadas.filter((x) => x.data === j.data),
-        registros.filter((x) => porData.get(x.jornadaId) === j.data)
+      const janela = M.janelaDaJornada(
+        jornadas,
+        registros.filter((x) => porData.get(x.jornadaId) === j.data),
+        j
       );
-      const proxima = jornadas
-        .filter((x) => x.data === j.data && x.horaInicio > j.horaInicio)
-        .sort((a, b) => a.horaInicio - b.horaInicio)[0];
-      // A jornada rende até a próxima abrir (ou até o fim dela, se for a última).
-      const ate = proxima ? proxima.horaInicio : (j.horaFim ?? Date.now());
-      const ganho = M.ganhoDaJornada(eventos, j, ate);
-      const saldo = eventos.length ? ganho : M.somaCorridas(cs);
+      const saldo = janela.eventos.length ? janela.ganho : M.somaCorridas(cs);
       const km = M.kmPercorrido(j, rs);
 
       // Num dia importado da planilha, o intervalo entre a primeira e a última
