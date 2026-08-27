@@ -231,14 +231,6 @@ teste("proximoPatamar aponta o próximo alvo", () => {
   assert.equal(M.patamaresAtingidos(360, CONFIG_PADRAO).length, 2);
 });
 
-teste("projeção estima quando a meta cai", () => {
-  // R$175 em 5h ativas = 35 R$/h. Faltam 175 para os 350 -> mais 5h.
-  const p = M.projecao(175, 5 * H, 350, t0);
-  assert.ok(perto(p.faltamMs, 5 * H, 1000));
-  assert.equal(p.jaAtingido, false);
-  assert.equal(M.projecao(400, 5 * H, 350, t0).jaAtingido, true);
-  assert.equal(M.projecao(0, 5 * H, 350, t0), null, "sem ritmo, sem projeção");
-});
 
 /* -------------------------------------------------------------- dinheiro */
 
@@ -472,27 +464,61 @@ teste("bloco pega R$/km quando há âncora de odômetro dentro da janela", () =>
 
 /* -------------------------------------------------------------- projecao */
 
-teste("projeção diz onde o ritmo termina e o que a meta pede", () => {
-  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
-  const agora = new Date(2026, 7, 25, 20, 0).getTime();
-  // R$200 em 5h ativas = 40 R$/h. Faltam 3h até as 23h -> projeta 320.
-  const p = M.projecaoDetalhada({ saldo: 200, msAtivos: 5 * H, metas, horaLimite: 23, agora });
-  assert.equal(p.alvo.id, "minima", "o alvo é sempre o próximo patamar, não o ideal");
-  assert.ok(perto(p.projetado, 320), `projetou ${p.projetado}`);
-  assert.equal(p.tipo, "alcancavel", "320 passa dos 280 da mínima");
-  assert.ok(perto(p.falta, 80));
-  assert.ok(perto(p.ritmoNecessario, 80 / 3, 0.01));
+const METAS = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
+const AGORA_20H = new Date(2026, 7, 25, 20, 0).getTime();
+
+teste("projeção estima quando a meta cai", () => {
+  // Ritmo de 35 R$/h e faltam 175 para os 350 -> mais 5h.
+  const p = M.projecao(175, 350, 35, t0);
+  assert.ok(perto(p.faltamMs, 5 * H, 1000));
+  assert.equal(p.jaAtingido, false);
+  assert.equal(M.projecao(400, 350, 35, t0).jaAtingido, true);
+  assert.equal(M.projecao(175, 350, 0, t0), null, "sem ritmo, sem projeção");
+});
+
+teste("o ritmo vem da jornada, o alvo vem do dia — nunca misturados", () => {
+  // O defeito que projetava R$1.747: saldo do dia (185, com 178 de base) sobre
+  // o tempo desta jornada (13 min) dava 854 R$/h. O ritmo é do que a jornada
+  // produziu — 7 reais em 45 min.
+  const p = M.projecaoDetalhada({
+    saldo: 185,
+    ganho: 7,
+    msAtivos: 45 * M.MINUTO,
+    metas: { metaMinima: 300, metaIdeal: 350, metaOtima: 450 },
+    horaLimite: 23,
+    agora: new Date(2026, 7, 26, 21, 4).getTime(),
+  });
+  assert.ok(perto(p.ritmo, 9.33, 0.05), `ritmo deu ${p.ritmo}`);
+  assert.ok(p.projetado < 220, `projetou ${p.projetado} — não pode explodir`);
+  assert.equal(p.tipo, "aperto");
+});
+
+teste("projeção não extrapola a noite a partir de minutos", () => {
+  const curta = M.projecaoDetalhada({
+    saldo: 185, ganho: 7, msAtivos: 13 * M.MINUTO, metas: METAS, horaLimite: 23, agora: AGORA_20H,
+  });
+  assert.equal(curta.tipo, "sem_ritmo", "13 minutos não sustentam uma projeção");
+  assert.equal(curta.falta, 95, "mas o quanto falta continua sendo dito");
+
+  const suficiente = M.projecaoDetalhada({
+    saldo: 185, ganho: 30, msAtivos: 45 * M.MINUTO, metas: METAS, horaLimite: 23, agora: AGORA_20H,
+  });
+  assert.ok(perto(suficiente.ritmo, 40), `ritmo deu ${suficiente.ritmo}`);
+  assert.ok(perto(suficiente.projetado, 305), `projetou ${suficiente.projetado}`);
+  assert.equal(suficiente.tipo, "alcancavel", "305 passa da mínima de 280");
 });
 
 teste("projeção classifica alcançável e aperto", () => {
-  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
-  const agora = new Date(2026, 7, 25, 20, 0).getTime();
-
-  const facil = M.projecaoDetalhada({ saldo: 260, msAtivos: 5 * H, metas, horaLimite: 23, agora });
+  const facil = M.projecaoDetalhada({
+    saldo: 260, ganho: 200, msAtivos: 5 * H, metas: METAS, horaLimite: 23, agora: AGORA_20H,
+  });
   assert.equal(facil.tipo, "alcancavel");
-  assert.ok(facil.chegaEm > agora);
+  assert.ok(facil.chegaEm > AGORA_20H);
+  assert.ok(perto(facil.ritmo, 40));
 
-  const dificil = M.projecaoDetalhada({ saldo: 100, msAtivos: 5 * H, metas, horaLimite: 21, agora });
+  const dificil = M.projecaoDetalhada({
+    saldo: 100, ganho: 100, msAtivos: 5 * H, metas: METAS, horaLimite: 21, agora: AGORA_20H,
+  });
   assert.equal(dificil.tipo, "aperto");
   assert.ok(perto(dificil.horasRestantes, 1, 0.01));
   assert.ok(perto(dificil.ritmoNecessario, 180), `pediu ${dificil.ritmoNecessario}`);
@@ -500,15 +526,19 @@ teste("projeção classifica alcançável e aperto", () => {
 });
 
 teste("projeção sem ritmo e com tudo batido", () => {
-  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
-  assert.equal(M.projecaoDetalhada({ saldo: 0, msAtivos: 5 * H, metas, horaLimite: 23 }).tipo, "sem_ritmo");
-  assert.equal(M.projecaoDetalhada({ saldo: 500, msAtivos: 5 * H, metas, horaLimite: 23 }).tipo, "completa");
+  assert.equal(
+    M.projecaoDetalhada({ saldo: 0, ganho: 0, msAtivos: 5 * H, metas: METAS, horaLimite: 23 }).tipo,
+    "sem_ritmo"
+  );
+  assert.equal(
+    M.projecaoDetalhada({ saldo: 500, ganho: 500, msAtivos: 5 * H, metas: METAS, horaLimite: 23 }).tipo,
+    "completa"
+  );
 });
 
 teste("hora limite já passada é amanhã, não um prazo negativo", () => {
-  const metas = { metaMinima: 280, metaIdeal: 350, metaOtima: 450 };
   const agora = new Date(2026, 7, 25, 23, 30).getTime();
-  const p = M.projecaoDetalhada({ saldo: 100, msAtivos: 5 * H, metas, horaLimite: 2, agora });
+  const p = M.projecaoDetalhada({ saldo: 100, ganho: 100, msAtivos: 5 * H, metas: METAS, horaLimite: 2, agora });
   assert.ok(p.horasRestantes > 0, `restaram ${p.horasRestantes}h`);
   assert.ok(perto(p.horasRestantes, 2.5, 0.01));
 });

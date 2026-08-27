@@ -494,28 +494,39 @@ export function patamaresAtingidos(saldo, config) {
   return patamares(config).filter((p) => saldo >= p.alvo);
 }
 
-/**
- * O que o ritmo atual entrega, em números.
- *
- * A versão anterior dizia apenas "meta fora de alcance no ritmo atual" — um
- * veredito sem informação: não dizia quanto faltava, quanto tempo restava, nem
- * que ritmo seria preciso. Sem isso não dá para decidir se vale esticar o
- * turno, mudar de região ou baixar a meta.
- */
-export function projecao(saldo, msAtivos, alvo, agora = Date.now()) {
-  const rh = reaisPorHora(saldo, msAtivos);
-  if (rh == null || rh <= 0) return null;
+/** Tempo ativo mínimo para extrapolar o resto da noite a partir do ritmo. */
+export const MIN_ATIVO_PROJECAO = 30 * MINUTO;
+
+export function projecao(saldo, alvo, ritmo, agora = Date.now()) {
+  if (ritmo == null || ritmo <= 0) return null;
   if (saldo >= alvo) return { quando: agora, jaAtingido: true };
-  const faltamMs = ((alvo - saldo) / rh) * HORA;
+  const faltamMs = ((alvo - saldo) / ritmo) * HORA;
   return { quando: agora + faltamMs, faltamMs, jaAtingido: false };
 }
 
-export function projecaoDetalhada({ saldo, msAtivos, metas, horaLimite, agora = Date.now() }) {
+/**
+ * O que o ritmo atual entrega, em números.
+ *
+ * Duas grandezas diferentes entram aqui e não podem se misturar:
+ *
+ *  - `saldo` é o do DIA, e é dele que a meta parte;
+ *  - `ganho`/`msAtivos` são desta JORNADA, e é deles que sai o ritmo.
+ *
+ * Dividir o saldo do dia pelo tempo da jornada foi exatamente o defeito que
+ * projetava R$1.747 numa noite de R$32/h: a jornada tinha 13 minutos e
+ * carregava os R$178 ganhos antes dela.
+ *
+ * O piso de meia hora existe porque extrapolar horas a partir de minutos é
+ * ruído, mesmo com a conta certa.
+ */
+export function projecaoDetalhada({ saldo, ganho, msAtivos, metas, horaLimite, agora = Date.now() }) {
   const alvo = proximoPatamar(saldo, metas);
   if (!alvo) return { tipo: "completa", saldo };
 
-  const ritmo = reaisPorHora(saldo, msAtivos);
-  if (ritmo == null || ritmo <= 0) return { tipo: "sem_ritmo", alvo };
+  const ritmo = msAtivos >= MIN_ATIVO_PROJECAO ? reaisPorHora(ganho, msAtivos) : null;
+  if (ritmo == null || ritmo <= 0) {
+    return { tipo: "sem_ritmo", alvo, falta: alvo.alvo - saldo, msAtivos };
+  }
 
   const limite = new Date(agora);
   limite.setHours(horaLimite, 0, 0, 0);
@@ -536,7 +547,7 @@ export function projecaoDetalhada({ saldo, msAtivos, metas, horaLimite, agora = 
     falta,
     horasRestantes,
     limite: limite.getTime(),
-    chegaEm: projecao(saldo, msAtivos, alvo.alvo, agora)?.quando ?? null,
+    chegaEm: projecao(saldo, alvo.alvo, ritmo, agora)?.quando ?? null,
   };
 }
 

@@ -376,7 +376,10 @@ function barraMeta(m) {
  */
 function linhaProjecao(m) {
   const p = M.projecaoDetalhada({
+    // saldo é do dia (de onde a meta parte); ganho e tempo são desta jornada
+    // (de onde sai o ritmo). Misturar os dois inventa projeções absurdas.
     saldo: m.saldo,
+    ganho: m.ganho,
     msAtivos: m.msAtivo,
     metas: metasDaJornada(),
     horaLimite: cfg("horaLimiteMeta"),
@@ -388,7 +391,12 @@ function linhaProjecao(m) {
   if (p.tipo === "completa") {
     linhas.push("Tudo batido. O resto do dia é lucro.");
   } else if (p.tipo === "sem_ritmo") {
-    linhas.push("Ritmo ainda sem medida — registre um saldo.");
+    linhas.push(`Faltam R$ ${M.formatarReais(p.falta, { comCentavos: false })} para a ${p.alvo.nome.toLowerCase()}`);
+    linhas.push(
+      p.msAtivos < M.MIN_ATIVO_PROJECAO
+        ? "Ritmo em medição — a projeção sai depois de 30 min de jornada"
+        : "Registre um saldo para o ritmo aparecer"
+    );
     classe += " projecao--fraca";
   } else {
     linhas.push(
