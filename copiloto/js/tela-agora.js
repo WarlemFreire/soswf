@@ -323,6 +323,10 @@ function metasDaJornada() {
   return { metaMinima: j.metaMinima, metaIdeal: j.metaIdeal, metaOtima: j.metaOtima };
 }
 
+function horaLimiteDaJornada() {
+  return store.jornadaAtiva()?.horaLimite ?? cfg("horaLimiteMeta");
+}
+
 function barraMeta(m) {
   const metas = metasDaJornada();
   const lista = M.patamares(metas);
@@ -382,7 +386,7 @@ function linhaProjecao(m) {
     ganho: m.ganho,
     msAtivos: m.msAtivo,
     metas: metasDaJornada(),
-    horaLimite: cfg("horaLimiteMeta"),
+    horaLimite: horaLimiteDaJornada(),
   });
 
   const linhas = [];
@@ -417,26 +421,38 @@ function linhaProjecao(m) {
     "button",
     { type: "button", class: `${classe} projecao--botao`, onClick: ajustarMetas },
     ...linhas.map((texto, i) => el("span", { class: i ? "projecao__detalhe" : "projecao__principal" }, texto)),
-    el("span", { class: "projecao__toque" }, "tocar para ajustar a meta")
+    el("span", { class: "projecao__toque" }, "tocar para ajustar meta e horário")
   );
 }
 
+/**
+ * Metas e horário de parar, ajustáveis pela própria linha de projeção.
+ *
+ * A prévia recalcula enquanto se mexe: dá para girar o horário até as 2h da
+ * manhã e ver na hora onde o ritmo atual chegaria — que é a pergunta que faz
+ * alguém decidir esticar o turno ou ir para casa.
+ */
 function ajustarMetas() {
   vibrar();
   const jornada = store.jornadaAtiva();
+  const m = store.metricas();
   const metas = {
     minima: jornada.metaMinima,
     ideal: jornada.metaIdeal,
     otima: jornada.metaOtima,
   };
+  let horaLimite = horaLimiteDaJornada();
   let virarPadrao = false;
 
-  const campo = (chave, rotulo) => {
+  const previa = el("div", { class: "custo__resumo" });
+
+  const stepper = (rotulo, ler, ajustar) => {
     const valorEl = el("span", { class: "campo__valor" }, "");
-    const pintar = () => (valorEl.textContent = `R$ ${M.formatarReais(metas[chave], { comCentavos: false })}`);
-    const ajustar = (dir) => {
-      metas[chave] = Math.max(0, metas[chave] + dir * 10);
+    const pintar = () => (valorEl.textContent = ler());
+    const mexer = (dir) => {
+      ajustar(dir);
       pintar();
+      pintarPrevia();
       vibrar(8);
     };
     pintar();
@@ -447,27 +463,106 @@ function ajustarMetas() {
       el(
         "div",
         { class: "campo__stepper" },
-        el("button", { type: "button", class: "stepper", onClick: () => ajustar(-1) }, "−"),
+        el("button", { type: "button", class: "stepper", onClick: () => mexer(-1) }, "−"),
         valorEl,
-        el("button", { type: "button", class: "stepper", onClick: () => ajustar(1) }, "+")
+        el("button", { type: "button", class: "stepper", onClick: () => mexer(1) }, "+")
       )
     );
   };
 
-  const padrao = el("button", { type: "button", class: "chip", onClick: () => {
-    virarPadrao = !virarPadrao;
-    padrao.classList.toggle("chip--ativo", virarPadrao);
-    vibrar(8);
-  } }, "Usar também como padrão");
+  const campoMeta = (chave, rotulo) =>
+    stepper(
+      rotulo,
+      () => `R$ ${M.formatarReais(metas[chave], { comCentavos: false })}`,
+      (dir) => {
+        metas[chave] = Math.max(0, metas[chave] + dir * 10);
+      }
+    );
+
+  const campoHora = stepper(
+    "Rodar até",
+    () => {
+      const agora = new Date().getHours();
+      // 2h com o relógio em 21h é madrugada; deixar isso claro evita a leitura
+      // de que a jornada já passou do limite.
+      const amanha = horaLimite <= agora;
+      return `${String(horaLimite).padStart(2, "0")}:00${amanha ? " ⁺¹" : ""}`;
+    },
+    // Gira 23 → 00 → 01 em vez de travar na meia-noite.
+    (dir) => {
+      horaLimite = (horaLimite + dir + 24) % 24;
+    }
+  );
+
+  function pintarPrevia() {
+    limpar(previa);
+    const p = M.projecaoDetalhada({
+      saldo: m.saldo,
+      ganho: m.ganho,
+      msAtivos: m.msAtivo,
+      metas: { metaMinima: metas.minima, metaIdeal: metas.ideal, metaOtima: metas.otima },
+      horaLimite,
+    });
+
+    if (p.tipo === "completa") {
+      previa.append(el("div", { class: "custo__resumo-linha" }, "Todas as metas já batidas."));
+      return;
+    }
+    if (p.tipo === "sem_ritmo") {
+      previa.append(
+        el("div", { class: "custo__resumo-linha" }, "Ritmo ainda em medição — a prévia sai depois de 30 min.")
+      );
+      return;
+    }
+
+    previa.append(
+      el(
+        "div",
+        { class: "custo__resumo-linha custo-resumo__total" },
+        `No ritmo atual: R$ ${M.formatarReais(p.projetado, { comCentavos: false })} até ${M.formatarHora(p.limite)}`
+      ),
+      el(
+        "div",
+        { class: "custo__resumo-linha" },
+        `${p.horasRestantes.toFixed(1).replace(".", ",")}h pela frente a ${p.ritmo.toFixed(0)} R$/h`
+      ),
+      el(
+        "div",
+        { class: `custo__resumo-linha ${p.tipo === "aperto" ? "folha__ajuda--alerta" : ""}`.trim() },
+        p.tipo === "alcancavel"
+          ? `${p.alvo.nome} (${M.formatarReais(p.alvo.alvo, { comCentavos: false })}) às ${M.formatarHora(p.chegaEm)}`
+          : `${p.alvo.nome} pediria R$ ${p.ritmoNecessario.toFixed(0)}/h`
+      )
+    );
+  }
+
+  const padrao = el(
+    "button",
+    {
+      type: "button",
+      class: "chip",
+      onClick: () => {
+        virarPadrao = !virarPadrao;
+        padrao.classList.toggle("chip--ativo", virarPadrao);
+        vibrar(8);
+      },
+    },
+    "Usar também como padrão"
+  );
+
+  pintarPrevia();
 
   let folha;
   folha = abrirFolha({
-    titulo: "Metas de hoje",
+    titulo: "Meta e horário de hoje",
+    classe: "folha--alta",
     conteudo: [
       el("p", { class: "folha__ajuda" }, "Vale para esta jornada. Marque abaixo para valer também nos próximos dias."),
-      campo("minima", "Mínima"),
-      campo("ideal", "Ideal"),
-      campo("otima", "Ótima"),
+      campoHora,
+      campoMeta("minima", "Mínima"),
+      campoMeta("ideal", "Ideal"),
+      campoMeta("otima", "Ótima"),
+      previa,
       padrao,
     ],
     rodape: [
@@ -477,11 +572,12 @@ function ajustarMetas() {
           type: "button",
           class: "botao botao--primario botao--gigante",
           onClick: async () => {
-            await store.ajustarMetas(metas);
+            await store.ajustarMetas({ ...metas, horaLimite });
             if (virarPadrao) {
               await salvarConfig("metaMinima", metas.minima);
               await salvarConfig("metaIdeal", metas.ideal);
               await salvarConfig("metaOtima", metas.otima);
+              await salvarConfig("horaLimiteMeta", horaLimite);
             }
             vibrar(40);
             folha.fechar();

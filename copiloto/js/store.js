@@ -198,7 +198,7 @@ export async function fecharJornada({ odometroFim, observacoes } = {}) {
 }
 
 /** Ajusta as metas da jornada em curso, sem mexer no padrão das configurações. */
-export async function ajustarMetas({ minima, ideal, otima }) {
+export async function ajustarMetas({ minima, ideal, otima, horaLimite }) {
   const jornada = jornadaAtiva();
   if (!jornada) return null;
   const atualizada = {
@@ -206,6 +206,9 @@ export async function ajustarMetas({ minima, ideal, otima }) {
     metaMinima: Number(minima),
     metaIdeal: Number(ideal),
     metaOtima: Number(otima),
+    // Até que horas esta jornada vai. Algumas noites viram madrugada, e a
+    // projeção só faz sentido contra o horário real de parar.
+    horaLimite: horaLimite == null ? jornada.horaLimite : Number(horaLimite),
   };
   await db.put("jornadas", atualizada);
   estado.jornada = atualizada;
