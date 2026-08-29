@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+  <meta charset="UTF-8" />
+  <title>Extrator de corridas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Transforma os prints do histórico de ganhos em planilha. Roda no próprio celular." />
+  <meta name="theme-color" content="#0b0f14" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icone-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="icons/icone-192.png" />
+  <link rel="stylesheet" href="css/extrator.css" />
+</head>
+<body>
+  <header class="topo">
+    <h1>Extrator de corridas</h1>
+    <p>Prints do histórico de ganhos viram planilha. Tudo acontece dentro do seu celular.</p>
+  </header>
+
+  <main>
+    <section class="passo">
+      <h2><span class="numero">1</span> Escolha os prints</h2>
+      <label class="botao botao--grande">
+        Escolher prints da galeria
+        <input type="file" id="arquivos" accept="image/*,text/plain,text/csv" multiple hidden />
+      </label>
+      <p id="escolhidos" class="dica"></p>
+      <p class="dica">
+        Pode escolher todos de uma vez. A ordem é a do nome do arquivo, que é a
+        ordem em que o macro tirou. Se o seu macro salvou um <b>.txt</b> com o
+        texto da tela, escolha ele: aí nem OCR precisa.
+      </p>
+      <p class="dica">
+        Melhor ainda: instale esta página (menu do Chrome → “Instalar app”). Aí
+        na galeria você marca todos os prints, toca em <b>Compartilhar</b>,
+        escolhe <b>Extrator</b> e ele já começa a ler sozinho.
+      </p>
+    </section>
+
+    <section class="passo">
+      <h2><span class="numero">2</span> Leia</h2>
+      <div class="opcoes">
+        <label><span>motor</span>
+          <select id="motor">
+            <option value="auto">automático</option>
+            <option value="tesseract">Tesseract (sempre)</option>
+          </select>
+        </label>
+        <label><span>modo de leitura</span>
+          <select id="modo">
+            <option value="6">bloco único (recomendado)</option>
+            <option value="4">colunas</option>
+            <option value="3">automático</option>
+          </select>
+        </label>
+      </div>
+      <p id="dicaMotor" class="dica"></p>
+      <button type="button" id="ler" class="botao botao--grande" disabled>Ler os prints</button>
+      <div id="progresso" hidden class="progresso">
+        <progress max="1" value="0"></progress>
+        <span></span>
+      </div>
+      <p id="aviso" class="aviso" hidden></p>
+
+      <details class="colar">
+        <summary>Colar texto em vez de print (não erra nada)</summary>
+        <p class="dica">
+          Se o seu macro consegue ler o texto da tela direto, ou se você usou o
+          “copiar texto” do Google Fotos, cole aqui. Separe um print do outro
+          com duas linhas em branco.
+        </p>
+        <textarea id="texto" rows="6" placeholder="R$ 7,04 0:20&#10;Uber X · 7 min 29 segundos · 2.94 km&#10;..."></textarea>
+        <button type="button" id="usarTexto" class="botao">Usar este texto</button>
+      </details>
+    </section>
+
+    <p id="vazio" class="dica vazio">Nenhuma corrida ainda.</p>
+
+    <section id="resultado" hidden>
+      <div id="totais" class="totais"></div>
+      <p id="detalhe" class="dica"></p>
+      <ul id="porDia" class="porDia"></ul>
+
+      <div class="acoes">
+        <button type="button" id="csv" class="botao">Baixar CSV</button>
+        <button type="button" id="json" class="botao">Baixar JSON</button>
+        <button type="button" id="verTexto" class="botao botao--fraco">Ver texto lido</button>
+        <button type="button" id="limpar" class="botao botao--fraco">Limpar</button>
+      </div>
+      <textarea id="textoLido" hidden rows="10" readonly></textarea>
+
+      <div id="lista" class="lista"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
