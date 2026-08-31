@@ -7,7 +7,6 @@ import * as store from "./store.js";
 import { cfg, configAtual, salvarConfig, MOTIVOS_PAUSA, PLATAFORMAS } from "./config.js";
 import { vibrar, falar } from "./feedback.js";
 import { abrirRegistro } from "./tela-registro.js";
-import { abrirCorrida, iniciarCronometro } from "./tela-corrida.js";
 import { abrirFechamento } from "./tela-fechamento.js";
 import { abrirCusto } from "./tela-custo.js";
 import { Teclado } from "./keypad.js";
@@ -597,28 +596,6 @@ function blocoAcoes(pausa, reduzido) {
   );
   if (reduzido) return el("div", { class: "acoes" }, registrar);
 
-  const emCurso = store.corridaEmCurso();
-  const corrida = emCurso
-    ? el(
-        "button",
-        { type: "button", class: "botao botao--corrida botao--gigante acoes__larga", onClick: () => abrirCorrida() },
-        `■ FIM DA CORRIDA · ${M.formatarDuracao(Date.now() - emCurso.inicio)}`
-      )
-    : el(
-        "div",
-        { class: "acoes__larga acoes__dupla" },
-        el(
-          "button",
-          { type: "button", class: "botao botao--secundario botao--gigante", onClick: iniciarCronometro },
-          "▶ INICIAR CORRIDA"
-        ),
-        el(
-          "button",
-          { type: "button", class: "botao botao--secundario botao--gigante", onClick: () => abrirCorrida() },
-          "✎ LANÇAR"
-        )
-      );
-
   const pausar = pausa
     ? el(
         "button",
@@ -639,7 +616,7 @@ function blocoAcoes(pausa, reduzido) {
         "⏸ PAUSAR"
       );
 
-  return el("div", { class: "acoes" }, registrar, pausar, corrida);
+  return el("div", { class: "acoes" }, registrar, pausar);
 }
 
 function escolherPausa() {

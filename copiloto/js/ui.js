@@ -2,6 +2,7 @@
 // nao tem build step.
 
 import { fecharToast } from "./feedback.js";
+import { empilharFolha, desempilhar, ligarFolhas } from "./navegacao.js";
 
 export function el(tag, props = {}, ...filhos) {
   const node = document.createElement(tag);
@@ -31,6 +32,14 @@ export function limpar(node) {
 
 const pilhaDeFolhas = [];
 
+// O voltar do sistema fecha a folha do topo, se houver uma.
+ligarFolhas(() => {
+  const topo = pilhaDeFolhas.at(-1);
+  if (!topo) return false;
+  topo.fecharPorHistorico();
+  return true;
+});
+
 /**
  * Folha deslizante (bottom sheet). Fecha no fundo, no ✕ e no Esc.
  *
@@ -40,6 +49,7 @@ const pilhaDeFolhas = [];
  */
 export function abrirFolha({ titulo, conteudo, rodape, classe = "", aoFechar }) {
   fecharToast();
+  empilharFolha();
   pilhaDeFolhas.at(-1)?.fundo.classList.add("folha-fundo--atras");
 
   const corpo = el("div", { class: "folha__corpo" });
@@ -66,12 +76,15 @@ export function abrirFolha({ titulo, conteudo, rodape, classe = "", aoFechar }) 
 
   const noTopo = () => pilhaDeFolhas.at(-1)?.fundo === fundo;
 
-  function fechar() {
+  function fechar({ doHistorico = false } = {}) {
     document.removeEventListener("keydown", aoTeclar);
     const indice = pilhaDeFolhas.findIndex((f) => f.fundo === fundo);
     if (indice >= 0) pilhaDeFolhas.splice(indice, 1);
     fundo.remove();
     pilhaDeFolhas.at(-1)?.fundo.classList.remove("folha-fundo--atras");
+    // Fechada pelo ✕, pelo fundo ou por código: a entrada de histórico que
+    // abrimos precisa sair junto, senão o voltar vira toque sem efeito.
+    if (!doHistorico) desempilhar();
     aoFechar?.();
   }
   function aoTeclar(ev) {
@@ -79,8 +92,8 @@ export function abrirFolha({ titulo, conteudo, rodape, classe = "", aoFechar }) 
   }
   document.addEventListener("keydown", aoTeclar);
 
-  const api = { fechar, corpo, folha };
-  pilhaDeFolhas.push({ fundo, api });
+  const api = { fechar: () => fechar(), corpo, folha };
+  pilhaDeFolhas.push({ fundo, api, fecharPorHistorico: () => fechar({ doHistorico: true }) });
   corpo.append(...[].concat(typeof conteudo === "function" ? conteudo(api) : conteudo).filter(Boolean));
   if (pe) pe.append(...[].concat(typeof rodape === "function" ? rodape(api) : rodape).filter(Boolean));
   document.body.append(fundo);

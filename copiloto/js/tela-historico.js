@@ -4,6 +4,8 @@ import { el, limpar } from "./ui.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
 import { mostrarResumo } from "./tela-fechamento.js";
+import { abrirCorrida } from "./tela-corrida.js";
+
 
 export async function montarHistorico(raiz) {
   limpar(raiz);
@@ -18,6 +20,13 @@ export async function montarHistorico(raiz) {
   }
 
   raiz.append(cabecalho(fechadas, store.agruparPorDia(fechadas)));
+  raiz.append(
+    el(
+      "button",
+      { type: "button", class: "botao botao--secundario historico__lancar", onClick: () => abrirCorrida() },
+      "✎ Lançar corrida"
+    )
+  );
   for (const resumo of resumos) raiz.append(cartao(resumo));
 }
 

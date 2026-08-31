@@ -3,6 +3,7 @@
 import { carregarConfig, cfg } from "./config.js";
 import * as store from "./store.js";
 import { trocarTela } from "./ui.js";
+import { iniciarNavegacao, ligarTelas, empilharTela } from "./navegacao.js";
 import { montarAgora } from "./tela-agora.js";
 import { montarHistorico, montarAnalise } from "./tela-historico.js";
 import { montarConfig } from "./tela-config.js";
@@ -27,11 +28,22 @@ async function iniciar() {
   montarAgora(document.getElementById("tela-agora"));
   await store.carregarJornadaAberta();
 
+  let aberta = "agora";
+  const abrirTela = (id, { doHistorico = false } = {}) => {
+    if (!doHistorico && id === aberta) return;
+    // Só a ida empilha; a volta pelo botão do sistema já está desempilhando.
+    if (!doHistorico) empilharTela(id);
+    aberta = id;
+    trocarTela(id);
+    TELAS[id]?.();
+  };
+
+  ligarTelas({ trocar: abrirTela, atual: () => aberta });
+  iniciarNavegacao();
+
   for (const aba of document.querySelectorAll(".rodape__item")) {
     aba.addEventListener("click", () => {
-      const id = aba.dataset.tela;
-      trocarTela(id);
-      TELAS[id]?.();
+      abrirTela(aba.dataset.tela);
       if (navigator.vibrate && cfg("vibrar")) navigator.vibrate(8);
     });
   }
