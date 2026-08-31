@@ -7,6 +7,7 @@ import { iniciarNavegacao, ligarTelas, empilharTela } from "./navegacao.js";
 import { montarAgora } from "./tela-agora.js";
 import { montarHistorico } from "./tela-historico.js";
 import { montarAnalise } from "./tela-analise.js";
+import { montarConquistas } from "./tela-conquistas.js";
 import { montarConfig } from "./tela-config.js";
 import { religarAoVoltar, manterTelaLigada } from "./geo.js";
 import { mostrarToast, vibrar, falar } from "./feedback.js";
@@ -16,6 +17,7 @@ const TELAS = {
   agora: () => {},
   historico: () => montarHistorico(document.getElementById("tela-historico")),
   analise: () => montarAnalise(document.getElementById("tela-analise")),
+  conquistas: () => montarConquistas(document.getElementById("tela-conquistas")),
   config: () => montarConfig(document.getElementById("tela-config")),
 };
 

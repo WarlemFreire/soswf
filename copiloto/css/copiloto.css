@@ -118,7 +118,7 @@ button { cursor: pointer; border: 0; background: none; }
 
 .rodape {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--fundo-elevado);
   border-top: 1px solid var(--linha);
   padding-bottom: env(safe-area-inset-bottom);
@@ -133,11 +133,12 @@ button { cursor: pointer; border: 0; background: none; }
   justify-content: center;
   gap: 2px;
   color: var(--tinta-fraca);
-  font-size: 13px;
-  padding: 8px 4px;
+  font-size: 12px;
+  padding: 8px 2px;
 }
 
-.rodape__item span:first-child { font-size: 24px; line-height: 1; }
+.rodape__item span:first-child { font-size: 23px; line-height: 1; }
+.rodape__item span:last-child { white-space: nowrap; }
 .rodape__item--ativo { color: var(--tinta); }
 .rodape__item--ativo span:first-child { transform: translateY(-1px); }
 
@@ -908,3 +909,104 @@ button { cursor: pointer; border: 0; background: none; }
 .heatmap__celula--n4 { background: var(--heat-4); }
 .heatmap__celula--n5 { background: var(--heat-5); }
 .heatmap__celula:active { outline: 2px solid var(--tinta); outline-offset: 1px; }
+
+/* ------------------------------------------------------------- conquistas */
+
+.conq__secao { margin-bottom: 30px; }
+.conq__nota { margin: 10px 0 0; font-size: 14px; color: var(--tinta-fraca); }
+.conq__descricao { display: block; font-size: 14px; color: var(--tinta-fraca); line-height: 1.35; }
+.conq__icone { font-size: 26px; line-height: 1; flex-shrink: 0; }
+
+.ofensiva {
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  padding: 18px 16px 16px;
+}
+.ofensiva--apagada { opacity: 0.75; }
+
+.ofensiva__topo { display: flex; align-items: center; gap: 14px; }
+.ofensiva__chama { font-size: 44px; line-height: 1; }
+.ofensiva__numeros { display: flex; align-items: baseline; gap: 8px; }
+.ofensiva__valor { font-size: 52px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.ofensiva__unidade { font-size: 17px; color: var(--tinta-suave); }
+
+.ofensiva__semana { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 18px 0 14px; }
+.ofensiva__dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 0;
+  border-radius: 12px;
+  background: var(--fundo-elevado);
+  border: 1px solid var(--linha);
+}
+.ofensiva__letra { font-size: 13px; color: var(--tinta-fraca); }
+.ofensiva__marca { font-size: 19px; line-height: 1; min-height: 19px; }
+.ofensiva__dia--cheio { border-color: var(--nivel-piso); }
+.ofensiva__dia--folga { border-style: dashed; }
+.ofensiva__dia--hoje { border-style: dashed; border-color: var(--tinta-suave); }
+.ofensiva__estado { margin: 0; font-size: 17px; color: var(--tinta); line-height: 1.4; }
+
+.conq__lista { display: flex; flex-direction: column; gap: 8px; }
+.conq__perto {
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 12px 14px;
+}
+.conq__perto-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.conq__perto-texto { flex: 1; min-width: 0; }
+.conq__perto-texto strong { font-size: 17px; }
+.conq__pct { font-size: 18px; font-weight: 700; color: var(--tinta-suave); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.conq__perto-fim { width: 96px; flex-shrink: 0; text-align: right; }
+.conq__trilha { height: 8px; border-radius: 4px; background: var(--fundo-elevado); overflow: hidden; }
+.conq__marca { height: 100%; background: var(--serie-1); border-radius: 4px; }
+.conq__fracao { display: block; margin-top: 5px; font-size: 13px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+
+.conq__recordes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.conq__recorde {
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 12px 14px;
+}
+.conq__recorde-nome { display: block; font-size: 13px; color: var(--tinta-fraca); line-height: 1.3; }
+.conq__recorde-valor { display: block; margin: 4px 0 2px; font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.conq__recorde-quando { display: block; font-size: 13px; color: var(--tinta-fraca); }
+
+.conq__familias { display: flex; flex-direction: column; gap: 8px; }
+.conq__familia {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--toque);
+  text-align: left;
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 10px 14px;
+  color: var(--tinta);
+}
+.conq__familia--zerada { opacity: 0.6; }
+.conq__familia-texto { flex: 1; min-width: 0; }
+.conq__familia-texto strong { font-size: 17px; }
+.conq__contagem { font-size: 16px; font-weight: 700; color: var(--tinta-suave); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+.conq__degraus { display: flex; flex-direction: column; gap: 8px; }
+.conq__degrau {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 12px 14px;
+  opacity: 0.68;
+}
+.conq__degrau--ok { opacity: 1; border-color: var(--nivel-ideal); }
+.conq__degrau-marca { font-size: 24px; line-height: 1; flex-shrink: 0; }
+.conq__degrau-texto { flex: 1; min-width: 0; }
+.conq__degrau-texto strong { font-size: 17px; }
