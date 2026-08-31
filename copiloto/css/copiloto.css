@@ -16,6 +16,14 @@
   --nivel-otimo: #66d9ff;
   --nivel-neutro: #a9b8c9;
 
+  --serie-1: #3987e5;
+  --heat-0: #131a23;
+  --heat-1: #16304f;
+  --heat-2: #1c4a7d;
+  --heat-3: #2a6fb8;
+  --heat-4: #3987e5;
+  --heat-5: #86b6ef;
+
   --zona-abaixo: #9e3838;
   --zona-piso: #9d7d25;
   --zona-ideal: #2b8250;
@@ -48,6 +56,14 @@
   --nivel-ideal: #0a6b37;
   --nivel-otimo: #005b85;
   --nivel-neutro: #3d4c5c;
+
+  --serie-1: #2a78d6;
+  --heat-0: #f1f4f8;
+  --heat-1: #cde2fb;
+  --heat-2: #9ec5f4;
+  --heat-3: #5598e7;
+  --heat-4: #2a78d6;
+  --heat-5: #184f95;
 
   --zona-abaixo: #f3a9a9;
   --zona-piso: #f6d98b;
@@ -821,3 +837,74 @@ button { cursor: pointer; border: 0; background: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+
+/* ------------------------------------------------------------- analise */
+
+.analise__secao { margin-bottom: 30px; }
+.analise__fonte { margin: -4px 0 12px; font-size: 14px; color: var(--tinta-fraca); line-height: 1.45; }
+.analise__nota { margin: 10px 0 0; font-size: 14px; color: var(--tinta-fraca); line-height: 1.45; }
+.analise__nota--alerta { color: var(--nivel-piso); }
+
+.analise__tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.analise__tile {
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.analise__tile strong { display: block; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.analise__tile span { font-size: 13px; color: var(--tinta-fraca); }
+
+/* Barras horizontais: numa tela de celular o rotulo cabe, o que 24 barras
+   verticais nao permitiriam. */
+.barras { display: flex; flex-direction: column; gap: 6px; }
+
+.barra {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.barra__rotulo { font-size: 15px; color: var(--tinta-suave); }
+.barra__trilha { height: 12px; background: var(--fundo-cartao); border-radius: 6px; overflow: hidden; }
+.barra__marca { height: 100%; background: var(--serie-1); border-radius: 0 4px 4px 0; }
+.barra__valor { font-size: 15px; font-variant-numeric: tabular-nums; color: var(--tinta); min-width: 74px; text-align: right; }
+.barra--destaque .barra__rotulo,
+.barra--destaque .barra__valor { color: var(--tinta); font-weight: 700; }
+
+/* ------------------------------------------------------------- heatmap */
+
+.heatmap__rolagem { overflow-x: auto; padding-bottom: 6px; }
+.heatmap { display: inline-flex; flex-direction: column; gap: 3px; min-width: 100%; }
+.heatmap__horas, .heatmap__linha { display: flex; gap: 3px; align-items: center; }
+.heatmap__canto, .heatmap__dia { width: 34px; flex-shrink: 0; font-size: 12px; color: var(--tinta-fraca); }
+.heatmap__hora { width: 14px; flex-shrink: 0; font-size: 10px; color: var(--tinta-fraca); text-align: center; }
+
+.heatmap__celula {
+  width: 14px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  border: 0;
+  padding: 0;
+  background: var(--heat-0);
+}
+
+.heatmap__celula--n1,
+.heatmap__celula--n2,
+.heatmap__celula--n3,
+.heatmap__celula--n4,
+.heatmap__celula--n5 { box-shadow: inset 0 0 0 1px var(--serie-1); }
+
+.heatmap__celula--n1 { background: var(--heat-1); }
+.heatmap__celula--n2 { background: var(--heat-2); }
+.heatmap__celula--n3 { background: var(--heat-3); }
+.heatmap__celula--n4 { background: var(--heat-4); }
+.heatmap__celula--n5 { background: var(--heat-5); }
+.heatmap__celula:active { outline: 2px solid var(--tinta); outline-offset: 1px; }
