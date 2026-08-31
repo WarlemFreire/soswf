@@ -1,14 +1,14 @@
-// tela-conquistas.js — ofensiva, recordes e medalhas.
+// tela-conquistas.js — ofensiva, troféus e estante de medalhas.
 //
-// A ordem da tela é proposital: primeiro a ofensiva (o que se perde hoje),
-// depois o que está perto de cair (o que dá para buscar hoje), depois os
-// recordes (o que já foi feito) e por último a estante de medalhas.
+// Esta é a única tela do app que pode ser enfeitada: ninguém abre a estante de
+// medalhas dirigindo. As outras seguem austeras de propósito.
 
 import { el, limpar, abrirFolha } from "./ui.js";
 import * as M from "./metrics.js";
 import * as C from "./conquistas.js";
 import * as store from "./store.js";
 import { db } from "./db.js";
+import { defsDeArte, arteMedalha, arteTrofeu, patenteDe, nomeDaPatente } from "./arte.js";
 
 const LETRAS_SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
 const DIA_MS = 86400000;
@@ -27,11 +27,8 @@ export async function montarConquistas(raiz) {
   const est = C.estatisticas({ dias, historico: resumos, corridas, custos });
   const avaliadas = C.avaliar(est);
 
+  raiz.append(defsDeArte());
   raiz.append(blocoOfensiva(of, dias));
-
-  const perto = C.proximas(avaliadas, 4);
-  if (perto.length) raiz.append(blocoProximas(perto));
-
   raiz.append(blocoRecordes(C.recordes(dias, corridas, resumos)));
   raiz.append(blocoMedalhas(avaliadas));
 }
@@ -99,40 +96,9 @@ function recadoOfensiva(of) {
   if (!of.ultimoDia) return "Abra uma jornada e a ofensiva começa hoje mesmo.";
   if (!of.viva) return `A ofensiva zerou. Rode hoje e ela recomeça — ${C.FOLGA_MAXIMA} dias de folga são permitidos.`;
   if (of.trabalhouHoje) return `Hoje já contou. Você tem ${C.FOLGA_MAXIMA} dias de folga guardados.`;
-  if (of.folgasRestantes >= 2) return `Você pode folgar hoje e amanhã sem perder nada.`;
+  if (of.folgasRestantes >= 2) return "Você pode folgar hoje e amanhã sem perder nada.";
   if (of.folgasRestantes === 1) return `Última folga. Se não rodar amanhã, a ofensiva de ${of.atual} zera.`;
   return `Hoje é o último dia. Sem jornada, a ofensiva de ${of.atual} zera.`;
-}
-
-/* --------------------------------------------------------------- próximas */
-
-function blocoProximas(perto) {
-  return secao(
-    "Perto de cair",
-    el(
-      "div",
-      { class: "conq__lista" },
-      ...perto.map((m) =>
-        el(
-          "div",
-          { class: "conq__perto" },
-          el(
-            "div",
-            { class: "conq__perto-topo" },
-            el("span", { class: "conq__icone", "aria-hidden": "true" }, m.icone),
-            el(
-              "div",
-              { class: "conq__perto-texto" },
-              el("strong", {}, m.nome),
-              el("span", { class: "conq__descricao" }, m.texto ? `${m.texto} de ${m.textoAlvo}` : m.descricao)
-            ),
-            el("span", { class: "conq__pct" }, `${Math.round(m.progresso * 100)}%`)
-          ),
-          el("div", { class: "conq__trilha" }, el("div", { class: "conq__marca", style: { width: `${Math.round(m.progresso * 100)}%` } }))
-        )
-      )
-    )
-  );
 }
 
 /* --------------------------------------------------------------- recordes */
@@ -141,21 +107,25 @@ function blocoRecordes(lista) {
   const comValor = lista.filter((r) => r.valor);
   if (!comValor.length) return el("div");
 
-  return secao(
-    "Seus recordes",
+  return el(
+    "section",
+    { class: "conq__secao" },
+    cabecalho("Sala de troféus", `${comValor.length} recordes`),
     el(
       "div",
-      { class: "conq__recordes" },
+      { class: "trofeus" },
       ...comValor.map((r) =>
         el(
-          "div",
-          { class: "conq__recorde" },
-          el("span", { class: "conq__recorde-nome" }, r.nome),
-          el("strong", { class: "conq__recorde-valor" }, r.valor),
-          el("span", { class: "conq__recorde-quando" }, [M.formatarData(quando(r.quando)), r.detalhe].filter(Boolean).join(" · "))
+          "article",
+          { class: "trofeu-cartao" },
+          arteTrofeu({ tamanho: 50 }),
+          el("strong", { class: "trofeu-cartao__valor" }, r.valor),
+          el("span", { class: "trofeu-cartao__nome" }, r.nome),
+          el("span", { class: "trofeu-cartao__quando" }, [M.formatarData(quando(r.quando)), r.detalhe].filter(Boolean).join(" · "))
         )
       )
-    )
+    ),
+    el("p", { class: "conq__nota" }, "Arraste para o lado para ver todos.")
   );
 }
 
@@ -169,6 +139,7 @@ function quando(dataIso) {
 
 function blocoMedalhas(avaliadas) {
   const resumo = C.resumoMedalhas(avaliadas);
+  const pct = Math.round((resumo.conquistadas / resumo.total) * 100);
   const familias = C.porFamilia(avaliadas).sort((a, b) => {
     // Famílias com progresso primeiro; as intocadas ficam no fim.
     const pa = a.conquistadas / a.total;
@@ -177,54 +148,71 @@ function blocoMedalhas(avaliadas) {
     return a.nome.localeCompare(b.nome, "pt-BR");
   });
 
-  return secao(
-    `Medalhas · ${resumo.conquistadas} de ${resumo.total}`,
+  return el(
+    "section",
+    { class: "conq__secao" },
     el(
       "div",
-      { class: "conq__familias" },
-      ...familias.map((f) =>
-        el(
-          "button",
-          { type: "button", class: `conq__familia ${f.conquistadas ? "" : "conq__familia--zerada"}`.trim(), onClick: () => abrirFamilia(f) },
-          el("span", { class: "conq__icone", "aria-hidden": "true" }, f.icone),
-          el(
-            "span",
-            { class: "conq__familia-texto" },
-            el("strong", {}, f.nome),
-            el("span", { class: "conq__descricao" }, f.atual ? f.atual.nome : f.proxima ? `Falta: ${f.proxima.textoAlvo || f.proxima.nome}` : "")
-          ),
-          el("span", { class: "conq__contagem" }, `${f.conquistadas}/${f.total}`)
-        )
-      )
+      { class: "placar" },
+      el(
+        "div",
+        { class: "placar__linha" },
+        el("strong", { class: "placar__valor" }, String(resumo.conquistadas)),
+        el("span", { class: "placar__total" }, `de ${resumo.total} medalhas`)
+      ),
+      el("div", { class: "placar__trilha" }, el("div", { class: "placar__marca", style: { width: `${Math.max(1, pct)}%` } })),
+      el("span", { class: "placar__pct" }, `${pct}% da coleção`)
+    ),
+    el(
+      "div",
+      { class: "estante" },
+      ...familias.map((f) => celaDaFamilia(f))
     )
+  );
+}
+
+/**
+ * Cada família aparece pela medalha mais alta já conquistada — colorida, é o
+ * troféu que ele ganhou. Sem nenhuma ainda, mostra a próxima em chumbo com o
+ * anel de progresso, que é o convite.
+ */
+function celaDaFamilia(f) {
+  const mostrar = f.atual || f.proxima || f.medalhas[0];
+  return el(
+    "button",
+    { type: "button", class: "estante__cela", onClick: () => abrirFamilia(f) },
+    arteMedalha(mostrar, { tamanho: 78 }),
+    el("span", { class: "estante__nome" }, f.nome),
+    el("span", { class: `estante__conta ${f.conquistadas === f.total ? "estante__conta--cheia" : ""}`.trim() },
+      f.conquistadas === f.total ? "completa ✓" : `${f.conquistadas}/${f.total}`)
   );
 }
 
 function abrirFamilia(familia) {
   abrirFolha({
-    titulo: `${familia.icone} ${familia.nome}`,
+    titulo: familia.nome,
+    classe: "folha--medalhas",
     conteudo: el(
       "div",
-      { class: "conq__degraus" },
+      { class: "degraus" },
       ...familia.medalhas.map((m) =>
         el(
           "div",
-          { class: `conq__degrau ${m.conquistada ? "conq__degrau--ok" : ""}`.trim() },
-          el("span", { class: "conq__degrau-marca", "aria-hidden": "true" }, m.conquistada ? "🏅" : "🔒"),
+          { class: `degrau ${m.conquistada ? "degrau--ok" : ""}`.trim() },
+          arteMedalha(m, { tamanho: 62 }),
           el(
             "div",
-            { class: "conq__degrau-texto" },
+            { class: "degrau__texto" },
             el("strong", {}, m.nome),
-            el("span", { class: "conq__descricao" }, m.descricao)
-          ),
-          m.conquistada
-            ? null
-            : el(
-                "div",
-                { class: "conq__perto-fim" },
-                el("div", { class: "conq__trilha" }, el("div", { class: "conq__marca", style: { width: `${Math.round(m.progresso * 100)}%` } })),
-                el("span", { class: "conq__fracao" }, m.texto ? `${m.texto} / ${m.textoAlvo}` : "")
-              )
+            el("span", { class: "degrau__descricao" }, m.descricao),
+            m.conquistada
+              ? el("span", { class: "degrau__selo" }, `${nomeDaPatente(patenteDe(m))} · conquistada`)
+              : el(
+                  "span",
+                  { class: "degrau__falta" },
+                  m.texto ? `${m.texto} de ${m.textoAlvo}` : `${Math.round(m.progresso * 100)}%`
+                )
+          )
         )
       )
     ),
@@ -233,6 +221,11 @@ function abrirFamilia(familia) {
 
 /* -------------------------------------------------------------- estrutura */
 
-function secao(titulo, ...filhos) {
-  return el("section", { class: "conq__secao" }, el("h2", { class: "secao__titulo" }, titulo), ...filhos.filter(Boolean));
+function cabecalho(titulo, direita) {
+  return el(
+    "div",
+    { class: "conq__cabecalho" },
+    el("h2", { class: "conq__titulo" }, titulo),
+    direita ? el("span", { class: "conq__contagem" }, direita) : null
+  );
 }

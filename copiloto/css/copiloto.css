@@ -911,24 +911,30 @@ button { cursor: pointer; border: 0; background: none; }
 .heatmap__celula:active { outline: 2px solid var(--tinta); outline-offset: 1px; }
 
 /* ------------------------------------------------------------- conquistas */
+/* A única tela enfeitada do app. As outras se leem dirigindo; esta não. */
 
-.conq__secao { margin-bottom: 30px; }
-.conq__nota { margin: 10px 0 0; font-size: 14px; color: var(--tinta-fraca); }
-.conq__descricao { display: block; font-size: 14px; color: var(--tinta-fraca); line-height: 1.35; }
-.conq__icone { font-size: 26px; line-height: 1; flex-shrink: 0; }
+.arte-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.conq__secao { margin-bottom: 34px; }
+.conq__nota { margin: 12px 0 0; font-size: 14px; color: var(--tinta-fraca); }
+.conq__cabecalho { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+.conq__titulo { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; margin: 0; flex: 1; }
+.conq__contagem { font-size: 14px; color: var(--tinta-fraca); }
+
+/* --- ofensiva --- */
 
 .ofensiva {
-  background: var(--fundo-cartao);
+  background: linear-gradient(160deg, rgba(255, 140, 40, 0.16), transparent 62%), var(--fundo-cartao);
   border: 1px solid var(--linha);
   border-radius: var(--raio-g);
   padding: 18px 16px 16px;
 }
-.ofensiva--apagada { opacity: 0.75; }
+.ofensiva--apagada { background: var(--fundo-cartao); opacity: 0.8; }
 
 .ofensiva__topo { display: flex; align-items: center; gap: 14px; }
-.ofensiva__chama { font-size: 44px; line-height: 1; }
+.ofensiva__chama { font-size: 46px; line-height: 1; }
 .ofensiva__numeros { display: flex; align-items: baseline; gap: 8px; }
-.ofensiva__valor { font-size: 52px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.ofensiva__valor { font-size: 56px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .ofensiva__unidade { font-size: 17px; color: var(--tinta-suave); }
 
 .ofensiva__semana { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 18px 0 14px; }
@@ -944,69 +950,106 @@ button { cursor: pointer; border: 0; background: none; }
 }
 .ofensiva__letra { font-size: 13px; color: var(--tinta-fraca); }
 .ofensiva__marca { font-size: 19px; line-height: 1; min-height: 19px; }
-.ofensiva__dia--cheio { border-color: var(--nivel-piso); }
+.ofensiva__dia--cheio { border-color: var(--nivel-piso); background: rgba(255, 170, 60, 0.12); }
 .ofensiva__dia--folga { border-style: dashed; }
 .ofensiva__dia--hoje { border-style: dashed; border-color: var(--tinta-suave); }
 .ofensiva__estado { margin: 0; font-size: 17px; color: var(--tinta); line-height: 1.4; }
 
-.conq__lista { display: flex; flex-direction: column; gap: 8px; }
-.conq__perto {
-  background: var(--fundo-cartao);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio);
-  padding: 12px 14px;
-}
-.conq__perto-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.conq__perto-texto { flex: 1; min-width: 0; }
-.conq__perto-texto strong { font-size: 17px; }
-.conq__pct { font-size: 18px; font-weight: 700; color: var(--tinta-suave); font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.conq__perto-fim { width: 96px; flex-shrink: 0; text-align: right; }
-.conq__trilha { height: 8px; border-radius: 4px; background: var(--fundo-elevado); overflow: hidden; }
-.conq__marca { height: 100%; background: var(--serie-1); border-radius: 4px; }
-.conq__fracao { display: block; margin-top: 5px; font-size: 13px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+/* --- sala de troféus --- */
 
-.conq__recordes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.conq__recorde {
-  background: var(--fundo-cartao);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio);
-  padding: 12px 14px;
-}
-.conq__recorde-nome { display: block; font-size: 13px; color: var(--tinta-fraca); line-height: 1.3; }
-.conq__recorde-valor { display: block; margin: 4px 0 2px; font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.conq__recorde-quando { display: block; font-size: 13px; color: var(--tinta-fraca); }
-
-.conq__familias { display: flex; flex-direction: column; gap: 8px; }
-.conq__familia {
+.trofeus {
   display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
+  margin: 0 calc(-1 * var(--espaco));
+  padding-left: var(--espaco);
+  padding-right: var(--espaco);
+  -webkit-overflow-scrolling: touch;
+}
+.trofeus::-webkit-scrollbar { height: 0; }
+
+.trofeu-cartao {
+  flex: 0 0 152px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: var(--toque);
-  text-align: left;
+  text-align: center;
+  gap: 2px;
+  padding: 14px 10px 12px;
+  border-radius: var(--raio-g);
+  background: linear-gradient(170deg, rgba(240, 194, 73, 0.15), transparent 58%), var(--fundo-cartao);
+  border: 1px solid var(--linha);
+}
+.trofeu-cartao__valor { font-size: 25px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.trofeu-cartao__nome { font-size: 13px; color: var(--tinta-suave); line-height: 1.3; }
+.trofeu-cartao__quando { font-size: 12px; color: var(--tinta-fraca); margin-top: 3px; }
+
+/* --- placar da coleção --- */
+
+.placar {
   background: var(--fundo-cartao);
   border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.placar__linha { display: flex; align-items: baseline; gap: 8px; }
+.placar__valor { font-size: 44px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.placar__total { font-size: 17px; color: var(--tinta-suave); }
+.placar__trilha { height: 10px; border-radius: 5px; background: var(--fundo-elevado); overflow: hidden; margin: 12px 0 6px; }
+.placar__marca { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--serie-1), #f0c249); }
+.placar__pct { font-size: 14px; color: var(--tinta-fraca); }
+
+/* --- estante --- */
+
+.estante { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 6px; }
+
+.estante__cela {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px 12px;
   border-radius: var(--raio);
-  padding: 10px 14px;
+  background: none;
+  border: 1px solid transparent;
   color: var(--tinta);
+  min-height: var(--toque);
 }
-.conq__familia--zerada { opacity: 0.6; }
-.conq__familia-texto { flex: 1; min-width: 0; }
-.conq__familia-texto strong { font-size: 17px; }
-.conq__contagem { font-size: 16px; font-weight: 700; color: var(--tinta-suave); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.estante__cela:active { background: var(--fundo-cartao); border-color: var(--linha); }
+.estante__nome {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.estante__conta { font-size: 12px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+.estante__conta--cheia { color: var(--nivel-ideal); font-weight: 700; }
 
-.conq__degraus { display: flex; flex-direction: column; gap: 8px; }
-.conq__degrau {
+.medalha { display: block; }
+.medalha--presa { opacity: 0.85; }
+
+/* --- degraus de uma família --- */
+
+.folha--medalhas .folha__corpo { padding-top: 4px; }
+.degraus { display: flex; flex-direction: column; gap: 8px; }
+.degrau {
   display: flex;
   align-items: center;
   gap: 12px;
   background: var(--fundo-cartao);
   border: 1px solid var(--linha);
   border-radius: var(--raio);
-  padding: 12px 14px;
-  opacity: 0.68;
+  padding: 10px 14px 10px 8px;
 }
-.conq__degrau--ok { opacity: 1; border-color: var(--nivel-ideal); }
-.conq__degrau-marca { font-size: 24px; line-height: 1; flex-shrink: 0; }
-.conq__degrau-texto { flex: 1; min-width: 0; }
-.conq__degrau-texto strong { font-size: 17px; }
+.degrau--ok { border-color: rgba(240, 194, 73, 0.5); background: linear-gradient(120deg, rgba(240, 194, 73, 0.1), transparent 55%), var(--fundo-cartao); }
+.degrau__texto { flex: 1; min-width: 0; }
+.degrau__texto strong { font-size: 17px; display: block; }
+.degrau__descricao { display: block; font-size: 14px; color: var(--tinta-fraca); line-height: 1.35; margin-top: 1px; }
+.degrau__selo { display: block; margin-top: 5px; font-size: 13px; font-weight: 700; color: var(--nivel-piso); }
+.degrau__falta { display: block; margin-top: 5px; font-size: 13px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }

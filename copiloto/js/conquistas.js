@@ -131,6 +131,7 @@ export const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", 
 
 // Domingo e sábado sao masculinos; o resto da semana é feminino.
 const ARTIGO_DIA = ["num", "numa", "numa", "numa", "numa", "numa", "num"];
+const SIGLA_DIA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const PLURAL_DIA = ["domingos trabalhados", "segundas trabalhadas", "terças trabalhadas", "quartas trabalhadas", "quintas trabalhadas", "sextas trabalhadas", "sábados trabalhados"];
 
 /** Tudo que as medalhas precisam saber, calculado uma vez só. */
@@ -249,11 +250,12 @@ const KM = (v) => `${Math.round(v)} km`;
 const INT = (v) => `${Math.floor(v)}`;
 
 /** Uma família: mesma medida, alvos crescentes, um nome por degrau. */
-function escada({ id, familia, icone, medir, alvos, nomes, descricao, formatar = INT }) {
+function escada({ id, familia, icone, glifo, medir, alvos, nomes, descricao, formatar = INT }) {
   return alvos.map((alvo, i) => ({
     id: `${id}-${i + 1}`,
     familia,
     icone,
+    glifo,
     nome: nomes[i],
     descricao: descricao(alvo),
     alvo,
@@ -265,11 +267,12 @@ function escada({ id, familia, icone, medir, alvos, nomes, descricao, formatar =
 }
 
 /** Medalha de coleção: sem degraus, só marcar presença. */
-function marco({ id, familia, icone, nome, descricao, medir }) {
+function marco({ id, familia, icone, glifo, nome, descricao, medir }) {
   return {
     id,
     familia,
     icone,
+    glifo,
     nome,
     descricao,
     alvo: 1,
@@ -539,6 +542,7 @@ function catalogo() {
         id: `semana-${indice}`,
         familia: dia,
         icone: "📅",
+        glifo: SIGLA_DIA[indice],
         nomes: DEGRAUS_SEMANA.map((d) => `${d} de ${dia}`),
         alvos: [5, 15, 30, 60],
         medir: (e) => e.diasSemana[indice],
@@ -556,6 +560,7 @@ function catalogo() {
         id: `app-${p.id}`,
         familia: p.nome,
         icone: "📱",
+        glifo: p.nome.toUpperCase(),
         nomes: DEGRAUS_APP.map((d) => `${d} da ${p.nome}`),
         alvos: [10, 50, 100, 500, 1000],
         medir: (e) => e.porPlataforma[p.id] || 0,
@@ -572,6 +577,7 @@ function catalogo() {
         id: `relogio-${h}`,
         familia: "Volta ao Relógio",
         icone: "🕐",
+        glifo: `${String(h).padStart(2, "0")}h`,
         nome: `${String(h).padStart(2, "0")}h`,
         descricao: `Já rodou nesta hora do dia`,
         medir: (e) => e.horasVisitadas.has(h),
@@ -584,6 +590,7 @@ function catalogo() {
         id: `presenca-${indice}`,
         familia: "Semana Completa",
         icone: "🗓️",
+        glifo: SIGLA_DIA[indice],
         nome: dia,
         descricao: `Já trabalhou ${ARTIGO_DIA[indice]} ${dia.toLowerCase()}`,
         medir: (e) => e.diasSemana[indice] > 0,
