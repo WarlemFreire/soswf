@@ -115,6 +115,45 @@ teste("odômetro final fecha o km do dia", () => {
   assert.equal(M.kmPercorrido(fechada, []), 200);
 });
 
+teste("odômetro de abertura zerado não vira quilometragem do carro", () => {
+  // Number(null) e Number("") dao 0. Guardado como odômetro de abertura, o
+  // "percorrido" de um turno de duas horas virava 98 mil km, zerava o R$/km
+  // e jogava o líquido para menos de sessenta mil reais negativos.
+  const semBase = { ...jornada, odometroInicio: 0 };
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: {}, odometro: 98023 }];
+  assert.equal(M.kmPercorrido(semBase, registros), 0);
+  assert.equal(M.kmPercorrido({ ...jornada, odometroInicio: NaN }, registros), 0);
+  assert.equal(M.kmPercorrido({ ...jornada, odometroInicio: null }, registros), 0);
+});
+
+teste("duas âncoras medem o trecho mesmo sem odômetro de abertura", () => {
+  const semBase = { ...jornada, odometroInicio: null };
+  const registros = [
+    { id: "a", timestamp: t0 + H, saldos: {}, odometro: 98010 },
+    { id: "b", timestamp: t0 + 2 * H, saldos: {}, odometro: 98038 },
+  ];
+  assert.equal(M.kmPercorrido(semBase, registros), 28, "self-healing: ele digita duas vezes e o km volta");
+});
+
+teste("salto de odômetro impossível é dedo errado, não medição", () => {
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: {}, odometro: 108000 }];
+  // 8 mil km em uma hora exigiria 8.000 km/h.
+  assert.equal(M.kmPercorrido(jornada, registros), 0);
+  // Já 90 km em uma hora é uma jornada boa, não um erro.
+  assert.equal(M.kmPercorrido(jornada, [{ id: "a", timestamp: t0 + H, saldos: {}, odometro: 100090 }]), 90);
+});
+
+teste("odômetro menor que a abertura não vira km negativo nem zero silencioso", () => {
+  const registros = [{ id: "a", timestamp: t0 + H, saldos: {}, odometro: 99000 }];
+  assert.equal(M.kmPercorrido(jornada, registros), 0);
+});
+
+teste("âncora só conta quando é leitura de painel de verdade", () => {
+  assert.equal(M.ancorasOdometro([{ id: "a", timestamp: t0, saldos: {}, odometro: 0 }]), 0);
+  assert.equal(M.ancorasOdometro([{ id: "a", timestamp: t0, saldos: {}, odometro: null }]), 0);
+  assert.equal(M.ancorasOdometro([{ id: "a", timestamp: t0, saldos: {}, odometro: 98023 }]), 1);
+});
+
 teste("kmAte recorta o km até um instante", () => {
   const registros = [
     { id: "a", timestamp: t0 + H, saldos: {}, odometro: 100030 },

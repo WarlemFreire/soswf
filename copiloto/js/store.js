@@ -143,6 +143,18 @@ export function saldoDaFonte(id) {
 
 /* ---------------------------------------------------------------- jornada */
 
+/**
+ * Campo em branco é AUSÊNCIA de leitura, nunca zero. Number(null) e Number("")
+ * dao 0 e Number(undefined) da NaN; qualquer um dos tres, guardado como se
+ * fosse odômetro, faz a jornada parecer ter rodado a quilometragem inteira do
+ * carro.
+ */
+function odometroOuNulo(valor) {
+  if (valor == null || valor === "") return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) && numero > 0 ? numero : null;
+}
+
 export async function abrirJornada({ odometroInicio, metas, saldoInicial }) {
   const agora = Date.now();
   const jornada = {
@@ -150,7 +162,7 @@ export async function abrirJornada({ odometroInicio, metas, saldoInicial }) {
     data: M.chaveData(agora),
     horaInicio: agora,
     horaFim: null,
-    odometroInicio: Number(odometroInicio),
+    odometroInicio: odometroOuNulo(odometroInicio),
     odometroFim: null,
     // Linha de base do dia: a plataforma não zera "ganhos de hoje" quando uma
     // segunda jornada começa.
@@ -184,7 +196,7 @@ export async function fecharJornada({ odometroFim, observacoes } = {}) {
   const fechada = {
     ...jornada,
     horaFim: Date.now(),
-    odometroFim: odometroFim != null ? Number(odometroFim) : null,
+    odometroFim: odometroOuNulo(odometroFim),
     observacoes: observacoes ?? jornada.observacoes ?? "",
     status: "fechada",
   };
@@ -287,7 +299,11 @@ export async function contornoDaJornada(jornadaId) {
 export async function corrigirJornada(id, campos) {
   const jornada = await db.get("jornadas", id);
   if (!jornada) return null;
-  const corrigida = { ...jornada, ...campos, corrigidaEm: Date.now() };
+  const ajustados = { ...campos };
+  for (const chave of ["odometroInicio", "odometroFim"]) {
+    if (chave in ajustados) ajustados[chave] = odometroOuNulo(ajustados[chave]);
+  }
+  const corrigida = { ...jornada, ...ajustados, corrigidaEm: Date.now() };
   await db.put("jornadas", corrigida);
   if (estado.jornada?.id === id) estado.jornada = corrigida;
   notificar();
@@ -319,7 +335,7 @@ export async function registrar({ saldos, avulso, odometro, timestamp, tipo = "c
     timestamp: timestamp ?? Date.now(),
     saldos: limparSaldos(saldos),
     // Só grava odômetro que ele digitou. Nada de âncora inferida.
-    odometro: odometro != null && odometro !== "" ? Number(odometro) : null,
+    odometro: odometroOuNulo(odometro),
     posicao: null,
     tipo,
     desfeito: false,
@@ -535,7 +551,7 @@ export async function registrarCusto(dados) {
     tipo: dados.tipo || "outro",
     valor: Number(dados.valor) || 0,
     litros: dados.litros != null && dados.litros !== "" ? Number(dados.litros) : null,
-    odometro: dados.odometro != null && dados.odometro !== "" ? Number(dados.odometro) : null,
+    odometro: odometroOuNulo(dados.odometro),
     observacao: dados.observacao || "",
     criadoEm: Date.now(),
   };

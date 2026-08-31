@@ -679,11 +679,15 @@ function rodapeDados(m, config) {
   }
 
   // Sem âncora de odômetro não há km, e sem km o R$/km some. Vale avisar em
-  // vez de deixar o traço no tile sem explicação.
+  // vez de deixar o traço no tile sem explicação. Com uma âncora só e sem
+  // abertura válida o recado tem que ser outro: ele JÁ digitou o odômetro, e
+  // mandar "informe o odômetro" pareceria que o app ignorou o que ele fez.
   const km =
     m.km > 0
       ? `${m.km.toFixed(1).replace(".", ",")} km`
-      : "sem km — informe o odômetro";
+      : m.ancoras > 0
+        ? "km só a partir do próximo odômetro"
+        : "sem km — informe o odômetro";
 
   return el(
     "section",

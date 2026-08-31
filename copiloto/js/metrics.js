@@ -184,30 +184,71 @@ export function msAtivo(jornada, pausas, agora = Date.now()) {
  * mostram "—". É de propósito: melhor não ter número do que ter um inventado.
  */
 export function kmPercorrido(jornada, registros) {
-  if (!jornada || jornada.odometroInicio == null) return 0;
-  return Math.max(0, ultimoOdometroConhecido(jornada, registros) - jornada.odometroInicio);
+  return kmAte(jornada, registros, Infinity);
 }
 
 /** Km percorrido até um instante, para medir a janela do bloco. */
-export function kmAte(jornada, registros, ate) {
-  if (!jornada || jornada.odometroInicio == null) return 0;
-  const ancora = ultimoOdometroConhecido(jornada, (registros || []).filter((r) => r.timestamp <= ate));
-  return Math.max(0, ancora - jornada.odometroInicio);
+export function kmAte(jornada, registros, ate = Infinity) {
+  if (!jornada) return 0;
+  const pontos = aceitos(pontosDeOdometro(jornada, registros, ate));
+  if (pontos.length < 2) return 0;
+  return pontos[pontos.length - 1].valor - pontos[0].valor;
 }
 
-function ultimoOdometroConhecido(jornada, registros) {
-  let ancora = jornada.odometroInicio;
-  for (const r of registrosValidos(registros)) {
-    if (r.odometro != null) ancora = r.odometro;
+/** Nenhuma jornada urbana sustenta 120 km/h de média. */
+const KMH_IMPOSSIVEL = 120;
+
+/**
+ * Descarta o ponto que anda para trás ou que exigiria velocidade impossível
+ * desde o ponto anterior: isso é dedo errado no teclado, nao medição. Dizer
+ * "sem km" é melhor do que envenenar o R$/km e o líquido com um número que
+ * parece leitura de painel.
+ */
+function aceitos(pontos) {
+  const bons = [];
+  for (const ponto of pontos) {
+    const antes = bons[bons.length - 1];
+    if (antes) {
+      const horas = Math.max(0.5, (ponto.quando - antes.quando) / HORA);
+      const avanco = ponto.valor - antes.valor;
+      if (avanco < 0 || avanco > horas * KMH_IMPOSSIVEL) continue;
+    }
+    bons.push(ponto);
   }
-  // O odômetro final, quando existe, é a palavra final sobre o dia.
-  if (jornada.odometroFim != null) ancora = jornada.odometroFim;
-  return ancora;
+  return bons;
+}
+
+/**
+ * Um odômetro de painel nunca é zero, negativo ou NaN. Quando aparece assim é
+ * campo em branco que virou número no caminho — Number(null) e Number("") dao
+ * 0, Number(undefined) da NaN — e usar isso como base faz o "percorrido" virar
+ * a quilometragem inteira do carro.
+ */
+function odometroValido(valor) {
+  return Number.isFinite(valor) && valor > 0;
+}
+
+/** Abertura, âncoras digitadas e fechamento, em ordem de relógio. */
+function pontosDeOdometro(jornada, registros, ate = Infinity) {
+  const pontos = [];
+  if (odometroValido(jornada.odometroInicio)) {
+    pontos.push({ quando: jornada.horaInicio, valor: jornada.odometroInicio });
+  }
+  for (const r of registrosValidos(registros)) {
+    if (r.timestamp <= ate && odometroValido(r.odometro)) {
+      pontos.push({ quando: r.timestamp, valor: r.odometro });
+    }
+  }
+  const fim = jornada.horaFim ?? Infinity;
+  if (fim <= ate && odometroValido(jornada.odometroFim)) {
+    pontos.push({ quando: fim, valor: jornada.odometroFim });
+  }
+  return pontos.sort((a, b) => a.quando - b.quando);
 }
 
 /** Quantas âncoras de odômetro o motorista digitou nesta jornada. */
 export function ancorasOdometro(registros) {
-  return registrosValidos(registros).filter((r) => r.odometro != null).length;
+  return registrosValidos(registros).filter((r) => odometroValido(r.odometro)).length;
 }
 
 /* ---------------------------------------------------------------- metricas */

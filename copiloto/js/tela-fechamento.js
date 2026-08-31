@@ -24,13 +24,24 @@ export function abrirFechamento() {
     placeholder: "O que aconteceu hoje? (opcional)",
   });
 
+  // Sem odômetro de abertura válido nao ha subtração possível. Zero e NaN nao
+  // sao leitura de painel: usá-los como base faria o fechamento anunciar a
+  // quilometragem inteira do carro como "rodados hoje".
+  const abertura = Number.isFinite(jornada.odometroInicio) && jornada.odometroInicio > 0
+    ? jornada.odometroInicio
+    : null;
+
   function atualizar() {
     visor.textContent = teclado.exibicao;
-    const km = (teclado.valor ?? 0) - jornada.odometroInicio;
+    const km = teclado.valor != null && abertura != null ? teclado.valor - abertura : null;
     aviso.textContent =
-      teclado.valor == null || km < 0
+      teclado.valor == null
         ? "Digite o odômetro do painel agora."
-        : `${km.toLocaleString("pt-BR")} km rodados hoje.`;
+        : abertura == null
+          ? "Abertura sem odômetro — o km do dia sai pelos registros da jornada."
+          : km < 0
+            ? "Menor que a abertura. Confira o número do painel."
+            : `${km.toLocaleString("pt-BR")} km rodados hoje.`;
   }
   atualizar();
 
@@ -42,7 +53,9 @@ export function abrirFechamento() {
       el(
         "p",
         { class: "folha__ajuda" },
-        `Odômetro final, olhando o painel. Abertura foi ${jornada.odometroInicio?.toLocaleString("pt-BR") ?? "—"} km.`
+        abertura != null
+          ? `Odômetro final, olhando o painel. Abertura foi ${abertura.toLocaleString("pt-BR")} km.`
+          : "Odômetro final, olhando o painel."
       ),
       visor,
       aviso,
@@ -395,8 +408,9 @@ export async function abrirCorrecao(jornada) {
       const fim = valores[`fim_${p.id}`];
       if (fim != null) ganho += fim - base;
     }
+    const util = (v) => (Number.isFinite(v) && v > 0 ? v : null);
     const km =
-      valores.odometroFim != null && valores.odometroInicio != null
+      util(valores.odometroFim) != null && util(valores.odometroInicio) != null
         ? valores.odometroFim - valores.odometroInicio
         : null;
 
