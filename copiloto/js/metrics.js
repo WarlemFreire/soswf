@@ -297,8 +297,13 @@ export function metricasAoVivo({
   agora = Date.now(),
 }) {
   const validos = registrosValidos(registros);
-  const saldoDia = saldoEm(eventos, agora);
-  const ganho = ganhoDaJornada(eventos, jornada, agora);
+  // Dinheiro registrado NAO se corta em "agora". Um checkpoint que existe já
+  // foi ganho — se o relógio do aparelho recuar (sincronia de rede, fuso,
+  // acerto manual), cortar a linha do tempo faria o saldo do dia sumir da
+  // tela até o relógio alcançar de novo. Só janela — bloco, projeção — tem
+  // motivo para olhar o instante.
+  const saldoDia = saldoTotal(eventos);
+  const ganho = ganhoDaJornada(eventos, jornada);
   const ativo = msAtivo(jornada, pausas, agora);
   const km = kmPercorrido(jornada, validos);
 
@@ -320,7 +325,7 @@ export function metricasAoVivo({
     ganho,
     // Onde o dia estava quando esta jornada abriu.
     base: saldoDia - ganho,
-    fontes: saldoPorFonte((eventos || []).filter((e) => e.timestamp <= agora)),
+    fontes: saldoPorFonte(eventos),
     msAtivo: ativo,
     msRua: msRua(jornada, agora),
     msPausado: msPausado(pausas, agora),

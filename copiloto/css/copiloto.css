@@ -106,6 +106,86 @@ button { cursor: pointer; border: 0; background: none; }
   height: 100dvh;
 }
 
+/* ------------------------------------------------------------------ topbar */
+/* Some no modo dirigindo: ali a tela existe para ser lida de relance a 60 por
+   hora, e avatar nao ajuda ninguem a decidir se aceita a corrida. */
+
+.topbar {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px var(--espaco) 10px;
+  padding-top: calc(8px + env(safe-area-inset-top));
+  background: var(--fundo-elevado);
+  border-bottom: 1px solid var(--linha);
+}
+
+/* .topbar tem display:flex, que ganha do [hidden] padrão do navegador. */
+.topbar[hidden] { display: none; }
+
+.topbar__eu {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  color: var(--tinta);
+  text-align: left;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--tinta-suave);
+  object-fit: cover;
+  overflow: hidden;
+}
+.avatar--foto { border-color: var(--serie-1); }
+.avatar--grande { width: 92px; height: 92px; font-size: 32px; }
+
+.topbar__texto { display: flex; flex-direction: column; min-width: 0; }
+.topbar__nome {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar__nivel { font-size: 13px; color: var(--tinta-fraca); }
+
+.topbar__ofensiva {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 150, 50, 0.14);
+  border: 1px solid rgba(255, 170, 60, 0.45);
+  font-size: 17px;
+}
+.topbar__ofensiva strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.topbar__ofensiva--apagada { background: var(--fundo-cartao); border-color: var(--linha); color: var(--tinta-fraca); }
+
+.topbar__barra { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--fundo-cartao); }
+.topbar__marca { height: 100%; background: linear-gradient(90deg, var(--serie-1), #f0c249); }
+
 .conteudo {
   flex: 1;
   overflow-y: auto;
@@ -1053,3 +1133,108 @@ button { cursor: pointer; border: 0; background: none; }
 .degrau__descricao { display: block; font-size: 14px; color: var(--tinta-fraca); line-height: 1.35; margin-top: 1px; }
 .degrau__selo { display: block; margin-top: 5px; font-size: 13px; font-weight: 700; color: var(--nivel-piso); }
 .degrau__falta { display: block; margin-top: 5px; font-size: 13px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+
+/* --- nível e missões --- */
+
+.nivel {
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  padding: 14px 16px 16px;
+}
+.nivel__linha { display: flex; align-items: center; gap: 12px; }
+.nivel__selo {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+  font-weight: 800;
+  color: #1b1200;
+  background: linear-gradient(150deg, #fff3c4, #f0c249 45%, #a97614);
+}
+.nivel__texto { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nivel__texto strong { font-size: 19px; }
+.nivel__texto span { font-size: 14px; color: var(--tinta-fraca); }
+.nivel__moedas { display: flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 17px; }
+.nivel__moedas strong { font-variant-numeric: tabular-nums; }
+.nivel__trilha { height: 10px; border-radius: 5px; background: var(--fundo-elevado); overflow: hidden; margin-top: 14px; }
+.nivel__marca { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--serie-1), #f0c249); }
+
+.missoes { display: flex; flex-direction: column; gap: 10px; }
+.missao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px 12px 8px;
+  border-radius: var(--raio);
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+}
+.missao__corpo { flex: 1; min-width: 0; }
+.missao__objetivo { display: block; font-size: 17px; line-height: 1.3; }
+.missao__trilha { height: 8px; border-radius: 4px; background: var(--fundo-elevado); overflow: hidden; margin: 9px 0 6px; }
+.missao__marca { height: 100%; border-radius: 4px; background: var(--serie-1); }
+.missao__pe { display: flex; align-items: baseline; gap: 10px; }
+.missao__falta { flex: 1; font-size: 13px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+.missao__premio { font-size: 13px; font-weight: 800; color: var(--nivel-piso); }
+
+/* --- contagem sem número --- */
+
+.estante__contas { display: flex; gap: 4px; margin-top: 3px; }
+.conta { width: 6px; height: 6px; border-radius: 50%; background: var(--linha); }
+.conta--acesa { background: var(--nivel-piso); }
+.estante__barra { display: block; width: 46px; height: 5px; border-radius: 3px; background: var(--linha); margin-top: 6px; overflow: hidden; }
+.estante__barra span { display: block; height: 100%; background: var(--nivel-piso); }
+.estante__completa { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--nivel-ideal); }
+
+.degrau__topo { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.degrau__estado { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--tinta-fraca); }
+.degrau__estado--ok { color: var(--nivel-ideal); }
+.degrau__premio { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--nivel-piso); }
+
+/* --- perfil --- */
+
+.perfil__topo { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.perfil__acoes { display: flex; flex-direction: column; gap: 8px; }
+.perfil__acoes .botao { min-height: 48px; padding: 0 18px; font-size: 16px; }
+.perfil__rotulo { display: block; font-size: 14px; color: var(--tinta-fraca); margin-bottom: 6px; }
+
+.perfil__cartao {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: var(--raio-g);
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+}
+.perfil__nivel { display: flex; align-items: center; gap: 12px; }
+.perfil__nivel-selo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1b1200;
+  background: linear-gradient(150deg, #fff3c4, #f0c249 45%, #a97614);
+}
+.perfil__nivel-titulo { display: block; font-size: 20px; }
+.perfil__nivel-nota { font-size: 14px; color: var(--tinta-fraca); }
+.perfil__trilha { height: 10px; border-radius: 5px; background: var(--fundo-elevado); overflow: hidden; margin: 14px 0 6px; }
+.perfil__marca { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--serie-1), #f0c249); }
+.perfil__legenda { font-size: 13px; color: var(--tinta-fraca); line-height: 1.45; margin: 0; }
+.perfil__linhas { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.perfil__linha { display: flex; align-items: baseline; gap: 10px; font-size: 15px; }
+.perfil__linha span { flex: 1; color: var(--tinta-suave); }
+.perfil__linha strong { font-variant-numeric: tabular-nums; }
+
+.perfil__cartao--moedas { background: linear-gradient(160deg, rgba(240, 194, 73, 0.12), transparent 60%), var(--fundo-cartao); }
+.perfil__moedas { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.perfil__moeda-icone { font-size: 28px; }
+.perfil__moeda-valor { font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.perfil__moeda-nome { font-size: 16px; color: var(--tinta-suave); }

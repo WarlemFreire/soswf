@@ -40,6 +40,11 @@ export const PERIODOS = [
 ];
 
 export const CONFIG_PADRAO = {
+  // Perfil. O avatar é um dataURL pequeno (160px), guardado no proprio
+  // aparelho como todo o resto — nao existe conta nem servidor.
+  nome: "",
+  avatar: null,
+
   plataformaPrincipal: "uber",
   plataformasAtivas: ["uber", "99", "indrive"],
 
@@ -101,6 +106,9 @@ export async function carregarConfig() {
 export async function salvarConfig(chave, valor) {
   cache[chave] = valor;
   await db.put("config", { chave, valor });
+  // Quem depende de config sem ser tela — a barra de cima, por exemplo — ouve
+  // isto em vez de recarregar o app inteiro.
+  document.dispatchEvent(new CustomEvent("copiloto:config", { detail: { chave, valor } }));
   return valor;
 }
 

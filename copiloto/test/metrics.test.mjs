@@ -154,6 +154,27 @@ teste("âncora só conta quando é leitura de painel de verdade", () => {
   assert.equal(M.ancorasOdometro([{ id: "a", timestamp: t0, saldos: {}, odometro: 98023 }]), 1);
 });
 
+teste("saldo do dia não some quando o relógio do aparelho recua", () => {
+  // Sincronia de rede, troca de fuso ou acerto manual podem pôr o relógio
+  // ATRÁS de um checkpoint já gravado. Cortar a linha do tempo em "agora"
+  // faria o dinheiro registrado desaparecer da tela até o relógio alcançar.
+  const eventos = [
+    { id: "ab", timestamp: t0, saldos: { uber: 102 }, abertura: true },
+    { id: "a", timestamp: t0 + 60 * M.MINUTO, saldos: { uber: 148 } },
+  ];
+  const m = M.metricasAoVivo({
+    jornada,
+    eventos,
+    registros: [],
+    pausas: [],
+    config: { faixasKm: {}, faixaHora: {}, blocoMin: 120 },
+    agora: t0 + 30 * M.MINUTO, // relógio atrás do último checkpoint
+  });
+  assert.equal(m.saldo, 148);
+  assert.equal(m.ganho, 46);
+  assert.equal(m.fontes.uber.valor, 148);
+});
+
 teste("kmAte recorta o km até um instante", () => {
   const registros = [
     { id: "a", timestamp: t0 + H, saldos: {}, odometro: 100030 },

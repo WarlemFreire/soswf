@@ -4,7 +4,9 @@
 // túnel, e um PNG por medalha seriam 225 arquivos. Vetor inline custa alguns
 // kB, escala em qualquer tela e acompanha o tema sozinho.
 
-/** As cinco patentes. O degrau da família decide qual metal a medalha recebe. */
+import { patenteDe } from "./conquistas.js";
+
+/** O metal de cada patente. Quem decide a patente é o catálogo. */
 const PATENTES = [
   { nome: "Bronze", a: "#f5c08a", m: "#c07a35", b: "#7d4416", fita1: "#8f3d3d", fita2: "#68292a" },
   { nome: "Prata", a: "#ffffff", m: "#c3cfdb", b: "#7d8b9a", fita1: "#3f5a75", fita2: "#2a3f55" },
@@ -12,16 +14,6 @@ const PATENTES = [
   { nome: "Platina", a: "#dcfff7", m: "#6fded0", b: "#218b78", fita1: "#1d6b5e", fita2: "#124a41" },
   { nome: "Diamante", a: "#f3e8ff", m: "#b98ef0", b: "#6a37bd", fita1: "#4a2b86", fita2: "#311c5e" },
 ];
-
-export function patenteDe(medalha) {
-  // Medalha de coleção não tem degrau: entra como ouro, no meio da escala.
-  if (!medalha.niveis || medalha.niveis === 1) return 3;
-  return Math.min(5, Math.max(1, Math.ceil((medalha.nivel / medalha.niveis) * 5)));
-}
-
-export function nomeDaPatente(indice) {
-  return PATENTES[indice - 1].nome;
-}
 
 /** Os gradientes ficam num SVG oculto e são referenciados por id na página. */
 export function defsDeArte() {
@@ -57,7 +49,7 @@ function comoNo(markup) {
  * para ver o que falta sem precisar ler número nenhum.
  */
 export function arteMedalha(medalha, { tamanho = 86, anel = true } = {}) {
-  const patente = patenteDe(medalha);
+  const patente = medalha.patente || patenteDe(medalha);
   const cores = PATENTES[patente - 1];
   const ganha = medalha.conquistada;
   const metal = ganha ? `metal-${patente}` : "metal-0";

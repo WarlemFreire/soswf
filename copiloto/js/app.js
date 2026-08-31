@@ -9,6 +9,7 @@ import { montarHistorico } from "./tela-historico.js";
 import { montarAnalise } from "./tela-analise.js";
 import { montarConquistas } from "./tela-conquistas.js";
 import { montarConfig } from "./tela-config.js";
+import { montarTopbar, atualizarTopbar } from "./topbar.js";
 import { religarAoVoltar, manterTelaLigada } from "./geo.js";
 import { mostrarToast, vibrar, falar } from "./feedback.js";
 import { formatarDuracao, MINUTO } from "./metrics.js";
@@ -29,6 +30,8 @@ async function iniciar() {
   setInterval(aplicarTema, 60000);
 
   montarAgora(document.getElementById("tela-agora"));
+  montarTopbar(document.getElementById("topbar"));
+  document.addEventListener("copiloto:config", atualizarTopbar);
   await store.carregarJornadaAberta();
 
   let aberta = "agora";

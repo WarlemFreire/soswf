@@ -8,7 +8,8 @@ import * as M from "./metrics.js";
 import * as C from "./conquistas.js";
 import * as store from "./store.js";
 import { db } from "./db.js";
-import { defsDeArte, arteMedalha, arteTrofeu, patenteDe, nomeDaPatente } from "./arte.js";
+import { defsDeArte, arteMedalha, arteTrofeu } from "./arte.js";
+import { progresso, formatarXp } from "./progresso.js";
 
 const LETRAS_SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
 const DIA_MS = 86400000;
@@ -29,6 +30,8 @@ export async function montarConquistas(raiz) {
 
   raiz.append(defsDeArte());
   raiz.append(blocoOfensiva(of, dias));
+  raiz.append(blocoNivel(progresso(avaliadas, est)));
+  raiz.append(blocoEmAndamento(C.proximas(avaliadas, 3)));
   raiz.append(blocoRecordes(C.recordes(dias, corridas, resumos)));
   raiz.append(blocoMedalhas(avaliadas));
 }
@@ -101,6 +104,68 @@ function recadoOfensiva(of) {
   return `Hoje é o último dia. Sem jornada, a ofensiva de ${of.atual} zera.`;
 }
 
+/* ------------------------------------------------------ nível e andamento */
+
+function blocoNivel({ nivel, moedas }) {
+  return el(
+    "section",
+    { class: "conq__secao" },
+    el(
+      "div",
+      { class: "nivel" },
+      el(
+        "div",
+        { class: "nivel__linha" },
+        el("span", { class: "nivel__selo" }, String(nivel.nivel)),
+        el(
+          "div",
+          { class: "nivel__texto" },
+          el("strong", {}, `Nível ${nivel.nivel}`),
+          el("span", {}, `${formatarXp(nivel.faltam)} XP para o nível ${nivel.nivel + 1}`)
+        ),
+        el("div", { class: "nivel__moedas" }, el("span", { "aria-hidden": "true" }, "🪙"), el("strong", {}, formatarXp(moedas)))
+      ),
+      el("div", { class: "nivel__trilha" }, el("div", { class: "nivel__marca", style: { width: `${Math.round(nivel.progresso * 100)}%` } }))
+    )
+  );
+}
+
+/**
+ * As três missões mais perto de cumprir. É o laço central do jogo: sair de
+ * casa hoje sabendo exatamente o que dá para fechar.
+ */
+function blocoEmAndamento(missoes) {
+  if (!missoes.length) return el("div");
+  return el(
+    "section",
+    { class: "conq__secao" },
+    cabecalho("Missões em andamento", null),
+    el(
+      "div",
+      { class: "missoes" },
+      ...missoes.map((m) =>
+        el(
+          "article",
+          { class: "missao" },
+          arteMedalha(m, { tamanho: 56 }),
+          el(
+            "div",
+            { class: "missao__corpo" },
+            el("strong", { class: "missao__objetivo" }, m.descricao),
+            el("div", { class: "missao__trilha" }, el("div", { class: "missao__marca", style: { width: `${Math.max(2, Math.round(m.progresso * 100))}%` } })),
+            el(
+              "div",
+              { class: "missao__pe" },
+              el("span", { class: "missao__falta" }, m.texto ? `${m.texto} de ${m.textoAlvo}` : `${Math.round(m.progresso * 100)}%`),
+              el("span", { class: "missao__premio" }, `+${m.xp} XP`)
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
 /* --------------------------------------------------------------- recordes */
 
 function blocoRecordes(lista) {
@@ -151,6 +216,7 @@ function blocoMedalhas(avaliadas) {
   return el(
     "section",
     { class: "conq__secao" },
+    cabecalho("Quadro de missões", `${resumo.conquistadas} cumpridas`),
     el(
       "div",
       { class: "placar" },
@@ -158,16 +224,36 @@ function blocoMedalhas(avaliadas) {
         "div",
         { class: "placar__linha" },
         el("strong", { class: "placar__valor" }, String(resumo.conquistadas)),
-        el("span", { class: "placar__total" }, `de ${resumo.total} medalhas`)
+        el("span", { class: "placar__total" }, `de ${resumo.total} missões`)
       ),
       el("div", { class: "placar__trilha" }, el("div", { class: "placar__marca", style: { width: `${Math.max(1, pct)}%` } })),
-      el("span", { class: "placar__pct" }, `${pct}% da coleção`)
+      el("span", { class: "placar__pct" }, `faltam ${resumo.restantes}`)
     ),
     el(
       "div",
       { class: "estante" },
       ...familias.map((f) => celaDaFamilia(f))
     )
+  );
+}
+
+/**
+ * Contagem sem número: uma conta por degrau, acesa se cumprido. Numa família
+ * grande demais para caber em contas, uma barra. Fração escrita volta a ter
+ * cara de planilha, que é justamente o que esta tela não pode ter.
+ */
+function marcadorDeFamilia(f) {
+  if (f.total <= 10) {
+    return el(
+      "span",
+      { class: "estante__contas", "aria-label": `${f.conquistadas} de ${f.total} cumpridas` },
+      ...f.medalhas.map((m) => el("span", { class: `conta ${m.conquistada ? "conta--acesa" : ""}`.trim() }))
+    );
+  }
+  return el(
+    "span",
+    { class: "estante__barra", "aria-label": `${f.conquistadas} de ${f.total} cumpridas` },
+    el("span", { style: { width: `${Math.round((f.conquistadas / f.total) * 100)}%` } })
   );
 }
 
@@ -183,8 +269,9 @@ function celaDaFamilia(f) {
     { type: "button", class: "estante__cela", onClick: () => abrirFamilia(f) },
     arteMedalha(mostrar, { tamanho: 78 }),
     el("span", { class: "estante__nome" }, f.nome),
-    el("span", { class: `estante__conta ${f.conquistadas === f.total ? "estante__conta--cheia" : ""}`.trim() },
-      f.conquistadas === f.total ? "completa ✓" : `${f.conquistadas}/${f.total}`)
+    f.conquistadas === f.total
+      ? el("span", { class: "estante__completa" }, "COMPLETA")
+      : marcadorDeFamilia(f)
   );
 }
 
@@ -203,10 +290,20 @@ function abrirFamilia(familia) {
           el(
             "div",
             { class: "degrau__texto" },
+            el(
+              "div",
+              { class: "degrau__topo" },
+              el(
+                "span",
+                { class: `degrau__estado ${m.conquistada ? "degrau__estado--ok" : ""}`.trim() },
+                m.conquistada ? "✓ CUMPRIDA" : "A CUMPRIR"
+              ),
+              el("span", { class: "degrau__premio" }, `+${m.xp} XP`)
+            ),
             el("strong", {}, m.nome),
             el("span", { class: "degrau__descricao" }, m.descricao),
             m.conquistada
-              ? el("span", { class: "degrau__selo" }, `${nomeDaPatente(patenteDe(m))} · conquistada`)
+              ? el("span", { class: "degrau__selo" }, `${C.nomeDaPatente(m.patente)}`)
               : el(
                   "span",
                   { class: "degrau__falta" },

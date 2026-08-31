@@ -46,27 +46,38 @@ export function jornadaAtiva() {
 
 /* ------------------------------------------------------------ carregamento */
 
+/**
+ * Carrega tudo ANTES de publicar a jornada no estado.
+ *
+ * A tela redesenha de segundo em segundo por causa do relógio. Se a jornada
+ * entrasse no estado antes da linha do tempo do dia, esse tique pegaria o app
+ * no meio do caminho — jornada presente, eventos ainda vazios — e pintaria
+ * "R$ 0" com ganho negativo por alguns décimos de segundo. Num app cuja
+ * função é dizer quanto o motorista já ganhou, mostrar zero por engano, mesmo
+ * que por um instante, é o bastante para ele parar de confiar no número.
+ */
 export async function carregarJornadaAberta() {
   const jornadas = await db.porIndice("jornadas", "status", "aberta");
   const aberta = jornadas.sort((a, b) => b.horaInicio - a.horaInicio)[0] || null;
-  estado.jornada = aberta;
 
   await carregarBairros();
   await carregarCombustivel();
-  if (aberta) {
-    estado.registros = await db.porIndice("registros", "jornadaId", aberta.id);
-    estado.pausas = await db.porIndice("pausas", "jornadaId", aberta.id);
-    estado.corridas = await db.porIndice("corridas", "jornadaId", aberta.id);
-    estado.custos = await db.porIndice("custos", "jornadaId", aberta.id);
-    await carregarDia(aberta.data);
-    if (cfg("manterTelaLigada")) manterTelaLigada();
-  } else {
-    estado.registros = [];
-    estado.pausas = [];
-    estado.corridas = [];
-    estado.custos = [];
-    await carregarDia(M.chaveData(Date.now()));
-  }
+
+  const carga = aberta
+    ? {
+        registros: await db.porIndice("registros", "jornadaId", aberta.id),
+        pausas: await db.porIndice("pausas", "jornadaId", aberta.id),
+        corridas: await db.porIndice("corridas", "jornadaId", aberta.id),
+        custos: await db.porIndice("custos", "jornadaId", aberta.id),
+      }
+    : { registros: [], pausas: [], corridas: [], custos: [] };
+
+  const dia = await lerDia(aberta ? aberta.data : M.chaveData(Date.now()));
+
+  // Troca única: daqui em diante nenhuma pintura vê estado pela metade.
+  Object.assign(estado, { jornada: aberta }, carga, dia);
+
+  if (aberta && cfg("manterTelaLigada")) manterTelaLigada();
   notificar();
   return aberta;
 }
@@ -75,7 +86,8 @@ export async function carregarJornadaAberta() {
  * Monta a linha do tempo do dia. Chamada em toda mudança que mexe em dinheiro,
  * porque é dela que sai o saldo do dia e o ganho de cada jornada.
  */
-async function carregarDia(data) {
+/** Lê a linha do tempo do dia sem tocar no estado. */
+async function lerDia(data) {
   const dia = data ?? estado.jornada?.data ?? M.chaveData(Date.now());
   const jornadas = (await db.porIndice("jornadas", "data", dia)).sort((a, b) => a.horaInicio - b.horaInicio);
 
@@ -83,9 +95,11 @@ async function carregarDia(data) {
   for (const j of jornadas) {
     registros = registros.concat(await db.porIndice("registros", "jornadaId", j.id));
   }
+  return { jornadasDoDia: jornadas, eventosDoDia: M.eventosDoDia(jornadas, registros) };
+}
 
-  estado.jornadasDoDia = jornadas;
-  estado.eventosDoDia = M.eventosDoDia(jornadas, registros);
+async function carregarDia(data) {
+  Object.assign(estado, await lerDia(data));
   return estado.eventosDoDia;
 }
 
@@ -117,9 +131,9 @@ export function metricas(agora = Date.now()) {
   });
 }
 
-/** Saldo do dia agora — o que a tela mostra grande. */
-export function saldoDoDia(agora = Date.now()) {
-  return M.saldoEm(estado.eventosDoDia, agora);
+/** Saldo do dia — o que a tela mostra grande. Tudo que foi registrado hoje. */
+export function saldoDoDia() {
+  return M.saldoTotal(estado.eventosDoDia);
 }
 
 export function eventosDoDia() {

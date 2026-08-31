@@ -12,5 +12,10 @@ for f in $(find "$(dirname "$0")/.." -name '*.js' -not -path '*/test/*'); do
   fi
 done
 rm -rf "$tmp"
-[ "$erros" = 0 ] && echo "sintaxe ok"
+[ "$erros" != 0 ] && exit 1
+
+echo "sintaxe ok"
+for suite in "$(dirname "$0")"/*.test.mjs; do
+  node "$suite" || erros=1
+done
 exit $erros

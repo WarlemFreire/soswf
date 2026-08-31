@@ -16,6 +16,31 @@ import { PLATAFORMAS, PERIODOS } from "./config.js";
 
 const DIA_MS = 86400000;
 
+/* ---------------------------------------------------------------- patentes */
+
+export const PATENTES = ["Bronze", "Prata", "Ouro", "Platina", "Diamante"];
+
+/** XP que cada patente paga. Uma diamante vale dezesseis bronzes. */
+export const XP_POR_PATENTE = [50, 100, 200, 400, 800];
+
+/**
+ * Em que patente cai um degrau, pela altura dele dentro da própria família.
+ *
+ * Espalhado ponta a ponta: o primeiro degrau é sempre bronze e o último sempre
+ * diamante. Numa família com mais de cinco degraus alguma patente se repete —
+ * e ela tem que se repetir NO MEIO. Repetir no topo faria o último degrau, o
+ * mais caro de todos, chegar sem promoção nenhuma.
+ */
+export function patenteDe(medalha) {
+  // Medalha de coleção nao tem degrau: entra como ouro, no meio da escala.
+  if (!medalha.niveis || medalha.niveis <= 1) return 3;
+  return 1 + Math.round(((medalha.nivel - 1) / (medalha.niveis - 1)) * 4);
+}
+
+export function nomeDaPatente(patente) {
+  return PATENTES[patente - 1];
+}
+
 /* ---------------------------------------------------------------- ofensiva */
 
 /** Folga tolerada sem quebrar a ofensiva. Trabalhar 5 e descansar 2 mantém. */
@@ -132,7 +157,7 @@ export const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", 
 // Domingo e sábado sao masculinos; o resto da semana é feminino.
 const ARTIGO_DIA = ["num", "numa", "numa", "numa", "numa", "numa", "num"];
 const SIGLA_DIA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
-const PLURAL_DIA = ["domingos trabalhados", "segundas trabalhadas", "terças trabalhadas", "quartas trabalhadas", "quintas trabalhadas", "sextas trabalhadas", "sábados trabalhados"];
+const PLURAL_DIA = ["domingos", "segundas", "terças", "quartas", "quintas", "sextas", "sábados"];
 
 /** Tudo que as medalhas precisam saber, calculado uma vez só. */
 export function estatisticas({ dias = [], historico = [], corridas = [], custos = [], hoje = Date.now() } = {}) {
@@ -320,7 +345,7 @@ function catalogo() {
         nomes: desenho.nomes,
         alvos: HORAS_ALVO,
         medir: (e) => e.horasPorPeriodo[p.id],
-        descricao: (a) => `${a} horas rodadas entre ${p.inicio}h e ${p.fim}h`,
+        descricao: (a) => `Rodar ${a} horas entre ${p.inicio}h e ${p.fim}h`,
         formatar: HORAS,
       })
     );
@@ -334,7 +359,7 @@ function catalogo() {
       nomes: ["Varando a Noite", "Coruja", "Insone", "Rei da Madrugada", "Senhor das Três da Manhã", "Lenda da Madrugada"],
       alvos: HORAS_ALVO,
       medir: (e) => e.horasMadrugada,
-      descricao: (a) => `${a} horas rodadas entre meia-noite e 6h`,
+      descricao: (a) => `Rodar ${a} horas entre meia-noite e 6h`,
       formatar: HORAS,
     }),
 
@@ -345,7 +370,7 @@ function catalogo() {
       nomes: ["Primeiro Mil", "R$5 mil", "R$10 mil", "R$25 mil", "R$50 mil", "R$100 mil", "Quarto de Milhão", "Meio Milhão"],
       alvos: [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000],
       medir: (e) => e.bruto,
-      descricao: (a) => `${REAIS(a)} acumulados desde o começo`,
+      descricao: (a) => `Acumular ${REAIS(a)} desde o começo`,
       formatar: REAIS,
     }),
 
@@ -367,7 +392,7 @@ function catalogo() {
       nomes: ["Primeiro Dia", "5 Dias na Rua", "10 Dias na Rua", "25 Dias na Rua", "50 Dias na Rua", "100 Dias na Rua", "200 Dias na Rua", "Um Ano de Ruas", "500 Dias na Rua", "Mil Dias na Rua"],
       alvos: [1, 5, 10, 25, 50, 100, 200, 365, 500, 1000],
       medir: (e) => e.dias,
-      descricao: (a) => `${a} dias com jornada registrada`,
+      descricao: (a) => `Registrar ${a} dias de jornada`,
       formatar: (v) => `${v} dias`,
     }),
 
@@ -389,7 +414,7 @@ function catalogo() {
       nomes: ["500 km", "Mil km", "5 mil km", "10 mil km", "25 mil km", "50 mil km", "100 mil km", "200 mil km"],
       alvos: [500, 1000, 5000, 10000, 25000, 50000, 100000, 200000],
       medir: (e) => e.km,
-      descricao: (a) => `${KM(a)} rodados no total`,
+      descricao: (a) => `Rodar ${KM(a)} no total`,
       formatar: KM,
     }),
 
@@ -411,7 +436,7 @@ function catalogo() {
       nomes: ["10 Corridas", "50 Corridas", "100 Corridas", "500 Corridas", "Mil Corridas", "2.500 Corridas", "5 Mil Corridas", "10 Mil Corridas"],
       alvos: [10, 50, 100, 500, 1000, 2500, 5000, 10000],
       medir: (e) => e.corridas,
-      descricao: (a) => `${a} corridas detalhadas no app`,
+      descricao: (a) => `Detalhar ${a} corridas no app`,
       formatar: (v) => `${v} corridas`,
     }),
 
@@ -422,7 +447,7 @@ function catalogo() {
       nomes: ["10 num dia", "15 num dia", "20 num dia", "25 num dia", "30 num dia"],
       alvos: [10, 15, 20, 25, 30],
       medir: (e) => e.maiorCorridasDia,
-      descricao: (a) => `${a} corridas num único dia`,
+      descricao: (a) => `Fazer ${a} corridas num único dia`,
       formatar: (v) => `${v} corridas`,
     }),
 
@@ -455,7 +480,7 @@ function catalogo() {
       nomes: ["10 Horas na Rua", "50 Horas na Rua", "100 Horas na Rua", "250 Horas na Rua", "500 Horas na Rua", "Mil Horas na Rua", "2 Mil Horas na Rua"],
       alvos: [10, 50, 100, 250, 500, 1000, 2000],
       medir: (e) => e.horas,
-      descricao: (a) => `${a} horas ativas acumuladas`,
+      descricao: (a) => `Acumular ${a} horas ativas`,
       formatar: HORAS,
     }),
 
@@ -466,7 +491,7 @@ function catalogo() {
       nomes: ["Primeiro Tanque", "10 Tanques", "25 Tanques", "50 Tanques", "100 Tanques", "250 Tanques"],
       alvos: [1, 10, 25, 50, 100, 250],
       medir: (e) => e.abastecimentos,
-      descricao: (a) => `${a} abastecimentos registrados`,
+      descricao: (a) => `Registrar ${a} abastecimentos`,
     }),
 
     ...escada({
@@ -476,7 +501,7 @@ function catalogo() {
       nomes: ["Sabe Parar", "Café Merecido", "Ritmo Sustentável", "Descanso é Estratégia"],
       alvos: [5, 25, 100, 365],
       medir: (e) => e.pausas,
-      descricao: (a) => `${a} pausas registradas — parar também é trabalho`,
+      descricao: (a) => `Registrar ${a} pausas — parar também é trabalho`,
     }),
 
     ...escada({
@@ -486,7 +511,7 @@ function catalogo() {
       nomes: ["5 Bairros", "10 Bairros", "25 Bairros", "50 Bairros", "100 Bairros"],
       alvos: [5, 10, 25, 50, 100],
       medir: (e) => e.bairros,
-      descricao: (a) => `Corridas saindo de ${a} bairros diferentes`,
+      descricao: (a) => `Pegar corrida em ${a} bairros diferentes`,
       formatar: (v) => `${v} bairros`,
     }),
 
@@ -497,7 +522,7 @@ function catalogo() {
       nomes: ["R$50 de dinâmico", "R$200 de dinâmico", "R$500 de dinâmico", "R$1.000 de dinâmico", "R$2.500 de dinâmico"],
       alvos: [50, 200, 500, 1000, 2500],
       medir: (e) => e.dinamico,
-      descricao: (a) => `${REAIS(a)} vindos de dinâmico e bônus`,
+      descricao: (a) => `Somar ${REAIS(a)} em dinâmico e bônus`,
       formatar: REAIS,
     }),
 
@@ -508,7 +533,7 @@ function catalogo() {
       nomes: ["10 Registros", "100 Registros", "500 Registros", "Mil Registros", "5 Mil Registros"],
       alvos: [10, 100, 500, 1000, 5000],
       medir: (e) => e.registros,
-      descricao: (a) => `${a} checkpoints registrados no app`,
+      descricao: (a) => `Registrar ${a} checkpoints no app`,
     })
   );
 
@@ -546,7 +571,7 @@ function catalogo() {
         nomes: DEGRAUS_SEMANA.map((d) => `${d} de ${dia}`),
         alvos: [5, 15, 30, 60],
         medir: (e) => e.diasSemana[indice],
-        descricao: (a) => `${a} ${PLURAL_DIA[indice]}`,
+        descricao: (a) => `Trabalhar em ${a} ${PLURAL_DIA[indice]}`,
         formatar: (v) => `${v} dias`,
       })
     );
@@ -564,7 +589,7 @@ function catalogo() {
         nomes: DEGRAUS_APP.map((d) => `${d} da ${p.nome}`),
         alvos: [10, 50, 100, 500, 1000],
         medir: (e) => e.porPlataforma[p.id] || 0,
-        descricao: (a) => `${a} corridas registradas pela ${p.nome}`,
+        descricao: (a) => `Registrar ${a} corridas pela ${p.nome}`,
         formatar: (v) => `${v} corridas`,
       })
     );
@@ -579,7 +604,7 @@ function catalogo() {
         icone: "🕐",
         glifo: `${String(h).padStart(2, "0")}h`,
         nome: `${String(h).padStart(2, "0")}h`,
-        descricao: `Já rodou nesta hora do dia`,
+        descricao: "Rodar ao menos uma vez nesta hora do dia",
         medir: (e) => e.horasVisitadas.has(h),
       })
     );
@@ -592,7 +617,7 @@ function catalogo() {
         icone: "🗓️",
         glifo: SIGLA_DIA[indice],
         nome: dia,
-        descricao: `Já trabalhou ${ARTIGO_DIA[indice]} ${dia.toLowerCase()}`,
+        descricao: `Trabalhar ${ARTIGO_DIA[indice]} ${dia.toLowerCase()}`,
         medir: (e) => e.diasSemana[indice] > 0,
       })
     );
@@ -601,7 +626,10 @@ function catalogo() {
   return medalhas;
 }
 
-export const MEDALHAS = catalogo();
+export const MEDALHAS = catalogo().map((m) => {
+  const patente = patenteDe(m);
+  return { ...m, patente, xp: XP_POR_PATENTE[patente - 1] };
+});
 
 /** Avalia o catálogo inteiro contra as estatísticas. Nada aqui pode regredir. */
 export function avaliar(est) {
