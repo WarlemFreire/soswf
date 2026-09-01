@@ -205,4 +205,97 @@ teste("formatação de hora e duração", () => {
   assert.equal(R.formatarDuracao(h(8, 30)), "8h30");
 });
 
+/* ----------------------------------------------------------------- hoje */
+
+// 2026-08-31 é uma segunda-feira; o primeiro argumento desloca a partir dela.
+const em = (offset, hora, minuto = 0) => new Date(2026, 7, 31 + offset, hora, minuto).getTime();
+
+teste("de madrugada o plano vigente ainda é o do dia anterior", () => {
+  // Às 3h de terça, quem está na rua está cumprindo o plano de SEGUNDA.
+  // Olhar para o dia do calendário faria o app dizer "folga" para alguém
+  // que está trabalhando.
+  const r = comDias({ 1: [rodar(h(22), h(28))] }); // segunda 22h → terça 4h
+  const v = R.planoVigente(r, em(1, 3, 0));        // terça, 3h
+  assert.equal(v.dia, 1, "o plano é o de segunda");
+  assert.equal(v.deOntem, true);
+  assert.equal(v.agora, h(27), "3h de terça é 27h na escala de segunda");
+});
+
+teste("passado o fim do turno da noite, o plano volta a ser o de hoje", () => {
+  const r = comDias({ 1: [rodar(h(22), h(28))], 2: [rodar(h(14), h(20))] });
+  const v = R.planoVigente(r, em(1, 9, 0)); // terça, 9h — a noite já acabou
+  assert.equal(v.dia, 2);
+  assert.equal(v.deOntem, false);
+  assert.equal(v.agora, h(9));
+});
+
+teste("estadoAgora localiza o bloco, o que falta e a próxima pausa", () => {
+  const r = comDias({ 1: [rodar(h(15), h(20)), almoco(h(20), h(21)), rodar(h(21), h(25))] });
+  const e = R.estadoAgora(r, em(0, 18, 0)); // segunda, 18h
+
+  assert.equal(e.blocoAtual.tipo, "trabalho");
+  assert.equal(e.proximaPausa.inicio, h(20));
+  assert.equal(e.cumprido, 3 * 60, "das 15h às 18h");
+  assert.equal(e.restante, 6 * 60, "faltam 2h do primeiro trecho e 4h do segundo");
+  assert.equal(e.antesDeComecar, false);
+  assert.equal(e.terminou, false);
+});
+
+teste("antes de começar, o estado diz quanto falta", () => {
+  const r = comDias({ 1: [rodar(h(15), h(20))] });
+  const e = R.estadoAgora(r, em(0, 13, 30));
+  assert.equal(e.antesDeComecar, true);
+  assert.equal(e.faltaParaComecar, 90);
+  assert.equal(e.cumprido, 0);
+  assert.equal(e.blocoAtual, null);
+  assert.equal(e.proximo.inicio, h(15));
+});
+
+teste("dia de folga não inventa plano", () => {
+  const e = R.estadoAgora(R.rotinaVazia(), em(0, 13, 0));
+  assert.equal(e.vazio, true);
+  assert.equal(e.trabalho, 0);
+  assert.equal(e.blocoAtual, null);
+  assert.equal(e.antesDeComecar, false);
+});
+
+teste("a projeção herda a hora de parar do plano, arredondada para baixo", () => {
+  const r = comDias({ 1: [rodar(h(15), h(20)), almoco(h(20), h(21)), rodar(h(21), h(28, 15))] });
+  assert.equal(R.horaDeParar(r, em(0, 18, 0)), 4, "04:15 vira 4 — a promessa fica dentro do plano");
+  assert.equal(R.horaDeParar(r, em(0, 13, 0)), 4, "antes de começar também vale");
+
+  const curto = comDias({ 1: [rodar(h(6), h(14))] });
+  assert.equal(R.horaDeParar(curto, em(0, 10, 0)), 14);
+  assert.equal(R.horaDeParar(curto, em(0, 15, 0)), null, "plano já terminado não manda mais");
+  assert.equal(R.horaDeParar(R.rotinaVazia(), em(0, 10, 0)), null);
+});
+
+teste("jornada aberta desde ontem manda no plano vigente", () => {
+  // Às 2h30 de terça, com a jornada aberta desde segunda 15h, o plano em
+  // curso é o de SEGUNDA — mesmo que o horário planejado já tenha passado.
+  // Sem isso o app troca de assunto no meio do turno e passa a falar do
+  // plano da terça enquanto ele ainda está na rua cumprindo o da segunda.
+  const r = comDias({ 1: [rodar(h(15), h(20)), almoco(h(20), h(21)), rodar(h(21), h(25))] });
+  const desde = em(0, 15, 0); // segunda, 15h
+
+  const semJornada = R.planoVigente(r, em(1, 2, 30));
+  assert.equal(semJornada.dia, 2, "sem jornada aberta, a noite de segunda já acabou");
+
+  const comJornada = R.estadoAgora(r, em(1, 2, 30), { desde });
+  assert.equal(comJornada.dia, 1);
+  assert.equal(comJornada.deOntem, true);
+  assert.equal(comJornada.terminou, true);
+  assert.equal(comJornada.alemDoPlano, 90, "01:00 planejado, 02:30 no relógio");
+  assert.equal(R.horaDeParar(r, em(1, 2, 30), { desde }), null, "plano vencido nao manda mais na projeção");
+});
+
+teste("dentro do plano, a jornada aberta não muda nada", () => {
+  const r = comDias({ 1: [rodar(h(15), h(25))] });
+  const e = R.estadoAgora(r, em(0, 18, 0), { desde: em(0, 15, 0) });
+  assert.equal(e.dia, 1);
+  assert.equal(e.deOntem, false);
+  assert.equal(e.alemDoPlano, 0);
+  assert.equal(R.horaDeParar(r, em(0, 18, 0), { desde: em(0, 15, 0) }), 1, "termina 01:00");
+});
+
 if (!process.exitCode) console.log(`✓ ${passou} testes passaram`);

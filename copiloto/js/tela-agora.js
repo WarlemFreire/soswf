@@ -3,6 +3,7 @@
 
 import { el, limpar, abrirFolha, chips } from "./ui.js";
 import * as M from "./metrics.js";
+import * as R from "./rotina.js";
 import * as store from "./store.js";
 import { cfg, configAtual, salvarConfig, MOTIVOS_PAUSA, PLATAFORMAS } from "./config.js";
 import { vibrar, falar } from "./feedback.js";
@@ -32,6 +33,68 @@ function render(raiz) {
   raiz.append(jornada ? painelAtivo() : painelParado());
 }
 
+/* --------------------------------------------------------- plano de hoje */
+
+/**
+ * O plano da semana aparecendo na tela principal. Sem rotina montada nao
+ * aparece nada: um cartão vazio convidando a configurar é ruído para quem só
+ * quer abrir a jornada e sair.
+ */
+function cartaoDoPlano() {
+  const rotina = cfg("rotina");
+  if (!rotina) return null;
+  const e = R.estadoAgora(rotina, Date.now(), { desde: store.jornadaAtiva()?.horaInicio });
+  if (e.vazio) return null;
+
+  const faixa = `${R.formatarMinutos(e.inicio)} → ${R.formatarMinutos(e.fim)}`;
+  let recado;
+  if (e.terminou) recado = "O plano de hoje já passou.";
+  else if (e.antesDeComecar) {
+    recado = e.faltaParaComecar <= 90
+      ? `Começa em ${R.formatarDuracao(e.faltaParaComecar)}.`
+      : `${R.formatarDuracao(e.trabalho)} de volante planejados.`;
+  } else {
+    recado = `Deveria estar rodando há ${R.formatarDuracao(e.agora - e.inicio)}.`;
+  }
+
+  return el(
+    "div",
+    { class: `plano ${e.terminou ? "plano--passado" : ""}`.trim() },
+    el(
+      "div",
+      { class: "plano__linha" },
+      el("span", { class: "plano__rotulo" }, e.deOntem ? "Plano de ontem, ainda em curso" : "Plano de hoje"),
+      el("strong", { class: "plano__faixa" }, faixa)
+    ),
+    el("p", { class: "plano__recado" }, recado)
+  );
+}
+
+/** Uma linha só, no rodapé da jornada ativa: quanto do plano já foi. */
+function linhaDoPlano() {
+  const rotina = cfg("rotina");
+  if (!rotina) return null;
+  const e = R.estadoAgora(rotina, Date.now(), { desde: store.jornadaAtiva()?.horaInicio });
+  if (e.vazio) return null;
+
+  const partes = [`plano ${R.formatarDuracao(e.trabalho)}`];
+  if (e.terminou) {
+    // Passar do planejado nao é erro; é informação. Quem esticou o turno
+    // merece ver por quanto, em vez de o app fingir que o plano continua.
+    partes.push(`${R.formatarDuracao(e.alemDoPlano)} além do plano`);
+  } else {
+    partes.push(`faltam ${R.formatarDuracao(e.restante)}`);
+    if (e.proximaPausa) partes.push(`pausa ${R.formatarMinutos(e.proximaPausa.inicio)}`);
+    else partes.push(`até ${R.formatarMinutos(e.fim)}`);
+  }
+
+  return el(
+    "div",
+    { class: "dados__linha dados__plano" },
+    el("span", { class: "dados__gps" }, partes.join(" · "))
+  );
+}
+
 /* ------------------------------------------------------ jornada parada */
 
 function painelParado() {
@@ -42,6 +105,7 @@ function painelParado() {
     "div",
     { class: "vazio" },
     el("div", { class: "vazio__marca" }, "Copiloto"),
+    cartaoDoPlano(),
     anteriores
       ? el(
           "div",
@@ -322,8 +386,20 @@ function metasDaJornada() {
   return { metaMinima: j.metaMinima, metaIdeal: j.metaIdeal, metaOtima: j.metaOtima };
 }
 
+/**
+ * Até que horas a projeção deve olhar.
+ *
+ * A jornada manda, porque foi ele quem ajustou na mão. Sem ajuste, quem manda
+ * é o plano da semana: se a rotina de hoje termina às 4h, projetar até as 23h
+ * das configurações responderia a uma pergunta que ele não fez.
+ */
 function horaLimiteDaJornada() {
-  return store.jornadaAtiva()?.horaLimite ?? cfg("horaLimiteMeta");
+  const jornada = store.jornadaAtiva();
+  return (
+    jornada?.horaLimite ??
+    R.horaDeParar(cfg("rotina"), Date.now(), { desde: jornada?.horaInicio }) ??
+    cfg("horaLimiteMeta")
+  );
 }
 
 function barraMeta(m) {
@@ -700,6 +776,7 @@ function rodapeDados(m, config) {
       el("span", { class: "dados__gps" }, `${m.ancoras} âncora${m.ancoras === 1 ? "" : "s"}`)
     ),
     fontes.length ? el("div", { class: "dados__fontes" }, fontes.join(" · ")) : null,
+    linhaDoPlano(),
     linhaCorridas(),
     linhaCustos(),
     el(

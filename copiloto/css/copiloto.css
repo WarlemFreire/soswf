@@ -1371,3 +1371,20 @@ button { cursor: pointer; border: 0; background: none; }
   font-size: 18px;
 }
 .copiar__dia--ativo { border-color: var(--primario); background: rgba(47, 125, 224, 0.16); font-weight: 700; }
+
+/* --- plano da semana na tela principal --- */
+
+.plano {
+  margin: 0 0 22px;
+  padding: 12px 16px;
+  border-radius: var(--raio);
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  text-align: left;
+}
+.plano--passado { opacity: 0.6; }
+.plano__linha { display: flex; align-items: baseline; gap: 10px; }
+.plano__rotulo { flex: 1; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-fraca); }
+.plano__faixa { font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plano__recado { margin: 4px 0 0; font-size: 16px; color: var(--tinta-suave); }
+.dados__plano { margin-top: 2px; }

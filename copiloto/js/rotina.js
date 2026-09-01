@@ -313,6 +313,96 @@ function maiorSequenciaDeFolga(porDia) {
   return maior;
 }
 
+/* ------------------------------------------------------------ hoje */
+
+/** Minutos desde a meia-noite do instante dado. */
+export function minutosDoDia(agora) {
+  const d = new Date(agora);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/**
+ * Qual plano vale AGORA.
+ *
+ * Normalmente é o de hoje. Mas às 3 da manhã de terça, quem está na rua está
+ * cumprindo o plano de SEGUNDA — o turno que atravessou a meia-noite. Olhar
+ * para o dia do calendário faria o app dizer "folga" para alguém trabalhando.
+ */
+export function planoVigente(rotina, agora = Date.now(), { desde = null } = {}) {
+  const norma = normalizar(rotina);
+  const hoje = new Date(agora).getDay();
+  const minutos = minutosDoDia(agora);
+
+  // Com uma jornada aberta desde ontem, o plano em curso é o DELA, mesmo que
+  // o horário planejado já tenha passado. Sem isto, às 2h da manhã de terça o
+  // app trocaria de assunto no meio do turno e começaria a falar do plano da
+  // terça enquanto ele ainda está na rua cumprindo o da segunda.
+  if (desde != null) {
+    const dias = Math.round((meiaNoiteDe(agora) - meiaNoiteDe(desde)) / (MIN_DIA * 60000));
+    if (dias === 1) {
+      const dono = new Date(desde).getDay();
+      return { dia: dono, blocos: norma.dias[dono], deOntem: true, agora: minutos + MIN_DIA };
+    }
+    if (dias === 0) return { dia: hoje, blocos: norma.dias[hoje], deOntem: false, agora: minutos };
+  }
+
+  // Sem jornada aberta, ainda vale a noite de ontem enquanto ela nao acabou.
+  const ontem = (hoje + 6) % 7;
+  const daNoite = norma.dias[ontem];
+  const fimDeOntem = daNoite.length ? Math.max(...daNoite.map((b) => b.fim)) : 0;
+  if (fimDeOntem > MIN_DIA && minutos + MIN_DIA < fimDeOntem) {
+    return { dia: ontem, blocos: daNoite, deOntem: true, agora: minutos + MIN_DIA };
+  }
+  return { dia: hoje, blocos: norma.dias[hoje], deOntem: false, agora: minutos };
+}
+
+function meiaNoiteDe(instante) {
+  const d = new Date(instante);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** Onde o motorista está dentro do plano vigente. */
+export function estadoAgora(rotina, agora = Date.now(), opcoes = {}) {
+  const plano = planoVigente(rotina, agora, opcoes);
+  const resumo = resumoDoDia(plano.blocos);
+  const atual = plano.blocos.find((b) => plano.agora >= b.inicio && plano.agora < b.fim) || null;
+  const proximo = plano.blocos.find((b) => b.inicio > plano.agora) || null;
+
+  const cumprido = plano.blocos
+    .filter(ehTrabalho)
+    .reduce((s, b) => s + Math.max(0, Math.min(b.fim, plano.agora) - b.inicio), 0);
+
+  return {
+    ...plano,
+    ...resumo,
+    blocoAtual: atual,
+    proximo,
+    // Pausa é o que ele planejou para descansar; saber a próxima ajuda a
+    // decidir se estica mais um trecho ou já para.
+    proximaPausa: plano.blocos.find((b) => !ehTrabalho(b) && b.inicio > plano.agora) || null,
+    cumprido,
+    restante: Math.max(0, resumo.trabalho - cumprido),
+    antesDeComecar: resumo.inicio != null && plano.agora < resumo.inicio,
+    terminou: resumo.fim != null && plano.agora >= resumo.fim,
+    faltaParaComecar: resumo.inicio != null ? resumo.inicio - plano.agora : null,
+    alemDoPlano: resumo.fim != null && plano.agora >= resumo.fim ? plano.agora - resumo.fim : 0,
+  };
+}
+
+/**
+ * A hora em que o plano de hoje termina, para a projeção da tela principal
+ * herdar em vez de usar o limite genérico das configurações.
+ *
+ * A projeção trabalha com hora cheia, então 04:15 vira 4 — arredondar para
+ * baixo mantém a promessa dentro do plano em vez de esticá-la.
+ */
+export function horaDeParar(rotina, agora = Date.now(), opcoes = {}) {
+  const estado = estadoAgora(rotina, agora, opcoes);
+  if (estado.fim == null || estado.terminou) return null;
+  return Math.floor((estado.fim % MIN_DIA) / 60);
+}
+
 /* ------------------------------------------------------------ formatação */
 
 /** "07:00", e "02:00 ⁺¹" quando o horário já é do dia seguinte. */
