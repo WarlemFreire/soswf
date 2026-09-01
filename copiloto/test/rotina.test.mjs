@@ -32,8 +32,25 @@ teste("normalizar devolve sempre os sete dias, em ordem", () => {
   assert.deepEqual(r.dias[0], []);
 });
 
+teste("o antigo \"almoco\" vira alimentação em vez de sumir", () => {
+  // Rotinas já gravadas no aparelho usam o nome antigo. Cair no padrão
+  // transformaria a pausa do almoço em mais um trecho de volante.
+  const r = R.normalizar({ dias: { 1: [{ tipo: "almoco", inicio: h(12), fim: h(13) }] } });
+  assert.equal(r.dias[1][0].tipo, "alimentacao");
+  assert.equal(R.resumoDoDia(r.dias[1]).trabalho, 0);
+  assert.equal(R.resumoDoDia(r.dias[1]).pausa, 60);
+});
+
+teste("os sete tipos existem e só um conta como volante", () => {
+  assert.equal(R.TIPOS.length, 7);
+  assert.deepEqual(R.TIPOS.filter((t) => t.conta).map((t) => t.id), ["trabalho"]);
+  assert.ok(R.TIPOS.every((t) => t.icone && t.nome));
+  assert.equal(R.tipoDe("academia").nome, "Academia");
+  assert.equal(R.tipoDe("inexistente").id, "trabalho");
+});
+
 teste("bloco inválido não entra", () => {
-  const r = R.normalizar({ dias: { 1: [rodar(h(10), h(10)), rodar(h(12), h(9)), { tipo: "x", inicio: 0, fim: 60 }] } });
+  const r = R.normalizar({ dias: { 1: [rodar(h(10), h(10)), rodar(h(12), h(9)), { tipo: "xyz", inicio: 0, fim: 60 }] } });
   assert.equal(r.dias[1].length, 1, "só o de tipo desconhecido sobrevive, virando trabalho");
   assert.equal(r.dias[1][0].tipo, "trabalho");
 });

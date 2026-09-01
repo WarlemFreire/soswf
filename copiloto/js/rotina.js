@@ -23,11 +23,32 @@ export const DIAS = [
   { id: 6, nome: "Sábado", curto: "Sáb", sigla: "S" },
 ];
 
+/**
+ * Os sete tipos de bloco.
+ *
+ * A cor de cada um vem da paleta categórica validada, mas quem carrega a
+ * IDENTIDADE na tela do dia é o ícone e o nome escritos no bloco — a cor só
+ * reforça. Foi medido: com sete categorias, nenhum conjunto de tons passa na
+ * separação de todos os pares para daltonismo (só quatro passam). Por isso a
+ * grade da semana, onde nao cabe texto, usa dois tons apenas: rodar e o resto.
+ */
 export const TIPOS = [
   { id: "trabalho", nome: "Rodar", icone: "🚕", conta: true },
-  { id: "almoco", nome: "Almoço", icone: "🍽️", conta: false },
+  { id: "alimentacao", nome: "Alimentação", icone: "🍽️", conta: false },
   { id: "descanso", nome: "Descanso", icone: "☕", conta: false },
+  { id: "sono", nome: "Dormir", icone: "😴", conta: false },
+  { id: "academia", nome: "Academia", icone: "🏋️", conta: false },
+  { id: "estudos", nome: "Estudos", icone: "📚", conta: false },
+  { id: "pessoal", nome: "Pessoal", icone: "🧾", conta: false },
 ];
+
+/** Nomes antigos que ainda podem estar gravados no aparelho. */
+const APELIDOS = { almoco: "alimentacao" };
+
+export function tipoDe(id) {
+  const alvo = APELIDOS[id] || id;
+  return TIPOS.find((t) => t.id === alvo) || TIPOS[0];
+}
 
 export const ehTrabalho = (bloco) => bloco.tipo === "trabalho";
 
@@ -60,7 +81,7 @@ export function normalizar(rotina) {
     saida.dias[dia.id] = brutos
       .map((b, i) => ({
         id: b.id || `${dia.id}-${i}`,
-        tipo: TIPOS.some((t) => t.id === b.tipo) ? b.tipo : "trabalho",
+        tipo: tipoDe(b.tipo).id,
         // O começo também pode passar da meia-noite: numa noite que vai das
         // 21h às 4h, a pausa da 1h e o trecho seguinte pertencem a ESTE dia.
         // Prender o início em 23:59 empurrava o bloco seguinte para cima do

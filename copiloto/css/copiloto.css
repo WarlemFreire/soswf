@@ -1304,16 +1304,14 @@ button { cursor: pointer; border: 0; background: none; }
 }
 .grade__bloco { position: absolute; left: 2px; right: 2px; border-radius: 5px; min-height: 3px; }
 .grade__bloco--trabalho { background: var(--serie-1); }
-.grade__bloco--almoco { background: var(--nivel-piso); }
-.grade__bloco--descanso { background: var(--tinta-fraca); }
+.grade__bloco--fora { background: var(--tinta-fraca); opacity: 0.55; }
 .grade__total { font-size: 12px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
 
 .grade__legenda { display: flex; gap: 14px; margin-top: 12px; padding-left: 44px; }
 .grade__chave { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tinta-fraca); }
 .ponto { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .ponto--trabalho { background: var(--serie-1); }
-.ponto--almoco { background: var(--nivel-piso); }
-.ponto--descanso { background: var(--tinta-fraca); }
+.ponto--fora { background: var(--tinta-fraca); opacity: 0.55; }
 
 /* --- avisos --- */
 
@@ -1331,32 +1329,137 @@ button { cursor: pointer; border: 0; background: none; }
 }
 .rotina__aviso--alerta { border-color: var(--nivel-abaixo); }
 
+/* --- tipos de bloco ---
+   Paleta categórica validada, com passos próprios para cada tema em vez de
+   invertidos. Na linha do tempo a identidade é o ícone e o nome escritos no
+   bloco; a cor reforça. Sete categorias nao se separam para daltonismo em
+   todos os pares — só quatro passariam — e é por isso que o texto manda. */
+
+:root {
+  --tipo-trabalho: #3987e5;
+  --tipo-alimentacao: #d95926;
+  --tipo-descanso: #199e70;
+  --tipo-sono: #9085e9;
+  --tipo-academia: #008300;
+  --tipo-estudos: #c98500;
+  --tipo-pessoal: #d55181;
+}
+:root[data-tema="claro"] {
+  --tipo-trabalho: #2a78d6;
+  --tipo-alimentacao: #eb6834;
+  --tipo-descanso: #1baf7a;
+  --tipo-sono: #4a3aa7;
+  --tipo-academia: #008300;
+  --tipo-estudos: #eda100;
+  --tipo-pessoal: #e87ba4;
+}
+
+/* --- linha do tempo arrastável --- */
+
+.folha--dia .folha__corpo { padding-bottom: 8px; }
+.dia__dica { margin: 0 0 14px; font-size: 13px; color: var(--tinta-fraca); line-height: 1.45; }
+
+.tl { position: relative; margin: 4px 0 0 46px; }
+/* A linha começa onde os blocos começam: atravessando a calha ela riscava o
+   próprio rótulo da hora. */
+.tl__hora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--linha);
+}
+.tl__hora--forte { border-top-color: var(--tinta-fraca); }
+.tl__hora span {
+  position: absolute;
+  left: -46px;
+  top: -8px;
+  font-size: 11px;
+  color: var(--tinta-fraca);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl__tela { position: absolute; inset: 0; }
+
+.tl__bloco {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 10px;
+  background: var(--tipo-trabalho);
+  color: #fff;
+  overflow: hidden;
+  /* Sem isto o navegador rola a folha em vez de deixar o bloco ser puxado. */
+  touch-action: none;
+  box-shadow: 0 0 0 2px var(--fundo-elevado);
+}
+.tl__bloco--pegando { filter: brightness(1.12); box-shadow: 0 0 0 2px var(--tinta), 0 6px 18px rgba(0, 0, 0, 0.35); z-index: 3; }
+.tl__bloco--novo { opacity: 0.75; border: 2px dashed rgba(255, 255, 255, 0.7); }
+
+.tl__bloco--trabalho { background: var(--tipo-trabalho); }
+.tl__bloco--alimentacao { background: var(--tipo-alimentacao); }
+.tl__bloco--descanso { background: var(--tipo-descanso); }
+.tl__bloco--sono { background: var(--tipo-sono); }
+.tl__bloco--academia { background: var(--tipo-academia); }
+.tl__bloco--estudos { background: var(--tipo-estudos); }
+.tl__bloco--pessoal { background: var(--tipo-pessoal); }
+
+.tl__alca {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 16px;
+  cursor: ns-resize;
+}
+.tl__alca--topo { top: 0; }
+.tl__alca--base { bottom: 0; }
+.tl__alca::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.75);
+}
+.tl__alca--topo::after { top: 4px; }
+.tl__alca--base::after { bottom: 4px; }
+
+.tl__rotulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 10px;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.tl__icone { font-size: 15px; line-height: 1; }
+.tl__nome { font-size: 14px; font-weight: 700; }
+.tl__horas { font-size: 13px; opacity: 0.9; font-variant-numeric: tabular-nums; margin-left: auto; }
+
+.tl__flutuante {
+  position: sticky;
+  top: 4px;
+  z-index: 5;
+  margin: 0 auto;
+  width: fit-content;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--tinta);
+  color: var(--fundo);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.chips--tipos { flex-wrap: wrap; }
+
 /* --- editor do dia --- */
 
 .dia__resumo { margin: 0 0 14px; font-size: 16px; color: var(--tinta-suave); line-height: 1.45; }
-.dia__blocos { display: flex; flex-direction: column; gap: 8px; }
-.dia__bloco {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: var(--toque);
-  text-align: left;
-  padding: 10px 14px;
-  border-radius: var(--raio);
-  background: var(--fundo-cartao);
-  border: 1px solid var(--linha);
-  border-left: 5px solid var(--linha);
-  color: var(--tinta);
-}
-.dia__bloco--trabalho { border-left-color: var(--serie-1); }
-.dia__bloco--almoco { border-left-color: var(--nivel-piso); }
-.dia__bloco--descanso { border-left-color: var(--tinta-fraca); }
-.dia__icone { font-size: 22px; }
-.dia__texto { flex: 1; min-width: 0; }
-.dia__texto strong { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
-.dia__tipo { font-size: 13px; color: var(--tinta-fraca); }
-.dia__duracao { font-size: 16px; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
 
 .dia__adicionar { display: flex; gap: 8px; margin-top: 14px; }
 .dia__adicionar .botao { flex: 1; min-height: 56px; font-size: 17px; }
