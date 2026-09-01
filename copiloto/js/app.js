@@ -6,6 +6,7 @@ import { trocarTela } from "./ui.js";
 import { iniciarNavegacao, ligarTelas, empilharTela } from "./navegacao.js";
 import { montarAgora } from "./tela-agora.js";
 import { montarHistorico } from "./tela-historico.js";
+import { montarRotina } from "./tela-rotina.js";
 import { montarAnalise } from "./tela-analise.js";
 import { montarConquistas } from "./tela-conquistas.js";
 import { montarConfig } from "./tela-config.js";
@@ -17,6 +18,7 @@ import { formatarDuracao, MINUTO } from "./metrics.js";
 const TELAS = {
   agora: () => {},
   historico: () => montarHistorico(document.getElementById("tela-historico")),
+  rotina: () => montarRotina(document.getElementById("tela-rotina")),
   analise: () => montarAnalise(document.getElementById("tela-analise")),
   conquistas: () => montarConquistas(document.getElementById("tela-conquistas")),
   config: () => montarConfig(document.getElementById("tela-config")),

@@ -45,6 +45,10 @@ export const CONFIG_PADRAO = {
   nome: "",
   avatar: null,
 
+  // Molde da semana: sete dias de blocos de rodar e de pausa. Nulo até o
+  // motorista montar o primeiro.
+  rotina: null,
+
   plataformaPrincipal: "uber",
   plataformasAtivas: ["uber", "99", "indrive"],
 

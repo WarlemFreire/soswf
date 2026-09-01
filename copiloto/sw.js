@@ -1,7 +1,7 @@
 // sw.js — cache-first do app inteiro. O motorista trabalha em tunel, garagem e
 // area sem sinal; o app nao pode depender de rede em momento nenhum.
 
-const VERSAO = "copiloto-v14";
+const VERSAO = "copiloto-v15";
 
 const ARQUIVOS = [
   "./",
@@ -21,6 +21,7 @@ const ARQUIVOS = [
   "./js/metrics.js",
   "./js/navegacao.js",
   "./js/progresso.js",
+  "./js/rotina.js",
   "./js/store.js",
   "./js/tela-agora.js",
   "./js/tela-analise.js",
@@ -32,6 +33,7 @@ const ARQUIVOS = [
   "./js/tela-historico.js",
   "./js/tela-perfil.js",
   "./js/tela-registro.js",
+  "./js/tela-rotina.js",
   "./js/topbar.js",
   "./js/ui.js",
   "./icons/icone-192.png",
