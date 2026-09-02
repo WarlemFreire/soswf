@@ -1497,33 +1497,28 @@ button { cursor: pointer; border: 0; background: none; }
 /* --- piso de aceite --- */
 
 .aceite {
-  margin: 16px 0 0;
-  padding: 14px 16px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 14px 0 0;
+  padding: 10px 14px 12px;
   border-radius: var(--raio);
   background: var(--fundo-cartao);
   border: 1px solid var(--linha);
+  color: var(--tinta);
 }
-.aceite__topo { display: flex; align-items: baseline; gap: 10px; }
+.aceite__topo { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .aceite__periodo { flex: 1; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-fraca); }
 .aceite__n { font-size: 13px; color: var(--tinta-fraca); }
-.aceite__titulo { margin: 6px 0 10px; font-size: 17px; color: var(--tinta); }
 
-.aceite__colunas { display: flex; gap: 10px; }
-.aceite__coluna {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: var(--raio);
-  background: var(--fundo-elevado);
-  border: 1px solid var(--linha);
-}
-.aceite__valor { font-size: 27px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.aceite__colunas { display: flex; gap: 24px; }
+.aceite__coluna { display: flex; align-items: baseline; gap: 6px; }
+.aceite__valor { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .aceite__unidade { font-size: 14px; color: var(--tinta-suave); }
-.aceite__porque { flex-basis: 100%; font-size: 12px; color: var(--tinta-fraca); }
-.aceite__nota { margin: 10px 0 0; font-size: 13px; color: var(--tinta-fraca); line-height: 1.45; }
+
+.explica__item { margin-bottom: 18px; }
+.explica__item strong { display: block; font-size: 18px; margin-bottom: 4px; }
+.explica__item p { margin: 0; font-size: 15px; color: var(--tinta-suave); line-height: 1.5; }
 
 /* --- corrida em dois toques --- */
 

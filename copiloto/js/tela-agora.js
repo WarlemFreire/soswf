@@ -40,75 +40,75 @@ function render(raiz) {
 /**
  * Abaixo de quanto recusar a corrida, nesta faixa horária.
  *
- * A primeira versão disto mostrava a MEDIANA das corridas dele e dizia "aceite
- * acima disso". Metade das corridas fica abaixo da mediana por definição — era
- * uma instrução para recusar metade do trabalho. Piso e mediana são coisas
- * diferentes, e só o piso serve de linha de corte.
+ * Dois números e nada mais. A primeira versão explicava os dois pisos ali
+ * mesmo, em dois parágrafos, e isso come a tela inteira de um app que se lê de
+ * relance a 60 por hora. O porquê mora a um toque de distância.
  *
- * São dois pisos, de duas lógicas:
- *   por km   — o custo por km é gasto em todo km rodado, e só parte deles tem
- *              passageiro pagando. É quanto a corrida precisa render só para
- *              empatar com o carro.
- *   por hora — o R$/hora da jornada já embute espera e deslocamento. Corrida
- *              acima dele puxa a média do dia para cima.
- *
- * A mediana continua na tela, mas embaixo e chamada pelo nome: contexto.
+ * O que ainda nao dá para medir vira travessão, nao some: um lugar vazio na
+ * mesma posição de sempre se lê mais rápido do que um bloco que muda de forma.
  */
 function blocoAceite() {
   const piso = store.pisoDeAceiteAgora();
-  if (!piso || (piso.km == null && piso.hora == null)) return null;
+  if (!piso || piso.hora == null) return null;
 
-  const doisDecimais = (v) => v.toFixed(2).replace(".", ",");
-  const inteiro = (v) => v.toFixed(0);
-
-  const coluna = (valor, unidade, porque) =>
+  const coluna = (valor, unidade) =>
     el(
       "div",
       { class: "aceite__coluna" },
       el("strong", { class: "aceite__valor" }, valor),
-      el("span", { class: "aceite__unidade" }, unidade),
-      el("span", { class: "aceite__porque" }, porque)
+      el("span", { class: "aceite__unidade" }, unidade)
     );
 
-  const colunas = [
-    piso.km != null ? coluna(doisDecimais(piso.km), "R$/km", "não paga o carro") : null,
-    piso.hora != null ? coluna(inteiro(piso.hora), "R$/h", "derruba seu ritmo") : null,
-  ].filter(Boolean);
-
-  const tipicas = piso.tipicas;
-  const contexto = [
-    tipicas?.km ? `${doisDecimais(tipicas.km.ideal)} R$/km` : null,
-    tipicas?.hora ? `${inteiro(tipicas.hora.ideal)} R$/h` : null,
-  ].filter(Boolean);
-
   return el(
-    "section",
-    { class: "aceite" },
+    "button",
+    { type: "button", class: "aceite", onClick: () => explicarAceite(piso) },
     el(
       "div",
       { class: "aceite__topo" },
-      el("span", { class: "aceite__periodo" }, `${piso.periodo.nome} · ${piso.periodo.inicio}h–${piso.periodo.fim}h`),
-      piso.aproveitamento != null
-        ? el("span", { class: "aceite__n" }, `${Math.round(piso.aproveitamento * 100)}% do km com passageiro`)
-        : null
+      el("span", { class: "aceite__periodo" }, "Recuse abaixo de"),
+      el("span", { class: "aceite__n" }, piso.periodo.nome)
     ),
-    el("p", { class: "aceite__titulo" }, "Recuse abaixo de"),
-    el("div", { class: "aceite__colunas" }, ...colunas),
-    contexto.length
-      ? el(
-          "p",
-          { class: "aceite__nota" },
-          `Suas corridas desta faixa costumam dar ${contexto.join(" e ")} — isso é a mediana, não o corte.`
-        )
-      : null,
-    piso.km == null
-      ? el(
-          "p",
-          { class: "aceite__nota" },
-          "Falta o piso por km: ele sai de uma jornada com odômetro E com todas as corridas lançadas — com metade lançada, a conta manda recusar corrida boa."
-        )
-      : null
+    el(
+      "div",
+      { class: "aceite__colunas" },
+      coluna(piso.km != null ? piso.km.toFixed(2).replace(".", ",") : "—", "R$/km"),
+      coluna(piso.hora.toFixed(0), "R$/h")
+    )
   );
+}
+
+/** O porquê dos dois pisos, fora da tela principal. */
+function explicarAceite(piso) {
+  const tipicas = piso.tipicas;
+  const linha = (titulo, texto) =>
+    el("div", { class: "explica__item" }, el("strong", {}, titulo), el("p", {}, texto));
+
+  abrirFolha({
+    titulo: `Aceite · ${piso.periodo.nome}`,
+    conteudo: [
+      linha(
+        `Por hora · ${piso.hora.toFixed(0)} R$/h`,
+        "É o seu R$/hora de jornada nesta faixa, que já conta espera e deslocamento. Corrida acima disso puxa o dia para cima; abaixo, derruba."
+      ),
+      linha(
+        piso.km != null ? `Por km · ${piso.km.toFixed(2).replace(".", ",")} R$/km` : "Por km · sem medida ainda",
+        piso.km != null
+          ? `Custo do carro dividido pelo aproveitamento: ${Math.round(piso.aproveitamento * 100)}% do seu km tem passageiro, e o custo é gasto em todos eles.`
+          : "Precisa de uma jornada com odômetro E com todas as corridas lançadas. Com metade lançada a conta dobra o piso e manda recusar corrida boa — melhor um traço do que um número errado."
+      ),
+      tipicas?.km || tipicas?.hora
+        ? linha(
+            "Para comparar",
+            `Suas corridas desta faixa costumam dar ${[
+              tipicas.km ? `${tipicas.km.ideal.toFixed(2).replace(".", ",")} R$/km` : null,
+              tipicas.hora ? `${tipicas.hora.ideal.toFixed(0)} R$/h` : null,
+            ]
+              .filter(Boolean)
+              .join(" e ")}. Isso é a mediana — metade fica abaixo dela, então ela não serve de corte.`
+          )
+        : null,
+    ].filter(Boolean),
+  });
 }
 
 /* --------------------------------------------------------- plano de hoje */
