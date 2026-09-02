@@ -435,7 +435,9 @@ button { cursor: pointer; border: 0; background: none; }
 
 /* ------------------------------------------------------------------- botoes */
 
-.acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+/* A linha de REGISTRAR/PAUSAR virou uma linha dentro das ações, porque o
+   botão da corrida entra abaixo dela ocupando a largura toda. */
+.acoes { display: flex; flex-direction: column; margin-top: 18px; }
 .acoes:not(.acoes--coluna) .botao--gigante { font-size: 19px; padding: 12px 8px; }
 .acoes__larga { grid-column: 1 / -1; }
 .acoes__dupla { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
@@ -1491,3 +1493,57 @@ button { cursor: pointer; border: 0; background: none; }
 .plano__faixa { font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .plano__recado { margin: 4px 0 0; font-size: 16px; color: var(--tinta-suave); }
 .dados__plano { margin-top: 2px; }
+
+/* --- referência de aceite --- */
+
+.aceite {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+}
+.aceite__topo { display: flex; align-items: baseline; gap: 10px; }
+.aceite__periodo { flex: 1; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-fraca); }
+.aceite__n { font-size: 13px; color: var(--tinta-fraca); }
+.aceite__titulo { margin: 6px 0 12px; font-size: 17px; color: var(--tinta); }
+
+.aceite__linha { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.aceite__rotulo { width: 72px; flex-shrink: 0; font-size: 15px; color: var(--tinta-suave); white-space: nowrap; }
+.aceite__faixa { display: flex; align-items: baseline; gap: 5px; }
+.aceite__faixa strong { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.aceite__unidade { font-size: 14px; color: var(--tinta-suave); }
+.aceite__extremos { flex: 1; text-align: right; font-size: 13px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+.aceite__nota { margin: 4px 0 0; font-size: 13px; color: var(--tinta-fraca); line-height: 1.45; }
+
+/* --- corrida em dois toques --- */
+
+.acoes__par { display: flex; gap: 10px; }
+.acoes__par .botao { flex: 1; }
+.botao--largo { width: 100%; }
+.acoes .botao--largo { margin-top: 10px; }
+.corrida-viva { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.corrida-viva .botao--texto { border: 0; min-height: 40px; font-size: 15px; }
+.corrida__secundarios { display: flex; gap: 10px; margin-top: 8px; }
+.corrida__secundarios .botao { flex: 1; }
+
+/* --- corridas cronometradas esperando valor --- */
+
+.pendentes { margin: 4px 0 16px; }
+.pendentes__lista { display: flex; flex-direction: column; gap: 8px; }
+.pendentes__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--toque);
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: var(--raio);
+  background: var(--fundo-cartao);
+  border: 1px solid var(--nivel-piso);
+  color: var(--tinta);
+}
+.pendentes__hora { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pendentes__medido { flex: 1; font-size: 14px; color: var(--tinta-fraca); }
+.pendentes__acao { font-size: 14px; font-weight: 700; color: var(--nivel-piso); }

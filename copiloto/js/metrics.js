@@ -22,8 +22,10 @@ export function periodoDe(quando) {
   return "madrugada";
 }
 
-export function faixaKmDe(quando, faixasKm) {
-  return faixasKm[periodoDe(quando)] || faixasKm.tarde;
+/** A faixa do período de um instante. Serve para km e para hora. */
+export function faixaKmDe(quando, faixas) {
+  if (!faixas) return null;
+  return faixas[periodoDe(quando)] || faixas.tarde || null;
 }
 
 /* ------------------------------------------------------------------ saldos */
@@ -310,6 +312,9 @@ export function metricasAoVivo({
   const rh = reaisPorHora(ganho, ativo);
   const rk = reaisPorKm(ganho, km);
   const faixaKm = faixaKmDe(agora, config.faixasKm);
+  // A faixa de R$/hora também é do período: a hora do pico nao vale o mesmo
+  // que a das dez da manhã, e uma faixa única fazia as duas parecerem iguais.
+  const faixaHora = faixaKmDe(agora, config.faixasHora || {}) || config.faixaHora;
 
   const janela = bloco({
     jornada,
@@ -333,17 +338,17 @@ export function metricasAoVivo({
     ancoras: ancorasOdometro(validos),
     reaisPorHora: rh,
     reaisPorKm: rk,
-    nivelHora: nivel(rh, config.faixaHora),
+    nivelHora: nivel(rh, faixaHora),
     nivelKm: nivel(rk, faixaKm),
     bloco: janela
       ? {
           ...janela,
-          nivelHora: nivel(janela.reaisPorHora, config.faixaHora),
+          nivelHora: nivel(janela.reaisPorHora, faixaHora),
           nivelKm: nivel(janela.reaisPorKm, faixaKm),
         }
       : null,
     faixaKm,
-    faixaHora: config.faixaHora,
+    faixaHora,
     periodo: periodoDe(agora),
     emPausa: !!pausaAberta(pausas),
   };
@@ -400,8 +405,37 @@ export function bloco({ jornada, eventos, registros, pausas, duracaoMs, agora = 
 
 /* ---------------------------------------------------------------- corridas */
 
+/**
+ * Corrida encerrada no cronômetro mas ainda sem valor lançado. Existe de
+ * propósito: dirigindo, o que dá para fazer é marcar começo e fim; digitar o
+ * valor é para o próximo semáforo. Ela guarda duração e trajeto, e fica fora
+ * de toda média até o valor chegar — senão puxaria o R$/corrida para baixo.
+ */
+export function corridaPendente(corrida) {
+  return corrida?.pendente === true || !(Number(corrida?.valorBruto) > 0);
+}
+
 export function corridasValidas(corridas) {
-  return [...(corridas || [])].sort((a, b) => a.timestamp - b.timestamp);
+  return [...(corridas || [])].filter((c) => !corridaPendente(c)).sort((a, b) => a.timestamp - b.timestamp);
+}
+
+export function corridasPendentes(corridas) {
+  return [...(corridas || [])].filter(corridaPendente).sort((a, b) => a.timestamp - b.timestamp);
+}
+
+/**
+ * Quanto o trajeto de rua é maior que a linha reta, medido nas corridas em que
+ * ele digitou o km de verdade. Sem amostra vale 1,35, que é a razão típica em
+ * malha urbana — e a tela sempre diz que o número é estimativa.
+ */
+export function fatorSinuosidade(corridas) {
+  const razoes = (corridas || [])
+    .filter((c) => c.kmLinhaReta > 0.3 && c.km > 0)
+    .map((c) => c.km / c.kmLinhaReta)
+    .filter((r) => r >= 1 && r <= 3)
+    .sort((a, b) => a - b);
+  if (razoes.length < 5) return 1.35;
+  return razoes[Math.floor(razoes.length / 2)];
 }
 
 export function somaCorridas(corridas) {

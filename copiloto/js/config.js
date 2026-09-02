@@ -49,6 +49,12 @@ export const CONFIG_PADRAO = {
   // motorista montar o primeiro.
   rotina: null,
 
+  // Corrida em andamento. Mora aqui, e não só na memória, porque o Android
+  // mata a aba do Copiloto o tempo todo — ele passa a jornada com o app da
+  // plataforma na frente. Uma corrida que some quando o app é morto é pior
+  // que não ter cronômetro.
+  corridaEmCurso: null,
+
   plataformaPrincipal: "uber",
   plataformasAtivas: ["uber", "99", "indrive"],
 
@@ -64,7 +70,16 @@ export const CONFIG_PADRAO = {
     pico: { piso: 1.9, ideal: 2.3, otimo: 2.8 },
     madrugada: { piso: 1.7, ideal: 2.0, otimo: 2.4 },
   },
+  // Sementes. Valem enquanto o histórico nao tiver amostra suficiente para
+  // medir a faixa daquele período — depois disso quem manda é o que ele fez.
   faixaHora: { piso: 32, ideal: 40, otimo: 50 },
+  faixasHora: {
+    manha: { piso: 30, ideal: 38, otimo: 46 },
+    tarde: { piso: 32, ideal: 40, otimo: 50 },
+    noite: { piso: 34, ideal: 42, otimo: 54 },
+    pico: { piso: 38, ideal: 48, otimo: 60 },
+    madrugada: { piso: 32, ideal: 42, otimo: 54 },
+  },
 
   // Energia: 95% GNV / 5% etanol. A Fase 2 substitui estes valores pelo
   // consumo real medido entre dois abastecimentos.

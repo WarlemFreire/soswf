@@ -2,9 +2,10 @@
 // As telas leem daqui e se inscrevem em `assinar` para redesenhar.
 
 import { db, novoId } from "./db.js";
-import { cfg, configAtual, PLATAFORMAS } from "./config.js";
+import { cfg, configAtual, salvarConfig, PLATAFORMAS } from "./config.js";
 import * as M from "./metrics.js";
-import { posicaoAgora, manterTelaLigada, liberarTela } from "./geo.js";
+import * as F from "./faixas.js";
+import { posicaoAgora, distanciaKm, manterTelaLigada, liberarTela } from "./geo.js";
 
 const estado = {
   jornada: null,
@@ -15,6 +16,11 @@ const estado = {
   // Custo de energia por km medido nos abastecimentos reais. Enquanto não há
   // dois abastecimentos, fica null e valem os valores semeados nos Ajustes.
   energiaKm: null,
+  // Faixas medidas no histórico: por período, em escala de jornada, mais a
+  // referência de aceite em escala de corrida. Recalculadas como o custo de
+  // energia — do banco inteiro, quando o banco muda.
+  faixas: null,
+  aceite: null,
   analiseCombustivel: { suficiente: false, abastecimentos: 0, porKm: null, consumos: {} },
   corridaEmCurso: null,
   bairros: [],
@@ -62,6 +68,7 @@ export async function carregarJornadaAberta() {
 
   await carregarBairros();
   await carregarCombustivel();
+  await carregarFaixas();
 
   const carga = aberta
     ? {
@@ -74,8 +81,15 @@ export async function carregarJornadaAberta() {
 
   const dia = await lerDia(aberta ? aberta.data : M.chaveData(Date.now()));
 
+  // O cronômetro sobrevive ao app ser morto, mas só faz sentido dentro da
+  // jornada em que começou: restaurá-lo em outra jornada colaria a corrida no
+  // turno errado.
+  const salva = cfg("corridaEmCurso");
+  const emCurso = salva && aberta && salva.jornadaId === aberta.id ? salva : null;
+  if (salva && !emCurso) await salvarConfig("corridaEmCurso", null);
+
   // Troca única: daqui em diante nenhuma pintura vê estado pela metade.
-  Object.assign(estado, { jornada: aberta }, carga, dia);
+  Object.assign(estado, { jornada: aberta, corridaEmCurso: emCurso }, carga, dia);
 
   if (aberta && cfg("manterTelaLigada")) manterTelaLigada();
   notificar();
@@ -119,6 +133,19 @@ export async function saldoInicialSugerido() {
 
 /* -------------------------------------------------------------- metricas */
 
+/**
+ * A configuração com as faixas medidas no lugar das sementes.
+ *
+ * O cálculo continua sem saber de onde a faixa veio: recebe faixasKm e
+ * faixasHora como sempre recebeu, e é aqui, na borda, que a medição do
+ * histórico substitui o valor dos Ajustes.
+ */
+export function configComFaixas() {
+  const faixas = faixasEmVigor();
+  const por = (grandeza) => Object.fromEntries(Object.entries(faixas).map(([id, f]) => [id, f[grandeza]]));
+  return { ...configAtual(), faixasKm: por("km"), faixasHora: por("hora") };
+}
+
 export function metricas(agora = Date.now()) {
   if (!estado.jornada) return null;
   return M.metricasAoVivo({
@@ -126,7 +153,7 @@ export function metricas(agora = Date.now()) {
     eventos: estado.eventosDoDia,
     registros: estado.registros,
     pausas: estado.pausas,
-    config: configAtual(),
+    config: configComFaixas(),
     agora,
   });
 }
@@ -216,6 +243,8 @@ export async function fecharJornada({ odometroFim, observacoes } = {}) {
   };
   await db.put("jornadas", fechada);
   estado.jornada = fechada;
+  // Fechou jornada, os trechos dela entram na conta das faixas.
+  await carregarFaixas();
   // O dia continua: recalcula para a tela já oferecer abrir a próxima jornada
   // mostrando quanto rendeu até aqui.
   await carregarDia(fechada.data);
@@ -434,24 +463,47 @@ export function deltaSimulado({ saldos, avulso }) {
  * gasto para chegar ate o passageiro, que é justamente o dado que a planilha
  * nao tem como saber.
  */
-export function iniciarCorrida() {
+export async function iniciarCorrida() {
   const jornada = jornadaAtiva();
   if (!jornada || estado.corridaEmCurso) return null;
 
   const anterior = M.corridasValidas(estado.corridas).at(-1);
-  // Sem rastreio contínuo o cronômetro não mede km — mas duração e espera são
-  // relógio de parede, e os dois toques (embarcou / desceu) acontecem com o
-  // app em primeiro plano. Esses dois campos continuam saindo de graça.
-  estado.corridaEmCurso = {
+  const curso = {
+    id: novoId(),
+    jornadaId: jornada.id,
     inicio: Date.now(),
+    // Quanto tempo passou desde que o último passageiro desceu. É espera, e é
+    // um dado que a planilha da plataforma nao tem como saber.
     minEspera: anterior?.timestampFim ? Math.round((Date.now() - anterior.timestampFim) / M.MINUTO) : null,
+    posicaoOrigem: null,
+    posicaoDestino: null,
   };
+
+  estado.corridaEmCurso = curso;
+  await salvarConfig("corridaEmCurso", curso);
   notificar();
-  return estado.corridaEmCurso;
+  // A posição vem depois: esperar o GPS aqui atrasaria o toque em até oito
+  // segundos, e o toque acontece com o passageiro entrando no carro.
+  marcarPontoDaCorrida("posicaoOrigem");
+  return curso;
 }
 
-export function cancelarCorridaEmCurso() {
+/** Anexa a coordenada à corrida em curso sem travar o toque que a disparou. */
+async function marcarPontoDaCorrida(campo) {
+  const alvo = estado.corridaEmCurso?.id;
+  const posicao = await posicaoAgora();
+  if (!posicao || estado.corridaEmCurso?.id !== alvo) return;
+  estado.corridaEmCurso = {
+    ...estado.corridaEmCurso,
+    [campo]: { lat: posicao.lat, lon: posicao.lon },
+  };
+  await salvarConfig("corridaEmCurso", estado.corridaEmCurso);
+  notificar();
+}
+
+export async function cancelarCorridaEmCurso() {
   estado.corridaEmCurso = null;
+  await salvarConfig("corridaEmCurso", null);
   notificar();
 }
 
@@ -459,16 +511,36 @@ export function corridaEmCurso() {
   return estado.corridaEmCurso;
 }
 
-/** Fecha o cronômetro e devolve os campos medidos, sem gravar ainda. */
-export function medirCorrida() {
+/**
+ * Fecha o cronômetro e devolve o que foi medido, sem gravar a corrida ainda.
+ *
+ * O km sai da linha reta entre os dois pontos vezes o fator de sinuosidade
+ * aprendido nas corridas dele. É estimativa e a tela diz isso — mas chega
+ * perto o bastante para ele só conferir em vez de digitar dirigindo.
+ */
+export async function encerrarCorrida() {
   const curso = estado.corridaEmCurso;
   if (!curso) return null;
+
   const fim = Date.now();
+  await marcarPontoDaCorrida("posicaoDestino");
+  const atual = estado.corridaEmCurso || curso;
+
+  const linhaReta =
+    atual.posicaoOrigem && atual.posicaoDestino
+      ? distanciaKm(atual.posicaoOrigem, atual.posicaoDestino)
+      : null;
+  const fator = M.fatorSinuosidade(await db.todos("corridas"));
+
   return {
-    ...curso,
+    ...atual,
     fim,
-    duracaoMin: Number(Math.max(0.1, (fim - curso.inicio) / M.MINUTO).toFixed(1)),
-    km: null,
+    timestamp: atual.inicio,
+    timestampFim: fim,
+    duracaoMin: Number(Math.max(0.1, (fim - atual.inicio) / M.MINUTO).toFixed(1)),
+    kmLinhaReta: linhaReta,
+    km: linhaReta > 0.2 ? Number((linhaReta * fator).toFixed(1)) : null,
+    kmEstimado: linhaReta > 0.2,
   };
 }
 
@@ -491,14 +563,18 @@ export async function salvarCorrida(dados) {
     minEspera: dados.minEspera != null ? Number(dados.minEspera) : null,
     posicaoOrigem: dados.posicaoOrigem ?? null,
     posicaoDestino: dados.posicaoDestino ?? null,
+    kmLinhaReta: dados.kmLinhaReta != null ? Number(dados.kmLinhaReta) : null,
+    // Encerrada no cronômetro, valor para depois. Fica fora das médias até lá.
+    pendente: dados.pendente === true,
     origem: dados.origem || "app",
     criadoEm: Date.now(),
   };
 
   await db.put("corridas", corrida);
   estado.corridas = [...estado.corridas.filter((c) => c.id !== corrida.id), corrida];
-  estado.corridaEmCurso = null;
+  if (estado.corridaEmCurso) await cancelarCorridaEmCurso();
   await carregarBairros();
+  await carregarFaixas();
   notificar();
   return corrida;
 }
@@ -528,6 +604,36 @@ export function bairros() {
 }
 
 /* -------------------------------------------------------------- custos */
+
+/**
+ * Recalcula as faixas de referência a partir de todo o histórico.
+ *
+ * Roda junto do carregamento e a cada fechamento de jornada, nao a cada
+ * checkpoint: é uma varredura do banco inteiro, e uma faixa que muda no meio
+ * do turno faria o medidor mudar de cor sem o motorista ter feito nada.
+ */
+async function carregarFaixas() {
+  const jornadas = await db.todos("jornadas");
+  const registros = await db.todos("registros");
+  const corridas = await db.todos("corridas");
+  const config = configAtual();
+
+  estado.faixas = F.faixasDeJornada(F.trechosDe(jornadas, registros), {
+    faixasKm: config.faixasKm,
+    faixasHora: config.faixasHora,
+    chaoKm: M.custosEstimados(0, config, estado.energiaKm).totalKm,
+  });
+  estado.aceite = F.referenciaDeAceite(corridas);
+}
+
+/** As faixas em vigor: medidas onde há amostra, semente onde não há. */
+export function faixasEmVigor() {
+  return estado.faixas || F.faixasDeJornada([], { faixasKm: cfg("faixasKm"), faixasHora: cfg("faixasHora") });
+}
+
+export function referenciaDeAceite() {
+  return estado.aceite;
+}
 
 async function carregarCombustivel() {
   const todos = await db.todos("custos");

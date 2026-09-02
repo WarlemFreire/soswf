@@ -3,6 +3,7 @@
 import { el, limpar } from "./ui.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
+import { db } from "./db.js";
 import { mostrarResumo } from "./tela-fechamento.js";
 import { abrirCorrida } from "./tela-corrida.js";
 
@@ -20,6 +21,7 @@ export async function montarHistorico(raiz) {
   }
 
   raiz.append(cabecalho(fechadas, store.agruparPorDia(fechadas)));
+  raiz.append(await filaDePendentes());
   raiz.append(
     el(
       "button",
@@ -28,6 +30,49 @@ export async function montarHistorico(raiz) {
     )
   );
   for (const resumo of resumos) raiz.append(cartao(resumo));
+}
+
+/**
+ * As corridas cronometradas que ficaram sem valor.
+ *
+ * O botão "Depois" só é honesto se existir um "depois". Sem esta fila, marcar
+ * a corrida e adiar o valor viraria um jeito silencioso de perder o dado.
+ */
+async function filaDePendentes() {
+  const pendentes = M.corridasPendentes(await db.todos("corridas"));
+  if (!pendentes.length) return el("div");
+
+  return el(
+    "section",
+    { class: "pendentes" },
+    el(
+      "h2",
+      { class: "secao__titulo" },
+      `${pendentes.length} ${pendentes.length === 1 ? "corrida sem valor" : "corridas sem valor"}`
+    ),
+    el(
+      "div",
+      { class: "pendentes__lista" },
+      ...pendentes.slice(-8).reverse().map((c) =>
+        el(
+          "button",
+          { type: "button", class: "pendentes__item", onClick: () => abrirCorrida({ pendente: c }) },
+          el("span", { class: "pendentes__hora" }, M.formatarHora(c.timestamp)),
+          el(
+            "span",
+            { class: "pendentes__medido" },
+            [
+              c.duracaoMin != null ? `${String(c.duracaoMin).replace(".", ",")} min` : null,
+              c.km != null ? `≈ ${String(c.km).replace(".", ",")} km` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "cronometrada"
+          ),
+          el("span", { class: "pendentes__acao" }, "lançar valor")
+        )
+      )
+    )
+  );
 }
 
 function cabecalho(fechadas, dias) {

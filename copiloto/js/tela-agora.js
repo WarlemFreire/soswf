@@ -4,6 +4,8 @@
 import { el, limpar, abrirFolha, chips } from "./ui.js";
 import * as M from "./metrics.js";
 import * as R from "./rotina.js";
+import * as FX from "./faixas.js";
+import { iniciarCronometro, encerrarCronometro } from "./tela-corrida.js";
 import * as store from "./store.js";
 import { cfg, configAtual, salvarConfig, MOTIVOS_PAUSA, PLATAFORMAS } from "./config.js";
 import { vibrar, falar } from "./feedback.js";
@@ -31,6 +33,60 @@ function render(raiz) {
   const jornada = store.jornadaAtiva();
   limpar(raiz);
   raiz.append(jornada ? painelAtivo() : painelParado());
+}
+
+/* ------------------------------------------------------ aceitar ou recusar */
+
+/**
+ * A partir de quanto a corrida vale a pena NESTA faixa horária.
+ *
+ * Escala de CORRIDA OFERTADA, e o rótulo diz isso em letras: é quase o dobro
+ * do R$/km dos medidores acima, que é de jornada e carrega o deslocamento
+ * vazio. Ler um pelo outro faz recusar corrida boa a noite inteira.
+ *
+ * Sem corridas registradas o bloco nao aparece. Uma referência tirada de três
+ * corridas seria pior que referência nenhuma: teria ar de medida e mandaria
+ * ele recusar trabalho por causa de uma amostra que nao significa nada.
+ */
+function blocoAceite() {
+  const aceite = store.referenciaDeAceite();
+  const periodo = FX.periodoAgora();
+  const faixa = aceite?.[periodo.id];
+  if (!faixa || (!faixa.km && !faixa.hora)) return null;
+
+  const linha = (rotulo, f, formatar, sufixo) => {
+    if (!f) return null;
+    return el(
+      "div",
+      { class: "aceite__linha" },
+      el("span", { class: "aceite__rotulo" }, rotulo),
+      el(
+        "span",
+        { class: "aceite__faixa" },
+        el("strong", {}, formatar(f.ideal)),
+        el("span", { class: "aceite__unidade" }, sufixo)
+      ),
+      el("span", { class: "aceite__extremos" }, `fraca ${formatar(f.piso)} · ótima ${formatar(f.otimo)}`)
+    );
+  };
+
+  const doisDecimais = (v) => v.toFixed(2).replace(".", ",");
+  const inteiro = (v) => v.toFixed(0);
+
+  return el(
+    "section",
+    { class: "aceite" },
+    el(
+      "div",
+      { class: "aceite__topo" },
+      el("span", { class: "aceite__periodo" }, `${periodo.nome} · ${periodo.inicio}h–${periodo.fim}h`),
+      el("span", { class: "aceite__n" }, `${faixa.n} corridas suas`)
+    ),
+    el("p", { class: "aceite__titulo" }, "Corrida daqui pra cima vale a pena"),
+    linha("por km", faixa.km, doisDecimais, "R$/km"),
+    linha("por hora", faixa.hora, inteiro, "R$/h"),
+    el("p", { class: "aceite__nota" }, "Da corrida ofertada — não confundir com o R$/km da jornada, que conta o deslocamento vazio.")
+  );
 }
 
 /* --------------------------------------------------------- plano de hoje */
@@ -237,6 +293,7 @@ function painelAtivo() {
 
   raiz.append(el("div", { class: "metricas" }, tileHora(m), tileKm(m), tileTempo(m)));
   raiz.append(medidorKm(m, config));
+  raiz.append(blocoAceite());
   raiz.append(barraMeta(m));
   raiz.append(linhaProjecao(m));
   raiz.append(blocoAcoes(pausa, false));
@@ -692,7 +749,49 @@ function blocoAcoes(pausa, reduzido) {
         "⏸ PAUSAR"
       );
 
-  return el("div", { class: "acoes" }, registrar, pausar);
+  return el("div", { class: "acoes" }, el("div", { class: "acoes__par" }, registrar, pausar), blocoCorrida());
+}
+
+/**
+ * A corrida em dois toques.
+ *
+ * Rodando, ENCERRAR é o alvo maior da tela: é o toque que acontece com o
+ * passageiro descendo e o carro ainda em movimento. Parado, o botão é
+ * secundário — abrir jornada e registrar continuam sendo o que ele mais faz.
+ */
+function blocoCorrida() {
+  const curso = store.corridaEmCurso();
+  if (!curso) {
+    return el(
+      "button",
+      { type: "button", class: "botao botao--secundario botao--largo", onClick: () => iniciarCronometro() },
+      "▶ INICIAR CORRIDA"
+    );
+  }
+
+  return el(
+    "div",
+    { class: "corrida-viva" },
+    el(
+      "button",
+      { type: "button", class: "botao botao--corrida botao--gigante botao--largo", onClick: () => encerrarCronometro() },
+      // Travado em zero: se o relógio do aparelho recuar, o cronômetro mostra
+      // 0:00 e segue andando, em vez de virar um travessão no meio da corrida.
+      `■ ENCERRAR · ${M.formatarDuracao(Math.max(0, Date.now() - curso.inicio))}`
+    ),
+    el(
+      "button",
+      {
+        type: "button",
+        class: "botao botao--texto",
+        onClick: async () => {
+          await store.cancelarCorridaEmCurso();
+          vibrar(20);
+        },
+      },
+      "cancelar corrida"
+    )
+  );
 }
 
 function escolherPausa() {

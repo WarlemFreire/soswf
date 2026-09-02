@@ -747,4 +747,32 @@ teste("formatação", () => {
   assert.equal(M.chaveData(new Date(2026, 0, 5, 3, 0).getTime()), "2026-01-05");
 });
 
+/* -------------------------------------------------------------- corridas */
+
+teste("corrida cronometrada sem valor fica fora das médias", () => {
+  const corridas = [
+    { id: "a", timestamp: t0, valorBruto: 30, km: 8 },
+    { id: "b", timestamp: t0 + H, valorBruto: 0, pendente: true, km: 6 },
+  ];
+  assert.equal(M.corridasValidas(corridas).length, 1, "a pendente puxaria o R$/corrida para baixo");
+  assert.equal(M.corridasPendentes(corridas).length, 1);
+  assert.equal(M.somaCorridas(corridas), 30);
+  assert.equal(M.corridaPendente({ valorBruto: 0 }), true, "sem valor é pendente mesmo sem a marca");
+});
+
+teste("fator de sinuosidade sai das corridas dele, com piso de amostra", () => {
+  assert.equal(M.fatorSinuosidade([]), 1.35, "sem amostra vale a razão urbana típica");
+
+  const corridas = Array.from({ length: 9 }, (_, i) => ({ kmLinhaReta: 4, km: 4 * 1.5 }));
+  assert.ok(perto(M.fatorSinuosidade(corridas), 1.5), "nove corridas já medem");
+
+  // Razões impossíveis são erro de digitação, não medição.
+  const sujas = [
+    ...corridas,
+    { kmLinhaReta: 4, km: 40 },
+    { kmLinhaReta: 4, km: 0.5 },
+  ];
+  assert.ok(perto(M.fatorSinuosidade(sujas), 1.5));
+});
+
 if (!process.exitCode) console.log(`✓ ${passou} testes passaram`);

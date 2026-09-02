@@ -26,26 +26,38 @@ const CAMPOS = [
   { id: "duracaoMin", nome: "Min", modo: "dinheiro" },
 ];
 
-/** Cronômetro: um toque quando o passageiro embarca. */
-export function iniciarCronometro() {
-  const corrida = store.iniciarCorrida();
+/** Um toque quando o passageiro embarca. */
+export async function iniciarCronometro() {
+  const corrida = await store.iniciarCorrida();
   if (!corrida) return;
   vibrar([25, 30, 25]);
   falar("Corrida iniciada.");
-  mostrarToast({
-    titulo: "Corrida em andamento",
-    detalhe: "Toque em FIM quando o passageiro descer.",
-    duracao: 4000,
-  });
+  mostrarToast({ titulo: "Corrida em andamento", detalhe: "Toque em ENCERRAR quando ele descer.", duracao: 3500 });
+}
+
+/**
+ * Um toque quando o passageiro desce. Encerra, mede e abre o valor.
+ *
+ * O que a tela pede aqui é UM número. Duração, trajeto, espera e coordenadas
+ * já foram capturados pelos dois toques; digitar o resto é para quando o carro
+ * estiver parado — daí o botão "Depois".
+ */
+export async function encerrarCronometro() {
+  const medida = await store.encerrarCorrida();
+  if (!medida) return;
+  vibrar([30, 40, 30]);
+  abrirCorrida({ medida });
 }
 
 /**
  * Abre o formulário. Se houver cronômetro rodando, fecha-o antes e usa o que
  * foi medido para preencher km, duração, deslocamento e espera.
  */
-export function abrirCorrida({ medida = null } = {}) {
+export function abrirCorrida({ medida = null, pendente = null } = {}) {
   vibrar();
-  const medido = medida ?? (store.corridaEmCurso() ? store.medirCorrida() : null);
+  // Completar uma pendente é a mesma folha: ela já traz duração, trajeto e
+  // espera medidos, e o que falta é exatamente o que a folha pede.
+  const medido = medida ?? (pendente ? { ...pendente, inicio: pendente.timestamp, fim: pendente.timestampFim } : null);
 
   const valores = {
     valorBruto: null,
@@ -53,10 +65,10 @@ export function abrirCorrida({ medida = null } = {}) {
     km: medido?.km ?? null,
     duracaoMin: medido?.duracaoMin ?? null,
   };
-  let plataforma = cfg("plataformaPrincipal");
-  let tipo = "normal";
-  let origem = "";
-  let destino = "";
+  let plataforma = medido?.plataforma || cfg("plataformaPrincipal");
+  let tipo = medido?.tipoCorrida || "normal";
+  let origem = medido?.bairroOrigem || "";
+  let destino = medido?.bairroDestino || "";
   let campo = "valorBruto";
 
   const teclados = Object.fromEntries(
@@ -81,6 +93,48 @@ export function abrirCorrida({ medida = null } = {}) {
     { type: "button", class: "botao botao--primario botao--gigante", disabled: true, onClick: gravar },
     "SALVAR CORRIDA"
   );
+
+  // Fechar a folha NÃO joga fora uma corrida cronometrada. Os dois toques já
+  // capturaram duração, trajeto e espera; perder tudo isso porque ele tocou no
+  // ✕ com o carro andando seria o pior desfecho possível. Só o descarte
+  // explícito apaga.
+  let resolvida = false;
+
+  async function guardarPendente() {
+    if (resolvida || !medido) return;
+    resolvida = true;
+    await store.salvarCorrida({
+      ...medido,
+      plataforma,
+      valorBruto: 0,
+      pendente: true,
+      bairroOrigem: origem,
+      bairroDestino: destino,
+      tipoCorrida: tipo,
+      origem: "cronometro",
+    });
+    mostrarToast({ titulo: "Corrida guardada sem valor", detalhe: "Complete no Histórico quando parar." });
+  }
+
+  const depois = medido
+    ? el("button", { type: "button", class: "botao botao--texto", onClick: async () => { await guardarPendente(); folha.fechar(); } }, "Depois")
+    : null;
+
+  const descartar = medido
+    ? el(
+        "button",
+        {
+          type: "button",
+          class: "botao botao--texto",
+          onClick: async () => {
+            resolvida = true;
+            await store.cancelarCorridaEmCurso();
+            folha.fechar();
+          },
+        },
+        "Descartar"
+      )
+    : null;
 
   const folha = abrirFolha({
     titulo: medido ? "Corrida — cronometrada" : "Corrida detalhada",
@@ -120,8 +174,8 @@ export function abrirCorrida({ medida = null } = {}) {
         },
       }),
     ],
-    rodape: [salvar],
-    aoFechar: () => store.cancelarCorridaEmCurso(),
+    rodape: [salvar, depois && descartar ? el("div", { class: "corrida__secundarios" }, depois, descartar) : null].filter(Boolean),
+    aoFechar: () => (medido ? guardarPendente() : store.cancelarCorridaEmCurso()),
   });
 
   pintarMedidos();
@@ -178,7 +232,11 @@ export function abrirCorrida({ medida = null } = {}) {
       itens.push(`${String(medido.duracaoMin).replace(".", ",")} min cronometrados`);
     }
     if (medido.minEspera != null) itens.push(`${medido.minEspera} min de espera antes`);
-    itens.push("o KM vem da tela da plataforma");
+    if (medido.kmEstimado) {
+      itens.push(`≈ ${String(medido.km).replace(".", ",")} km estimados do trajeto`);
+    } else {
+      itens.push("o KM vem da tela da plataforma");
+    }
     medidos.append(el("div", { class: "corrida__medidos-texto" }, itens.join(" · ")));
   }
 
@@ -200,8 +258,10 @@ export function abrirCorrida({ medida = null } = {}) {
   async function gravar() {
     valores[campo] = teclados[campo].valor;
     if (!(valores.valorBruto > 0)) return;
+    resolvida = true;
 
     const corrida = await store.salvarCorrida({
+      id: medido?.id,
       timestamp: medido?.inicio ?? Date.now(),
       timestampFim: medido?.fim ?? null,
       plataforma,
@@ -216,6 +276,8 @@ export function abrirCorrida({ medida = null } = {}) {
       minEspera: medido?.minEspera ?? null,
       posicaoOrigem: medido?.posicaoOrigem ?? null,
       posicaoDestino: medido?.posicaoDestino ?? null,
+      kmLinhaReta: medido?.kmLinhaReta ?? null,
+      origem: medido ? "cronometro" : "app",
     });
 
     folha.fechar();
