@@ -170,4 +170,69 @@ teste("período agora tem nome para a tela mostrar", () => {
   assert.equal(F.periodoAgora(em(20)).nome, "Noite");
 });
 
+/* --------------------------------------------------------- piso de aceite */
+
+const fecha = { fecha: true };
+teste("aproveitamento só conta jornada com km E corridas", () => {
+  const resumos = [
+    { km: 200, corridas: [{ valorBruto: 10, km: 60 }, { valorBruto: 10, km: 50 }], conferencia: fecha },
+    { km: 0, corridas: [{ valorBruto: 10, km: 40 }], conferencia: fecha }, // sem odômetro
+    { km: 150, corridas: [], conferencia: fecha },                          // sem corridas lançadas
+  ];
+  const a = F.aproveitamentoDe(resumos);
+  assert.ok(perto(a.fracao, 110 / 200), "só a primeira jornada tem os dois lados da conta");
+  assert.equal(F.aproveitamentoDe([]), null);
+  assert.equal(F.aproveitamentoDe([{ km: 0, corridas: [], conferencia: fecha }]), null);
+});
+
+teste("jornada com corridas pela metade fica de fora do aproveitamento", () => {
+  // Este é o erro que fez o app mandar recusar corrida boa. Metade das
+  // corridas lançadas derruba o numerador pela metade, o aproveitamento cai
+  // pela metade e o piso por km DOBRA — passando por cima da mediana.
+  const completa = { km: 200, corridas: [{ valorBruto: 100, km: 110 }], conferencia: { fecha: true } };
+  const pelaMetade = { km: 200, corridas: [{ valorBruto: 100, km: 55 }], conferencia: { fecha: false } };
+
+  assert.ok(perto(F.aproveitamentoDe([completa]).fracao, 0.55));
+  assert.equal(F.aproveitamentoDe([pelaMetade]), null, "sem conferir, não entra");
+  assert.ok(perto(F.aproveitamentoDe([completa, pelaMetade]).fracao, 0.55), "a incompleta não contamina a completa");
+});
+
+teste("o piso por km divide o custo pelo aproveitamento", () => {
+  // O custo por km é gasto em TODO km rodado, e só 55% deles têm passageiro
+  // pagando. Empatar com o carro exige R$0,69 / 0,55 por km de corrida.
+  const p = F.pisoDeAceite({ custoKm: 0.69, aproveitamento: 0.55, faixaDaJornada: null });
+  assert.ok(perto(p.km, 1.2545));
+  assert.equal(p.hora, null);
+});
+
+teste("o piso por hora é o ritmo da JORNADA, nunca a mediana das corridas", () => {
+  // A mediana das corridas deixa metade delas abaixo por definição: usá-la
+  // como corte seria mandar recusar metade do trabalho.
+  const faixaDaJornada = { hora: { piso: 39, ideal: 43, otimo: 48 }, km: { piso: 1.8, ideal: 1.9, otimo: 2 } };
+  const p = F.pisoDeAceite({ custoKm: 0.69, aproveitamento: 0.55, faixaDaJornada });
+  assert.equal(p.hora, 39, "o corte é o piso do ritmo de jornada");
+  assert.equal(p.ritmoHora, 43);
+  assert.ok(p.hora < 67, "uma corrida de 67 R$/h numa madrugada tem que passar, não ser recusada");
+});
+
+teste("sem aproveitamento medido não se inventa piso por km", () => {
+  const p = F.pisoDeAceite({ custoKm: 0.69, aproveitamento: null, faixaDaJornada: null });
+  assert.equal(p.km, null, "sem odômetro não dá para saber quanto do rodado tem passageiro");
+  assert.equal(F.pisoDeAceite({ custoKm: 0.69, aproveitamento: 1.4 }).km, null, "fração acima de 1 é dado sujo");
+});
+
+teste("o piso fica bem abaixo da mediana das corridas — é isso que ele tem que ser", () => {
+  const corridas = Array.from({ length: 20 }, (_, i) => ({
+    id: `c${i}`, timestamp: em(20, i), valorBruto: 20, km: 5, duracaoMin: 15,
+  }));
+  const mediana = F.referenciaDeAceite(corridas).noite;
+  const piso = F.pisoDeAceite({
+    custoKm: 0.69,
+    aproveitamento: 0.55,
+    faixaDaJornada: { hora: { piso: 39, ideal: 43, otimo: 48 } },
+  });
+  assert.ok(piso.km < mediana.km.ideal, `piso ${piso.km} tem que ficar abaixo da mediana ${mediana.km.ideal}`);
+  assert.ok(piso.hora < mediana.hora.ideal, "idem para a hora");
+});
+
 if (!process.exitCode) console.log(`✓ ${passou} testes passaram`);

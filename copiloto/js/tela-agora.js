@@ -38,40 +38,48 @@ function render(raiz) {
 /* ------------------------------------------------------ aceitar ou recusar */
 
 /**
- * A partir de quanto a corrida vale a pena NESTA faixa horária.
+ * Abaixo de quanto recusar a corrida, nesta faixa horária.
  *
- * Escala de CORRIDA OFERTADA, e o rótulo diz isso em letras: é quase o dobro
- * do R$/km dos medidores acima, que é de jornada e carrega o deslocamento
- * vazio. Ler um pelo outro faz recusar corrida boa a noite inteira.
+ * A primeira versão disto mostrava a MEDIANA das corridas dele e dizia "aceite
+ * acima disso". Metade das corridas fica abaixo da mediana por definição — era
+ * uma instrução para recusar metade do trabalho. Piso e mediana são coisas
+ * diferentes, e só o piso serve de linha de corte.
  *
- * Sem corridas registradas o bloco nao aparece. Uma referência tirada de três
- * corridas seria pior que referência nenhuma: teria ar de medida e mandaria
- * ele recusar trabalho por causa de uma amostra que nao significa nada.
+ * São dois pisos, de duas lógicas:
+ *   por km   — o custo por km é gasto em todo km rodado, e só parte deles tem
+ *              passageiro pagando. É quanto a corrida precisa render só para
+ *              empatar com o carro.
+ *   por hora — o R$/hora da jornada já embute espera e deslocamento. Corrida
+ *              acima dele puxa a média do dia para cima.
+ *
+ * A mediana continua na tela, mas embaixo e chamada pelo nome: contexto.
  */
 function blocoAceite() {
-  const aceite = store.referenciaDeAceite();
-  const periodo = FX.periodoAgora();
-  const faixa = aceite?.[periodo.id];
-  if (!faixa || (!faixa.km && !faixa.hora)) return null;
-
-  const linha = (rotulo, f, formatar, sufixo) => {
-    if (!f) return null;
-    return el(
-      "div",
-      { class: "aceite__linha" },
-      el("span", { class: "aceite__rotulo" }, rotulo),
-      el(
-        "span",
-        { class: "aceite__faixa" },
-        el("strong", {}, formatar(f.ideal)),
-        el("span", { class: "aceite__unidade" }, sufixo)
-      ),
-      el("span", { class: "aceite__extremos" }, `fraca ${formatar(f.piso)} · ótima ${formatar(f.otimo)}`)
-    );
-  };
+  const piso = store.pisoDeAceiteAgora();
+  if (!piso || (piso.km == null && piso.hora == null)) return null;
 
   const doisDecimais = (v) => v.toFixed(2).replace(".", ",");
   const inteiro = (v) => v.toFixed(0);
+
+  const coluna = (valor, unidade, porque) =>
+    el(
+      "div",
+      { class: "aceite__coluna" },
+      el("strong", { class: "aceite__valor" }, valor),
+      el("span", { class: "aceite__unidade" }, unidade),
+      el("span", { class: "aceite__porque" }, porque)
+    );
+
+  const colunas = [
+    piso.km != null ? coluna(doisDecimais(piso.km), "R$/km", "não paga o carro") : null,
+    piso.hora != null ? coluna(inteiro(piso.hora), "R$/h", "derruba seu ritmo") : null,
+  ].filter(Boolean);
+
+  const tipicas = piso.tipicas;
+  const contexto = [
+    tipicas?.km ? `${doisDecimais(tipicas.km.ideal)} R$/km` : null,
+    tipicas?.hora ? `${inteiro(tipicas.hora.ideal)} R$/h` : null,
+  ].filter(Boolean);
 
   return el(
     "section",
@@ -79,13 +87,27 @@ function blocoAceite() {
     el(
       "div",
       { class: "aceite__topo" },
-      el("span", { class: "aceite__periodo" }, `${periodo.nome} · ${periodo.inicio}h–${periodo.fim}h`),
-      el("span", { class: "aceite__n" }, `${faixa.n} corridas suas`)
+      el("span", { class: "aceite__periodo" }, `${piso.periodo.nome} · ${piso.periodo.inicio}h–${piso.periodo.fim}h`),
+      piso.aproveitamento != null
+        ? el("span", { class: "aceite__n" }, `${Math.round(piso.aproveitamento * 100)}% do km com passageiro`)
+        : null
     ),
-    el("p", { class: "aceite__titulo" }, "Corrida daqui pra cima vale a pena"),
-    linha("por km", faixa.km, doisDecimais, "R$/km"),
-    linha("por hora", faixa.hora, inteiro, "R$/h"),
-    el("p", { class: "aceite__nota" }, "Da corrida ofertada — não confundir com o R$/km da jornada, que conta o deslocamento vazio.")
+    el("p", { class: "aceite__titulo" }, "Recuse abaixo de"),
+    el("div", { class: "aceite__colunas" }, ...colunas),
+    contexto.length
+      ? el(
+          "p",
+          { class: "aceite__nota" },
+          `Suas corridas desta faixa costumam dar ${contexto.join(" e ")} — isso é a mediana, não o corte.`
+        )
+      : null,
+    piso.km == null
+      ? el(
+          "p",
+          { class: "aceite__nota" },
+          "Falta o piso por km: ele sai de uma jornada com odômetro E com todas as corridas lançadas — com metade lançada, a conta manda recusar corrida boa."
+        )
+      : null
   );
 }
 

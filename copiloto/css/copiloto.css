@@ -1494,7 +1494,7 @@ button { cursor: pointer; border: 0; background: none; }
 .plano__recado { margin: 4px 0 0; font-size: 16px; color: var(--tinta-suave); }
 .dados__plano { margin-top: 2px; }
 
-/* --- referência de aceite --- */
+/* --- piso de aceite --- */
 
 .aceite {
   margin: 16px 0 0;
@@ -1506,15 +1506,24 @@ button { cursor: pointer; border: 0; background: none; }
 .aceite__topo { display: flex; align-items: baseline; gap: 10px; }
 .aceite__periodo { flex: 1; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-fraca); }
 .aceite__n { font-size: 13px; color: var(--tinta-fraca); }
-.aceite__titulo { margin: 6px 0 12px; font-size: 17px; color: var(--tinta); }
+.aceite__titulo { margin: 6px 0 10px; font-size: 17px; color: var(--tinta); }
 
-.aceite__linha { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-.aceite__rotulo { width: 72px; flex-shrink: 0; font-size: 15px; color: var(--tinta-suave); white-space: nowrap; }
-.aceite__faixa { display: flex; align-items: baseline; gap: 5px; }
-.aceite__faixa strong { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.aceite__colunas { display: flex; gap: 10px; }
+.aceite__coluna {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--raio);
+  background: var(--fundo-elevado);
+  border: 1px solid var(--linha);
+}
+.aceite__valor { font-size: 27px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .aceite__unidade { font-size: 14px; color: var(--tinta-suave); }
-.aceite__extremos { flex: 1; text-align: right; font-size: 13px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
-.aceite__nota { margin: 4px 0 0; font-size: 13px; color: var(--tinta-fraca); line-height: 1.45; }
+.aceite__porque { flex-basis: 100%; font-size: 12px; color: var(--tinta-fraca); }
+.aceite__nota { margin: 10px 0 0; font-size: 13px; color: var(--tinta-fraca); line-height: 1.45; }
 
 /* --- corrida em dois toques --- */
 

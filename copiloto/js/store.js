@@ -21,6 +21,7 @@ const estado = {
   // energia — do banco inteiro, quando o banco muda.
   faixas: null,
   aceite: null,
+  aproveitamento: null,
   analiseCombustivel: { suficiente: false, abastecimentos: 0, porKm: null, consumos: {} },
   corridaEmCurso: null,
   bairros: [],
@@ -624,6 +625,21 @@ async function carregarFaixas() {
     chaoKm: M.custosEstimados(0, config, estado.energiaKm).totalKm,
   });
   estado.aceite = F.referenciaDeAceite(corridas);
+  estado.aproveitamento = F.aproveitamentoDe(await historico());
+}
+
+/** Abaixo de quanto recusar, no período de agora. */
+export function pisoDeAceiteAgora(agora = Date.now()) {
+  const periodo = F.periodoAgora(agora);
+  return {
+    periodo,
+    ...F.pisoDeAceite({
+      faixaDaJornada: faixasEmVigor()[periodo.id],
+      aproveitamento: estado.aproveitamento?.fracao ?? null,
+      custoKm: M.custosEstimados(0, configAtual(), estado.energiaKm).totalKm,
+    }),
+    tipicas: estado.aceite?.[periodo.id] ?? null,
+  };
 }
 
 /** As faixas em vigor: medidas onde há amostra, semente onde não há. */

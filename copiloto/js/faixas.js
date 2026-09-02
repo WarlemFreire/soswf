@@ -172,6 +172,67 @@ export function referenciaDeAceite(corridas) {
   );
 }
 
+/* ------------------------------------------------------- piso de aceite */
+
+/**
+ * Fração do km rodado que tem passageiro dentro.
+ *
+ * Só entram jornadas COMPLETAS: km de odômetro, corridas lançadas E a soma
+ * das corridas fechando com o que a jornada rendeu.
+ *
+ * A exigência de fechar é o ponto todo. Numa jornada em que ele lançou metade
+ * das corridas, o numerador cai pela metade e o aproveitamento vai a metade —
+ * o que dobraria o piso por km e mandaria recusar corrida boa. Um piso que
+ * depende de o motorista ter lançado tudo, sem verificar se lançou, é um piso
+ * que mente exatamente quando ele mais confia nele.
+ */
+export function aproveitamentoDe(resumos) {
+  let pago = 0;
+  let total = 0;
+  let jornadas = 0;
+
+  for (const r of resumos || []) {
+    if (!(r.km > 0)) continue;
+    const kmPago = M.corridasValidas(r.corridas).reduce((soma, c) => soma + (Number(c.km) || 0), 0);
+    if (!(kmPago > 0)) continue;
+    if (!r.conferencia?.fecha) continue;
+    pago += kmPago;
+    total += r.km;
+    jornadas += 1;
+  }
+
+  if (!(total > 0)) return null;
+  return { fracao: pago / total, kmPago: pago, kmTotal: total, jornadas };
+}
+
+/**
+ * Abaixo de quanto a corrida deve ser recusada.
+ *
+ * São dois pisos, e cada um responde uma pergunta diferente:
+ *
+ *   km   — a corrida paga o carro? O custo por km é gasto em TODO km rodado,
+ *          e só uma fração deles tem passageiro pagando. Daí a divisão pelo
+ *          aproveitamento: com 55% de aproveitamento, R$0,69/km de custo vira
+ *          R$1,25/km que a corrida precisa render só para empatar.
+ *
+ *   hora — a corrida sustenta o ritmo? Aqui a comparação é com o R$/hora da
+ *          JORNADA, que já embute espera e deslocamento. Corrida acima dele
+ *          puxa a média do dia para cima; abaixo, derruba.
+ *
+ * O que NÃO serve de piso é a mediana das corridas dele — metade delas fica
+ * abaixo dela por definição, e usá-la como corte manda recusar metade do
+ * trabalho. Ela entra na tela como contexto, nunca como linha de corte.
+ */
+export function pisoDeAceite({ faixaDaJornada, aproveitamento, custoKm }) {
+  const util = aproveitamento > 0 && aproveitamento <= 1 ? aproveitamento : null;
+  return {
+    km: util != null && custoKm > 0 ? custoKm / util : null,
+    hora: faixaDaJornada?.hora?.piso ?? null,
+    ritmoHora: faixaDaJornada?.hora?.ideal ?? null,
+    aproveitamento: util,
+  };
+}
+
 /** O período de um instante, com nome — para a tela dizer de qual faixa fala. */
 export function periodoAgora(agora = Date.now()) {
   const id = M.periodoDe(agora);
