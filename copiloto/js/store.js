@@ -21,9 +21,7 @@ const estado = {
   // energia — do banco inteiro, quando o banco muda.
   faixas: null,
   aceite: null,
-  aproveitamento: null,
   analiseCombustivel: { suficiente: false, abastecimentos: 0, porKm: null, consumos: {} },
-  corridaEmCurso: null,
   bairros: [],
   pausas: [],
   // Linha do tempo do dia inteiro: as declarações de abertura das jornadas de
@@ -82,15 +80,8 @@ export async function carregarJornadaAberta() {
 
   const dia = await lerDia(aberta ? aberta.data : M.chaveData(Date.now()));
 
-  // O cronômetro sobrevive ao app ser morto, mas só faz sentido dentro da
-  // jornada em que começou: restaurá-lo em outra jornada colaria a corrida no
-  // turno errado.
-  const salva = cfg("corridaEmCurso");
-  const emCurso = salva && aberta && salva.jornadaId === aberta.id ? salva : null;
-  if (salva && !emCurso) await salvarConfig("corridaEmCurso", null);
-
   // Troca única: daqui em diante nenhuma pintura vê estado pela metade.
-  Object.assign(estado, { jornada: aberta, corridaEmCurso: emCurso }, carga, dia);
+  Object.assign(estado, { jornada: aberta }, carga, dia);
 
   if (aberta && cfg("manterTelaLigada")) manterTelaLigada();
   notificar();
@@ -458,93 +449,6 @@ export function deltaSimulado({ saldos, avulso }) {
 
 /* --------------------------------------------------------------- corridas */
 
-/**
- * O cronometro de corrida. Com o GPS ligado, dois toques (embarcou / desceu)
- * entregam km e duracao sem digitacao — e, de quebra, o km de deslocamento
- * gasto para chegar ate o passageiro, que é justamente o dado que a planilha
- * nao tem como saber.
- */
-export async function iniciarCorrida() {
-  const jornada = jornadaAtiva();
-  if (!jornada || estado.corridaEmCurso) return null;
-
-  const anterior = M.corridasValidas(estado.corridas).at(-1);
-  const curso = {
-    id: novoId(),
-    jornadaId: jornada.id,
-    inicio: Date.now(),
-    // Quanto tempo passou desde que o último passageiro desceu. É espera, e é
-    // um dado que a planilha da plataforma nao tem como saber.
-    minEspera: anterior?.timestampFim ? Math.round((Date.now() - anterior.timestampFim) / M.MINUTO) : null,
-    posicaoOrigem: null,
-    posicaoDestino: null,
-  };
-
-  estado.corridaEmCurso = curso;
-  await salvarConfig("corridaEmCurso", curso);
-  notificar();
-  // A posição vem depois: esperar o GPS aqui atrasaria o toque em até oito
-  // segundos, e o toque acontece com o passageiro entrando no carro.
-  marcarPontoDaCorrida("posicaoOrigem");
-  return curso;
-}
-
-/** Anexa a coordenada à corrida em curso sem travar o toque que a disparou. */
-async function marcarPontoDaCorrida(campo) {
-  const alvo = estado.corridaEmCurso?.id;
-  const posicao = await posicaoAgora();
-  if (!posicao || estado.corridaEmCurso?.id !== alvo) return;
-  estado.corridaEmCurso = {
-    ...estado.corridaEmCurso,
-    [campo]: { lat: posicao.lat, lon: posicao.lon },
-  };
-  await salvarConfig("corridaEmCurso", estado.corridaEmCurso);
-  notificar();
-}
-
-export async function cancelarCorridaEmCurso() {
-  estado.corridaEmCurso = null;
-  await salvarConfig("corridaEmCurso", null);
-  notificar();
-}
-
-export function corridaEmCurso() {
-  return estado.corridaEmCurso;
-}
-
-/**
- * Fecha o cronômetro e devolve o que foi medido, sem gravar a corrida ainda.
- *
- * O km sai da linha reta entre os dois pontos vezes o fator de sinuosidade
- * aprendido nas corridas dele. É estimativa e a tela diz isso — mas chega
- * perto o bastante para ele só conferir em vez de digitar dirigindo.
- */
-export async function encerrarCorrida() {
-  const curso = estado.corridaEmCurso;
-  if (!curso) return null;
-
-  const fim = Date.now();
-  await marcarPontoDaCorrida("posicaoDestino");
-  const atual = estado.corridaEmCurso || curso;
-
-  const linhaReta =
-    atual.posicaoOrigem && atual.posicaoDestino
-      ? distanciaKm(atual.posicaoOrigem, atual.posicaoDestino)
-      : null;
-  const fator = M.fatorSinuosidade(await db.todos("corridas"));
-
-  return {
-    ...atual,
-    fim,
-    timestamp: atual.inicio,
-    timestampFim: fim,
-    duracaoMin: Number(Math.max(0.1, (fim - atual.inicio) / M.MINUTO).toFixed(1)),
-    kmLinhaReta: linhaReta,
-    km: linhaReta > 0.2 ? Number((linhaReta * fator).toFixed(1)) : null,
-    kmEstimado: linhaReta > 0.2,
-  };
-}
-
 export async function salvarCorrida(dados) {
   const jornada = jornadaAtiva();
   const corrida = {
@@ -573,7 +477,6 @@ export async function salvarCorrida(dados) {
 
   await db.put("corridas", corrida);
   estado.corridas = [...estado.corridas.filter((c) => c.id !== corrida.id), corrida];
-  if (estado.corridaEmCurso) await cancelarCorridaEmCurso();
   await carregarBairros();
   await carregarFaixas();
   notificar();
@@ -625,7 +528,6 @@ async function carregarFaixas() {
     chaoKm: M.custosEstimados(0, config, estado.energiaKm).totalKm,
   });
   estado.aceite = F.referenciaDeAceite(corridas);
-  estado.aproveitamento = F.aproveitamentoDe(await historico());
 }
 
 /** Abaixo de quanto recusar, no período de agora. */
@@ -633,11 +535,7 @@ export function pisoDeAceiteAgora(agora = Date.now()) {
   const periodo = F.periodoAgora(agora);
   return {
     periodo,
-    ...F.pisoDeAceite({
-      faixaDaJornada: faixasEmVigor()[periodo.id],
-      aproveitamento: estado.aproveitamento?.fracao ?? null,
-      custoKm: M.custosEstimados(0, configAtual(), estado.energiaKm).totalKm,
-    }),
+    ...F.pisoDeAceite({ faixaDaJornada: faixasEmVigor()[periodo.id] }),
     tipicas: estado.aceite?.[periodo.id] ?? null,
   };
 }

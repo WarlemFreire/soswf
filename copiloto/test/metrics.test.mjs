@@ -760,19 +760,4 @@ teste("corrida cronometrada sem valor fica fora das médias", () => {
   assert.equal(M.corridaPendente({ valorBruto: 0 }), true, "sem valor é pendente mesmo sem a marca");
 });
 
-teste("fator de sinuosidade sai das corridas dele, com piso de amostra", () => {
-  assert.equal(M.fatorSinuosidade([]), 1.35, "sem amostra vale a razão urbana típica");
-
-  const corridas = Array.from({ length: 9 }, (_, i) => ({ kmLinhaReta: 4, km: 4 * 1.5 }));
-  assert.ok(perto(M.fatorSinuosidade(corridas), 1.5), "nove corridas já medem");
-
-  // Razões impossíveis são erro de digitação, não medição.
-  const sujas = [
-    ...corridas,
-    { kmLinhaReta: 4, km: 40 },
-    { kmLinhaReta: 4, km: 0.5 },
-  ];
-  assert.ok(perto(M.fatorSinuosidade(sujas), 1.5));
-});
-
 if (!process.exitCode) console.log(`✓ ${passou} testes passaram`);

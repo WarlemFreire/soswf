@@ -49,12 +49,6 @@ export const CONFIG_PADRAO = {
   // motorista montar o primeiro.
   rotina: null,
 
-  // Corrida em andamento. Mora aqui, e não só na memória, porque o Android
-  // mata a aba do Copiloto o tempo todo — ele passa a jornada com o app da
-  // plataforma na frente. Uma corrida que some quando o app é morto é pior
-  // que não ter cronômetro.
-  corridaEmCurso: null,
-
   plataformaPrincipal: "uber",
   plataformasAtivas: ["uber", "99", "indrive"],
 

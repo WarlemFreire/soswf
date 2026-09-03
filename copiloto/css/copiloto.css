@@ -1520,17 +1520,9 @@ button { cursor: pointer; border: 0; background: none; }
 .explica__item strong { display: block; font-size: 18px; margin-bottom: 4px; }
 .explica__item p { margin: 0; font-size: 15px; color: var(--tinta-suave); line-height: 1.5; }
 
-/* --- corrida em dois toques --- */
-
 .acoes__par { display: flex; gap: 10px; }
 .acoes__par .botao { flex: 1; }
-.botao--largo { width: 100%; }
-.acoes .botao--largo { margin-top: 10px; }
-.corrida-viva { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
-.corrida-viva .botao--texto { border: 0; min-height: 40px; font-size: 15px; }
-.corrida__secundarios { display: flex; gap: 10px; margin-top: 8px; }
-.corrida__secundarios .botao { flex: 1; }
-
+.acoes 
 /* --- corridas cronometradas esperando valor --- */
 
 .pendentes { margin: 4px 0 16px; }

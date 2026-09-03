@@ -5,7 +5,6 @@ import { el, limpar, abrirFolha, chips } from "./ui.js";
 import * as M from "./metrics.js";
 import * as R from "./rotina.js";
 import * as FX from "./faixas.js";
-import { iniciarCronometro, encerrarCronometro } from "./tela-corrida.js";
 import * as store from "./store.js";
 import { cfg, configAtual, salvarConfig, MOTIVOS_PAUSA, PLATAFORMAS } from "./config.js";
 import { vibrar, falar } from "./feedback.js";
@@ -68,12 +67,7 @@ function blocoAceite() {
       el("span", { class: "aceite__periodo" }, "Recuse abaixo de"),
       el("span", { class: "aceite__n" }, piso.periodo.nome)
     ),
-    el(
-      "div",
-      { class: "aceite__colunas" },
-      coluna(piso.km != null ? piso.km.toFixed(2).replace(".", ",") : "—", "R$/km"),
-      coluna(piso.hora.toFixed(0), "R$/h")
-    )
+      el("div", { class: "aceite__colunas" }, coluna(piso.hora.toFixed(0), "R$/h"))
   );
 }
 
@@ -91,10 +85,8 @@ function explicarAceite(piso) {
         "É o seu R$/hora de jornada nesta faixa, que já conta espera e deslocamento. Corrida acima disso puxa o dia para cima; abaixo, derruba."
       ),
       linha(
-        piso.km != null ? `Por km · ${piso.km.toFixed(2).replace(".", ",")} R$/km` : "Por km · sem medida ainda",
-        piso.km != null
-          ? `Custo do carro dividido pelo aproveitamento: ${Math.round(piso.aproveitamento * 100)}% do seu km tem passageiro, e o custo é gasto em todos eles.`
-          : "Precisa de uma jornada com odômetro E com todas as corridas lançadas. Com metade lançada a conta dobra o piso e manda recusar corrida boa — melhor um traço do que um número errado."
+        "Por que não tem piso por km",
+        "Ele precisaria saber quanto do seu km tem passageiro, e isso só é confiável com todas as corridas do dia lançadas. Com metade lançada a conta dobra o piso e manda recusar corrida boa."
       ),
       tipicas?.km || tipicas?.hora
         ? linha(
@@ -771,49 +763,7 @@ function blocoAcoes(pausa, reduzido) {
         "⏸ PAUSAR"
       );
 
-  return el("div", { class: "acoes" }, el("div", { class: "acoes__par" }, registrar, pausar), blocoCorrida());
-}
-
-/**
- * A corrida em dois toques.
- *
- * Rodando, ENCERRAR é o alvo maior da tela: é o toque que acontece com o
- * passageiro descendo e o carro ainda em movimento. Parado, o botão é
- * secundário — abrir jornada e registrar continuam sendo o que ele mais faz.
- */
-function blocoCorrida() {
-  const curso = store.corridaEmCurso();
-  if (!curso) {
-    return el(
-      "button",
-      { type: "button", class: "botao botao--secundario botao--largo", onClick: () => iniciarCronometro() },
-      "▶ INICIAR CORRIDA"
-    );
-  }
-
-  return el(
-    "div",
-    { class: "corrida-viva" },
-    el(
-      "button",
-      { type: "button", class: "botao botao--corrida botao--gigante botao--largo", onClick: () => encerrarCronometro() },
-      // Travado em zero: se o relógio do aparelho recuar, o cronômetro mostra
-      // 0:00 e segue andando, em vez de virar um travessão no meio da corrida.
-      `■ ENCERRAR · ${M.formatarDuracao(Math.max(0, Date.now() - curso.inicio))}`
-    ),
-    el(
-      "button",
-      {
-        type: "button",
-        class: "botao botao--texto",
-        onClick: async () => {
-          await store.cancelarCorridaEmCurso();
-          vibrar(20);
-        },
-      },
-      "cancelar corrida"
-    )
-  );
+  return el("div", { class: "acoes" }, el("div", { class: "acoes__par" }, registrar, pausar));
 }
 
 function escolherPausa() {

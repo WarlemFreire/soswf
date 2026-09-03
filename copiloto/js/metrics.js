@@ -423,21 +423,6 @@ export function corridasPendentes(corridas) {
   return [...(corridas || [])].filter(corridaPendente).sort((a, b) => a.timestamp - b.timestamp);
 }
 
-/**
- * Quanto o trajeto de rua é maior que a linha reta, medido nas corridas em que
- * ele digitou o km de verdade. Sem amostra vale 1,35, que é a razão típica em
- * malha urbana — e a tela sempre diz que o número é estimativa.
- */
-export function fatorSinuosidade(corridas) {
-  const razoes = (corridas || [])
-    .filter((c) => c.kmLinhaReta > 0.3 && c.km > 0)
-    .map((c) => c.km / c.kmLinhaReta)
-    .filter((r) => r >= 1 && r <= 3)
-    .sort((a, b) => a - b);
-  if (razoes.length < 5) return 1.35;
-  return razoes[Math.floor(razoes.length / 2)];
-}
-
 export function somaCorridas(corridas) {
   return corridasValidas(corridas).reduce((soma, c) => soma + (Number(c.valorBruto) || 0), 0);
 }
