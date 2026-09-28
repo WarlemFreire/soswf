@@ -1,0 +1,754 @@
+================================================================================
+
+                                  C O P I L O T O
+
+                     TUDO O QUE ELE FAZ, E POR QUE FAZ ASSIM
+
+================================================================================
+
+Documento de referencia para reconstruir o Copiloto (v2, nativo ou nao) sem
+perder nada do que ja esta de pe.
+
+Nao e um manual de uso. E a lista das funcionalidades, das decisoes de
+interface e das regras de calculo, com o motivo de cada uma. O motivo importa
+tanto quanto a funcao: varias dessas regras nasceram de erro que apareceu na
+rua.
+
+Estado de referencia: PWA, copiloto-v22, 6 abas, 225 medalhas, 157 testes
+automatizados, zero dependencia externa, zero backend.
+
+
+SUMARIO
+
+   1. O que o Copiloto e
+   2. UI/UX: as decisoes que fazem ele funcionar ao volante
+   3. Modelo de dados
+   4. As duas escalas de R$/km
+   5. Tela Agora
+   6. Piso de aceite (e o erro que ele ja causou)
+   7. Jornada, registros e odometro
+   8. Pausas
+   9. Combustivel e custos
+  10. Rotina: planejamento semanal
+  11. Trofeus: gamificacao
+  12. Historico, analise e exportacao
+  13. Ajustes
+  14. Infraestrutura
+  15. Regras de projeto que valem levar inteiras para a v2
+  16. O que foi removido por nao sobreviver a rua
+  17. Checklist de paridade para a v2
+
+
+================================================================================
+1. O QUE O COPILOTO E
+================================================================================
+
+Substitui o assistente humano que acompanhava a jornada em tempo real. Ele
+responde, a qualquer segundo do turno, a tres perguntas:
+
+   1. Quanto eu ja fiz hoje?
+   2. Estou indo bem agora, ou esfriei?
+   3. Vale a pena aceitar esta corrida?
+
+Tudo o mais no app existe para alimentar essas tres respostas ou para
+revisa-las depois.
+
+
+1.1 RESTRICOES FUNDADORAS (NAO NEGOCIAVEIS)
+
+   ZERO LLM. Cem por cento deterministico.
+      Precisa responder igual, offline, em 200 ms, com o celular no suporte.
+      E precisa ser auditavel: todo numero tem uma conta que da para conferir
+      na mao.
+
+   OPERAVEL DIRIGINDO OU PARADO, NO ESCURO, COM UMA MAO.
+      E a condicao real de uso. Interface que exige duas maos ou luz nao e
+      usada.
+
+   NENHUMA INTERACAO ACIMA DE 3 SEGUNDOS.
+      O semaforo abre.
+
+   NENHUM ALVO DE TOQUE MENOR QUE 64 x 64 PX.
+      Carro em movimento, dedo impreciso.
+
+   OFFLINE-FIRST.
+      Tunel, subsolo, periferia sem sinal. O app nunca pode depender de rede
+      para funcionar.
+
+   TODO DADO FICA NO APARELHO.
+      Nao existe backend. Nada sai sozinho.
+
+
+================================================================================
+2. UI/UX: AS DECISOES QUE FAZEM ELE FUNCIONAR AO VOLANTE
+================================================================================
+
+Esta e a parte mais facil de perder numa reescrita, porque cada item parece um
+detalhe. Nao e: e o que separa um app usavel de uma planilha bonita.
+
+
+2.1 ENTRADA DE DADOS
+
+   - Teclado numerico proprio, NUNCA o do sistema. Teclas gigantes, layout
+     fixo, sem autocorretor, sem emoji, sem barra de sugestao roubando metade
+     da tela. O teclado do sistema abre com atraso, muda de altura e empurra o
+     layout: inutilizavel em movimento.
+
+   - Horario NUNCA e digitado. E capturado por toque, com Date.now(), no
+     instante do toque. Digitar hora e lento, da erro e nunca e o horario real
+     do fato. "Iniciar jornada" e um toque; o horario vem de graca.
+
+   - Numeros grandes, campo unico por vez. Uma folha (sheet) = uma pergunta.
+     Nunca um formulario com seis campos.
+
+   - Chips em grade, nao listas suspensas. Motivo de pausa, plataforma, tipo
+     de bloco: tudo e botao visivel em grade. Um <select> exige mira fina e
+     abre um overlay do sistema.
+
+   - Valores monetarios em centavos inteiros na entrada. Sem ponto, sem
+     virgula, sem decidir onde fica o separador com o carro andando.
+
+
+2.2 DESFAZER EM VEZ DE CONFIRMAR
+
+   Nenhum dialogo "tem certeza?". Toda acao destrutiva ou de registro e
+   executada na hora e oferece DESFAZER por alguns segundos.
+
+   Confirmacao custa dois toques em todas as vezes, inclusive nas certas.
+   Desfazer custa zero toque nas certas e dois nas erradas.
+
+
+2.3 HONESTIDADE VISUAL
+
+   - TRAVESSAO EM VEZ DE NUMERO INVENTADO. Se falta o odometro, o R$/km
+     mostra "--" e o app mede so a hora. Nunca preencher com zero, nunca
+     estimar sem dizer. Um numero errado e pior que a ausencia dele, porque
+     ele e usado para decidir corrida.
+
+   - TODA METRICA DIZ DE ONDE VEIO. Na tela de analise, cada bloco declara a
+     fonte ("corridas com valor conferido", "trechos com odometro nas duas
+     pontas"). Quando a amostra e pequena, ele diz que e pequena em vez de
+     exibir uma media de tres corridas como se fosse lei.
+
+   - A CONTA DO SALDO APARECE ABERTA. Nao e "R$ 148". E "102 ao abrir + 46
+     nesta jornada". Se o numero estiver errado, da para ver qual metade esta
+     errada.
+
+
+2.4 NOITE, CONTRASTE E MODO DIRIGINDO
+
+   - TEMA ESCURO AUTOMATICO. Vira sozinho no horario configurado (18h por
+     padrao), nao pelo tema do sistema: o sistema pode estar em claro e a rua
+     esta escura.
+
+   - ALTO CONTRASTE SEMPRE, claro ou escuro. Nada de texto cinza sobre cinza.
+
+   - MODO DIRIGINDO: esconde a topbar, reduz a tela ao essencial, aumenta o
+     que sobrou. Um toque para entrar e sair.
+
+   - PALETA VALIDADA PARA DALTONISMO. As cores categoricas foram testadas par
+     a par nos tres tipos de CVD, em claro e em escuro. Descoberta pratica:
+     so subconjuntos de 4 CORES passam em todos os pares. Por isso a grade da
+     semana usa duas tonalidades e a linha do dia identifica cada bloco por
+     ICONE + NOME, nao por cor. Cor e reforco, nunca a unica informacao.
+
+   - FEEDBACK REDUNDANTE: vibracao e voz (TTS) opcionais, para confirmar
+     registro sem precisar olhar.
+
+
+2.5 NAVEGACAO
+
+   - BOTAO VOLTAR DO ANDROID FUNCIONA. Cada folha e cada aba empilha um
+     estado no historico; voltar fecha a folha, nao o app. Sem isso o app
+     fecha no meio de um registro.
+
+   - SEIS ABAS FIXAS NO RODAPE, sempre no alcance do polegar:
+     Agora | Historico | Rotina | Analise | Trofeus | Ajustes
+
+   - TOPBAR com avatar/foto, nome e ofensiva. Identidade e streak sempre
+     visiveis, porque e o que da vontade de abrir o app.
+
+   - TELA LIGADA OPCIONAL (wake lock) enquanto a jornada esta aberta.
+
+
+================================================================================
+3. MODELO DE DADOS
+================================================================================
+
+IndexedDB local, sete colecoes:
+
+   jornadas    Abertura/fechamento do turno, saldo inicial declarado,
+               odometro, metas.
+   registros   Checkpoints ao longo do turno (valor por plataforma, avulso,
+               odometro).
+   pausas      Inicio, fim e motivo de cada parada.
+   custos      Abastecimentos e outros gastos.
+   corridas    Corridas individuais, com valor, km, bairros.
+   contextos   Marcacoes de posicao/contexto.
+   config      Ajustes, metas, faixas, rotina semanal.
+
+
+3.1 FONTE UNICA DE VERDADE PARA DINHEIRO
+
+Regra central, e a que mais economizou bug: O DINHEIRO NUNCA E SOMADO DE
+VARIOS LUGARES.
+
+Existe uma linha do tempo unica do dia (eventosDoDia) -- as declaracoes de
+abertura da jornada mais todos os registros, em ordem cronologica -- e uma
+dobra sobre ela (saldoPorFonte) com duas semanticas:
+
+   PLATAFORMA (Uber, 99, inDrive): O VALOR SUBSTITUI.
+      O app do motorista mostra o acumulado do dia. Registrar "Uber: 180"
+      quer dizer "o acumulado da Uber agora e 180", nao "+180".
+
+   AVULSO (particular, frete): O VALOR ACUMULA.
+      Cada um e um evento novo.
+
+Confundir as duas semanticas gera saldo dobrado ou saldo que anda para tras.
+Toda tela le o resultado dessa dobra; nenhuma tela soma por conta propria.
+
+
+3.2 CAMADA DE CALCULO PURA
+
+Todo o calculo mora em modulos PUROS: sem DOM, sem banco, sem rede, sem
+Date.now() implicito. E o que permite os 157 testes. As telas so pintam o que
+a camada de calculo devolve.
+
+Na v2, manter essa separacao vale mais do que qualquer escolha de framework.
+
+
+================================================================================
+4. AS DUAS ESCALAS DE R$/KM
+    (a descoberta mais importante do projeto)
+================================================================================
+
+Existem DUAS medidas de R$/km e elas NAO se comparam:
+
+   CORRIDA OFERTADA -- ordem de grandeza real: ~3,40 a 3,80
+      Valor dividido pelo km da corrida que o app oferece.
+      Nao inclui km vazio.
+
+   JORNADA -- ordem de grandeza real: ~1,90
+      Ganho do turno dividido pelo km rodado no turno.
+      Inclui deslocamento vazio, ida pra praca, volta pra casa.
+
+Medido nos mesmos dados: jornada 1,91 | corrida 3,43. Quase o dobro.
+
+CONSEQUENCIA PRATICA: faixas de mercado ("aceite acima de R$1,80/km") sao de
+escala de corrida. Aplicadas a jornada, deixam o semaforo verde sempre.
+Aplicadas ao contrario, fazem recusar tudo.
+
+Qualquer numero de R$/km exibido precisa dizer, NA PROPRIA TELA, de qual
+escala e.
+
+Foi misturando as duas que o piso de aceite chegou a mandar recusar
+praticamente toda corrida.
+
+
+================================================================================
+5. TELA AGORA: O PAINEL DO TURNO
+================================================================================
+
+O que aparece, na ordem:
+
+   1. SALDO DO DIA, com a conta aberta ("102 ao abrir + 46 nesta jornada").
+
+   2. TRES TILES: R$/hora | R$/km | Ativo.
+      O numero grande e o do BLOCO (janela deslizante de 2h); embaixo, menor,
+      o do DIA. A razao: o dia e o ritmo, o bloco e o desempenho agora. So o
+      dia esconde que esfriou ha uma hora.
+
+   3. MEDIDOR DE R$/KM com quatro patamares: chao | piso | ideal | otimo.
+
+   4. BARRA DE METAS (tres niveis, ex. 280 / 350 / 450).
+
+   5. PROJECAO do fechamento, com horario-alvo ajustavel (inclusive "+1" para
+      virar o dia). So projeta com tempo ativo minimo; antes disso a projecao
+      e ruido.
+
+   6. PISO DE ACEITE da faixa horaria atual (secao 6).
+
+   7. CARTAO DO PLANO DO DIA, vindo da Rotina (secao 10).
+
+   8. BOTOES GRANDES: registrar | pausar.
+
+
+5.1 JANELA DESLIZANTE DE BLOCO
+
+O bloco e a janela de 2h (configuravel) que termina agora. Ele e o sinal de
+"esfriou": R$/h do bloco caindo abaixo do R$/h do dia significa que a regiao
+ou o horario virou, e e hora de mudar de praca.
+
+
+================================================================================
+6. PISO DE ACEITE (E O ERRO QUE ELE JA CAUSOU)
+================================================================================
+
+O ERRO: exibir a MEDIANA das corridas e chamar aquilo de corte. Por
+definicao, metade das corridas fica abaixo da mediana. Seguir isso significa
+recusar metade do dia. Alem disso, comparava corrida com corrida, quando a
+pergunta certa e se a corrida sustenta o DIA.
+
+COMO ESTA HOJE: um unico piso, POR HORA, derivado da faixa medida do proprio
+historico naquela faixa horaria. R$/h e medivel com honestidade porque o
+tempo sempre existe; km so existe quando o odometro foi anotado nas duas
+pontas.
+
+O PISO POR KM FOI REMOVIDO. Ele dependia de aproveitamento de km, que
+dependia de log completo de corridas, que na pratica nao existe. Piso
+calculado sobre amostra incompleta manda recusar corrida boa. Melhor nao ter
+o numero do que ter o numero errado.
+
+LICAO PARA A V2: um piso de aceite so pode nascer de uma amostra que voce
+sabe que esta completa. Sem isso, mostre a faixa observada (descricao) e nao
+um corte (prescricao).
+
+
+6.1 FAIXAS MEDIDAS POR FAIXA HORARIA
+
+Cinco faixas: manha | tarde | noite | pico | madrugada.
+
+Para cada uma, o app calcula do historico os percentis de R$/km e R$/h e
+deriva piso / ideal / otimo. Regras de honestidade embutidas:
+
+   - Minimo de amostra (8 trechos, 12 corridas). Abaixo disso devolve null e
+     a tela mostra travessao.
+   - Piso nunca abaixo do chao de custo (break-even).
+   - km so entra quando AS DUAS PONTAS tem odometro real.
+   - Dados importados de planilha ficam fora do calculo de trecho.
+
+As faixas comecam calibradas por semente e vao sendo SUBSTITUIDAS PELO
+MEDIDO conforme o historico cresce. Semente e chute; medida e verdade.
+
+
+================================================================================
+7. JORNADA, REGISTROS E ODOMETRO
+================================================================================
+
+   - VARIAS JORNADAS POR DIA, cada uma com saldo inicial declarado.
+   - CHECKPOINT PARCIAL POR PLATAFORMA a qualquer momento: dois toques e um
+     numero.
+   - AVULSO com tipo (particular, frete).
+   - ODOMETRO MANUAL, opcional, na abertura e no fechamento, e em qualquer
+     registro.
+   - CORRECAO DE JORNADA JA ENCERRADA, inclusive do saldo.
+   - FECHAMENTO com resumo do turno.
+
+
+7.1 FILTRO DE PLAUSIBILIDADE DO ODOMETRO (bug real)
+
+O km chegou a aparecer como o odometro inteiro do carro: 180 mil km rodados
+num turno. Tres causas somadas:
+
+   - campo em branco virava 0, porque Number("") e 0;
+   - o calculo so protegia contra null;
+   - e o zero entrava como primeira ancora.
+
+Correcao em tres camadas, todas necessarias:
+
+   1. NA ENTRADA: branco/invalido vira null, nunca 0.
+
+   2. NO CALCULO: monta-se a lista de pontos de odometro e so se calcula com
+      DOIS pontos validos; o km e "ultimo menos primeiro".
+
+   3. FILTRO DE VELOCIDADE IMPOSSIVEL: um ponto e descartado se retrocede ou
+      se implica mais de 120 km/h desde o anterior (com piso de meia hora no
+      denominador, para nao punir registros proximos).
+
+Efeito colateral bom: o sistema SE AUTOCORRIGE. Um valor absurdo e ignorado e
+o calculo volta ao normal na proxima ancora boa.
+
+
+================================================================================
+8. PAUSAS
+================================================================================
+
+   - OITO MOTIVOS EM CHIPS: almoco | abastecer | descanso | cochilo |
+     banheiro | pessoal | espera estrategica | outro.
+
+   - O RELOGIO PARA DE CONTAR. Tempo pausado sai do tempo ativo, entao
+     R$/hora nao e diluido por uma hora de almoco. Sem isso, parar para comer
+     parece queda de desempenho.
+
+   - ALERTA DE PAUSA LONGA (45 min por padrao). Evita a pausa esquecida que
+     corroi a metrica do dia.
+
+   - PAUSA ABERTA e tratada como estado, nao como registro: o app sabe que
+     voce esta parado agora e mostra isso.
+
+   - MOTIVO DE PAUSA ALIMENTA A ANALISE: da para ver quanto tempo e quanto
+     dinheiro cada tipo de parada custa.
+
+
+================================================================================
+9. COMBUSTIVEL E CUSTOS
+================================================================================
+
+9.1 CONVENCAO TANQUE-CHEIO
+
+A unica forma honesta de medir consumo com abastecimento parcial nao existe.
+Entao o app adota a convencao classica:
+
+   DISTANCIA: do primeiro ao ultimo abastecimento.
+   GASTO:     do SEGUNDO abastecimento em diante.
+
+O primeiro abastecimento so marca o ponto de partida; o combustivel dele foi
+gasto antes da janela. Somar o primeiro gasto infla o custo por km.
+
+
+9.2 O QUE SAI DISSO
+
+   - CONSUMO MEDIDO (km/m3 ou km/l) entre abastecimentos reais, substituindo
+     o valor de semente da configuracao.
+   - CUSTO REAL POR KM, tambem substituindo a semente.
+   - MISTURA DE COMBUSTIVEL (ex. 95% GNV / 5% gasolina), com preco por
+     unidade de cada.
+   - OUTROS CUSTOS lancados a parte (lavagem, manutencao, aluguel...).
+   - LIQUIDO ESTIMADO = bruto - combustivel - desgaste.
+   - BREAK-EVEN POR KM: o chao abaixo do qual a corrida paga menos que o
+     custo de faze-la. Serve de piso minimo absoluto para qualquer faixa.
+   - CUSTO DE DESGASTE POR KM configuravel, somado ao combustivel.
+
+
+================================================================================
+10. ROTINA: PLANEJAMENTO SEMANAL
+================================================================================
+
+Grade dos sete dias x horas do dia, editavel por arrasto.
+
+   - SETE TIPOS DE BLOCO: Rodar | Alimentacao | Descanso | Dormir | Academia
+     | Estudos | Pessoal. So "Rodar" conta como trabalho.
+
+   - ARRASTAR PARA MOVER, ESTICAR PARA REDIMENSIONAR, TOQUE NO VAZIO PARA
+     CRIAR. Detalhe que so aparece testando: num dia lotado nao sobra espaco
+     livre, entao ARRASTAR A BORDA ENTRE DOIS BLOCOS MOVE OS DOIS. Sem isso o
+     arrasto simplesmente nao faz nada.
+
+   - BLOCOS QUE PASSAM DA MEIA-NOITE sao suportados (o limite interno e maior
+     que 1440 min; travar em 1439 fabricava conflito falso).
+
+   - CALCULO POR DIA E POR SEMANA: horas de trabalho, descanso, alimentacao,
+     turnos continuos, minutos por hora do dia.
+
+   - AVISOS DETERMINISTICOS: dia acima do limite, descanso entre turnos
+     abaixo do minimo, turno longo demais sem pausa.
+
+   - PROJECAO DE GANHO DA SEMANA COM COBERTURA DECLARADA: ela diz em quantas
+     das horas planejadas existe historico suficiente para projetar. Projecao
+     sem cobertura e adivinhacao com cara de numero.
+
+   - DETECCAO DE CONFLITO entre blocos sobrepostos.
+
+
+10.1 INTEGRACAO COM A ABA AGORA
+
+A Rotina nao e um calendario decorativo. A tela Agora le o plano vigente e
+mostra:
+
+   - Em que bloco voce esta AGORA segundo o plano.
+   - HORA DE PARAR: o fim do bloco de trabalho corrente.
+   - O proximo bloco.
+
+Com uma regra de posse: UM TURNO QUE ATRAVESSA A MADRUGADA PERTENCE AO DIA EM
+QUE COMECOU. Sem isso, as 2h da manha o app acha que voce esta no plano de
+amanha e manda dormir no meio do melhor horario.
+
+
+================================================================================
+11. TROFEUS: GAMIFICACAO
+================================================================================
+
+11.1 OFENSIVA (STREAK)
+
+Dias trabalhados em sequencia, com TOLERANCIA DE 2 DIAS DE FOLGA. Um streak
+que quebra por folga de domingo pune descanso, o que e exatamente o contrario
+do que o app deveria fazer com um motorista cansado.
+
+
+11.2 MEDALHAS
+
+225 MEDALHAS EM 36 FAMILIAS. Cada familia e uma escada de niveis (ganho no
+dia, km, corridas, dias trabalhados, madrugadas, R$/h, sequencias, dias da
+semana, economia de combustivel, etc.).
+
+Decisoes de design que importam:
+
+   - MEDALHA E MISSAO, NAO ESTATISTICA. O texto e convite ("faca X"), nao
+     relatorio.
+
+   - CADA MEDALHA TEM NOME UNICO NO APP INTEIRO. Nomes repetidos entre
+     familias tornam o aviso de desbloqueio ambiguo.
+
+   - CINCO PATENTES com arte de metal diferente. A patente de uma medalha sai
+     do nivel dentro da familia, normalizada:
+        1 + round( ((nivel - 1) / (niveis - 1)) * 4 )
+     Sem normalizar, familias de 6 niveis repetem a patente maxima no topo.
+
+   - ESCADAS CALIBRADAS ACIMA DO MELHOR RECORDE REAL, nunca abaixo. Uma
+     escada que termina em 60 R$/h para quem ja fez 74 nao tem nada a
+     oferecer.
+
+   - MEDALHA NUNCA E REVOGADA. Conquistado e conquistado.
+
+   - PORTUGUES COM GENERO E NUMERO CORRETOS: tabelas de artigo e plural por
+     dia da semana ("em UM domingo", "em UMA segunda"). Texto concatenado sem
+     isso soa a robo.
+
+   - ARTE EM SVG ESCRITO A MAO, inline: fita, serrilhado, disco, gradiente de
+     metal por patente, e ANEL DE PROGRESSO NAS BLOQUEADAS. Zero dependencia,
+     funciona offline, escala em qualquer tela.
+
+   - NAO EXISTE BLOCO "PERTO DE CAIR". Mostrar o que voce esta a ponto de
+     perder e ansiedade, nao jogo.
+
+
+11.3 RECORDES
+
+Melhor dia, melhor hora, maior sequencia, melhor R$/h, etc.
+
+RECORDE DESCREVE; MEDALHA CONVIDA. Sao dois papeis distintos e nao devem
+virar a mesma lista.
+
+
+11.4 XP, NIVEL E MOEDAS
+
+   - XP por dia trabalhado, por meta batida e por dia de ofensiva.
+   - Nivel por degraus fixos de XP.
+   - Moedas por missao cumprida e por dia.
+   - NADA E PERSISTIDO: tudo e derivado do historico, sempre recalculavel.
+     Assim nao existe estado de progresso para corromper, nem sincronizar.
+   - Nao ha nada para comprar com as moedas ainda, e esta tudo bem. O
+     contador funciona como reconhecimento sozinho.
+
+
+================================================================================
+12. HISTORICO, ANALISE E EXPORTACAO
+================================================================================
+
+12.1 HISTORICO
+
+   - Lista de dias com ganho, km, tempo e custo.
+   - MEDIAS DE 7 E 30 DIAS.
+   - FILA DE CORRIDAS SEM VALOR: corrida registrada sem o valor final fica
+     pendente e nao entra em nenhuma media ate ser completada. Dado
+     incompleto contamina estatistica; melhor ficar de fora e visivel.
+   - EXPORTACAO CSV/TSV para colar na planilha.
+
+
+12.2 ANALISE
+
+Dez blocos, cada um declarando sua fonte:
+
+   - Por dia da semana
+   - Por hora do dia (a partir dos trechos)
+   - Por motivo de pausa
+   - Por faixa horaria
+   - Heatmap hora x dia
+   - Por bairro (com minimo de amostra)
+   - Corrida longa vs. curta
+   - Impacto do dinamico
+   - Aproveitamento de km
+   - Conferencia de corridas x registros
+
+A CONFERENCIA e a que sustenta todo o resto: ela diz se o log de corridas
+fecha com o saldo registrado. Quando nao fecha, os calculos que dependem de
+corrida completa SE DESLIGAM em vez de mentir.
+
+
+================================================================================
+13. AJUSTES
+================================================================================
+
+Metas (tres niveis) | hora-limite da meta | faixas por periodo | preco e
+consumo de combustivel | mistura | custo de desgaste por km | janela do bloco
+| marcar posicao | manter tela ligada | vibracao | voz | tema | hora do modo
+noturno | modo dirigindo | alerta de pausa | nome | avatar | rotina.
+
+Mudanca de configuracao dispara evento e REPINTA AS TELAS NA HORA, sem
+precisar reabrir o app.
+
+
+================================================================================
+14. INFRAESTRUTURA
+================================================================================
+
+   - PWA INSTALAVEL, sem build step, sem dependencia externa, ES modules
+     nativos.
+
+   - SERVICE WORKER CACHE-FIRST E VERSIONADO. Regra de operacao: A VERSAO
+     SOBE EM TODA PUBLICACAO. Senao o usuario fica com arquivo velho em cache
+     e testa build antigo achando que e o novo. (Isso ja aconteceu.)
+
+   - INDEXEDDB ESCRITO A MAO, sem wrapper.
+
+   - EXPORTACAO MANUAL E O UNICO BACKUP. Nada sai do aparelho sozinho: e a
+     garantia de privacidade e, ao mesmo tempo, o risco. Perder o celular
+     perde tudo. Na v2, LEMBRETE AUTOMATICO DE BACKUP e a primeira coisa a
+     acrescentar.
+
+   - 157 TESTES AUTOMATIZADOS sobre a camada pura, mais verificacao de
+     sintaxe de todos os arquivos.
+
+
+14.1 LIMITES DO PWA QUE A V2 NATIVA RESOLVE
+
+Estes sao os motivos concretos para ir nativo.
+
+   LIMITE: Sem geolocalizacao em background; watchPosition congela com a aba
+           fora de foco.
+   GANHO:  Rastreio de km automatico, sem odometro manual. Resolve o gargalo
+           de dados do app.
+
+   LIMITE: Wake lock so em primeiro plano.
+   GANHO:  Tela e servico estaveis no turno inteiro.
+
+   LIMITE: Notificacao so dispara com o app aberto.
+   GANHO:  CAMADA DE AVISOS DETERMINISTICOS de verdade: trecho fraco,
+           esfriamento sustentado, janela de ouro chegando, fadiga. Nunca foi
+           construida porque so faz sentido nativa.
+
+   LIMITE: Cache/armazenamento pode ser limpo pelo sistema.
+   GANHO:  Armazenamento duravel + backup automatico.
+
+
+================================================================================
+15. REGRAS DE PROJETO QUE VALEM LEVAR INTEIRAS PARA A V2
+================================================================================
+
+    1. UMA FONTE DE VERDADE PARA DINHEIRO. Uma linha do tempo, uma dobra.
+       Nenhuma tela soma por conta propria.
+
+    2. NUNCA MISTURAR ESCALA DE JORNADA COM ESCALA DE CORRIDA. Toda tela que
+       mostra R$/km diz qual e.
+
+    3. NUNCA INVENTAR NUMERO. Falta dado, mostra travessao e mede o que da.
+
+    4. AMOSTRA MINIMA EXPLICITA. Abaixo dela, devolve null; a tela mostra
+       ausencia, nao media de tres casos.
+
+    5. PRESCREVER (piso, corte, "aceite/recuse") EXIGE AMOSTRA QUE VOCE SABE
+       COMPLETA. Sem isso, apenas descreva a faixa observada.
+
+    6. SEMENTE E CHUTE; MEDIDO SUBSTITUI. Todo parametro calibrado na mao
+       deve ter caminho para ser substituido pelo historico.
+
+    7. CALCULO PURO, SEPARADO DE TELA E BANCO. E o que permite testar.
+
+    8. FILTRO DE PLAUSIBILIDADE EM TODA ENTRADA NUMERICA MANUAL. E que o
+       sistema se autocorrija na proxima entrada boa.
+
+    9. DESFAZER, NAO CONFIRMAR.
+
+   10. MEDALHA NUNCA E REVOGADA. RECORDE DESCREVE, MEDALHA CONVIDA.
+
+   11. STREAK TOLERA FOLGA. O app nao pode punir descanso.
+
+   12. TURNO QUE VIRA A MADRUGADA PERTENCE AO DIA EM QUE COMECOU.
+
+   13. COR E REFORCO, NUNCA A UNICA INFORMACAO.
+
+   14. VERSAO DO CACHE SOBE EM TODA PUBLICACAO.
+
+
+================================================================================
+16. O QUE FOI REMOVIDO POR NAO SOBREVIVER A RUA
+================================================================================
+
+Registrar o que NAO funcionou vale tanto quanto o resto: evita reconstruir o
+mesmo erro na v2.
+
+   - CRONOMETRO DE CORRIDA AO VIVO (iniciar/finalizar corrida). Lia errado:
+     GPS impreciso, esquecimento de finalizar, sinuosidade do trajeto
+     estimada por fator. Produzia numero pior que nao ter numero. Ficaram so
+     os registros.
+
+   - RASTREIO CONTINUO DE GPS. Impossivel no PWA (secao 14.1) e caro em
+     bateria. Volta na v2 nativa, e ai resolve o odometro manual.
+
+   - PISO DE ACEITE POR KM. Dependia de log de corridas completo que nao
+     existe na pratica. Removido (secao 6).
+
+   - PISO DE ACEITE COMO MEDIANA. Erro de logica: metade das corridas fica
+     abaixo da mediana por definicao.
+
+   - TEXTO EXPLICATIVO LONGO NA TELA PRINCIPAL. Mata a interface. A
+     explicacao foi para uma folha que abre com um toque; na tela ficam os
+     numeros.
+
+   - BLOCO "PERTO DE CAIR" NOS TROFEUS. Ansiedade, nao jogo.
+
+
+================================================================================
+17. CHECKLIST DE PARIDADE PARA A V2
+================================================================================
+
+Marque quando a v2 fizer o mesmo.
+
+ERGONOMIA
+
+   [ ] Teclado numerico proprio, nunca o do sistema
+   [ ] Alvos maiores ou iguais a 64 px
+   [ ] Horario por toque (Date.now()), nunca digitado
+   [ ] Desfazer em vez de confirmar
+   [ ] Tema escuro automatico por horario
+   [ ] Modo dirigindo
+   [ ] Botao voltar do sistema fecha folha, nao o app
+   [ ] Vibracao e voz opcionais
+   [ ] Paleta validada para daltonismo; cor nunca e a unica informacao
+   [ ] Travessao quando falta dado
+
+NUCLEO
+
+   [ ] Linha do tempo unica do dia; plataforma substitui, avulso acumula
+   [ ] Varias jornadas por dia com saldo inicial
+   [ ] Checkpoint parcial por plataforma + avulso
+   [ ] Odometro com filtro de plausibilidade e autocorrecao
+   [ ] Correcao de jornada encerrada
+   [ ] Bloco deslizante de 2h + metricas do dia
+   [ ] Projecao com horario-alvo ajustavel e tempo ativo minimo
+   [ ] Faixas medidas por faixa horaria, com amostra minima
+   [ ] Break-even como chao de qualquer faixa
+   [ ] Piso de aceite por hora
+
+PAUSAS E CUSTOS
+
+   [ ] 8 motivos de pausa, relogio parado, alerta de pausa longa
+   [ ] Convencao tanque-cheio para consumo
+   [ ] Consumo e custo/km medidos substituindo a semente
+   [ ] Mistura de combustivel
+   [ ] Outros custos e liquido estimado
+
+PLANEJAMENTO E HISTORICO
+
+   [ ] Rotina semanal com 7 tipos de bloco e arrasto (incluindo borda
+       compartilhada)
+   [ ] Blocos apos a meia-noite
+   [ ] Avisos de fadiga e descanso minimo
+   [ ] Projecao da semana com cobertura declarada
+   [ ] Plano do dia na tela principal + hora de parar
+   [ ] Historico com medias de 7 e 30 dias
+   [ ] Fila de corridas pendentes fora das medias
+   [ ] Exportacao CSV/TSV
+   [ ] 10 blocos de analise com fonte declarada + heatmap hora x dia
+
+GAMIFICACAO
+
+   [ ] Ofensiva com 2 dias de tolerancia
+   [ ] 225 medalhas / 36 familias, nomes unicos, arte por patente
+   [ ] Anel de progresso nas bloqueadas
+   [ ] Recordes separados das medalhas
+   [ ] XP, nivel e moedas derivados (nada persistido)
+
+PLATAFORMA
+
+   [ ] Funciona 100% offline
+   [ ] Dados so no aparelho
+   [ ] Camada de calculo pura e testada
+   [ ] NOVO NA V2: backup automatico
+   [ ] NOVO NA V2: km por GPS em background
+   [ ] NOVO NA V2: avisos deterministicos com notificacao de sistema
+
+
+================================================================================
+                                 fim do documento
+================================================================================
