@@ -17,7 +17,8 @@ import { db } from "./db.js";
 import { manterTelaLigada, liberarTela } from "./geo.js";
 import { abrirCusto, painelCombustivel } from "./tela-custo.js";
 import * as semaforo from "./semaforo.js";
-import * as risco from "./risco.js";
+import * as Z from "./zonas.js";
+import { abrirEditorDeZonas } from "./tela-zonas.js";
 
 export function montarConfig(raiz) {
   limpar(raiz);
@@ -209,119 +210,51 @@ function secaoSemaforo() {
 /**
  * As áreas que ele não quer pegar.
  *
- * Casadas por NOME contra o texto da oferta, não por raio no mapa: no instante
- * da oferta o app sabe onde ELE está, não para onde a corrida vai — o destino
- * só existe como texto na tela. Ver risco.js.
+ * O cadastro mora no editor de mapa; aqui fica só o resumo e a porta de
+ * entrada. Desenho e nome convivem porque respondem metades diferentes: a
+ * coordenada alcança o início da corrida, o nome alcança o destino.
  */
 function listaDeAreas(repintar) {
-  const areas = cfg("areasRisco") || [];
+  const zonas = (cfg("zonasRisco") || []).map(Z.normalizarZona);
+  const comDesenho = zonas.filter(Z.temGeometria).length;
 
   return el(
     "div",
     { class: "areas" },
     el("h3", { class: "areas__titulo" }, "Áreas que eu não pego"),
-    areas.length
+    zonas.length
       ? el("div", { class: "areas__lista" },
-          ...areas.map((a) =>
-            el("button", {
-              type: "button",
-              class: `areas__item ${a.ativa === false ? "areas__item--off" : ""}`.trim(),
-              onClick: () => editarArea(a, repintar),
-            },
-              el("span", { class: `areas__selo areas__selo--${a.nivel}` },
-                a.nivel === "evitar" ? "não pegar" : "atenção"),
-              el("span", { class: "areas__nome" }, a.nome),
-              el("small", { class: "areas__termos" }, (a.termos || []).join(" · ")),
+          ...zonas.map((z) =>
+            el("div", { class: `areas__item ${z.ativa === false ? "areas__item--off" : ""}`.trim() },
+              el("span", { class: `areas__selo areas__selo--${z.nivel}` },
+                z.nivel === "evitar" ? "não pegar" : "atenção"),
+              el("span", { class: "areas__nome" }, z.nome),
+              el("small", { class: "areas__termos" }, descreverZona(z)),
             )
           ),
         )
       : el("p", { class: "campo__ajuda" },
-          "Nenhuma área marcada. O semáforo avisa quando o nome de uma delas " +
-          "aparecer na oferta."),
+          "Nenhuma área marcada. Desenhe no mapa: a coordenada avisa quando a " +
+          "corrida COMEÇA ali; os nomes avisam quando ela VAI para lá."),
+    zonas.length && comDesenho < zonas.length
+      ? el("p", { class: "campo__ajuda" },
+          `${zonas.length - comDesenho} sem desenho: só avisam pelo nome, que a ` +
+          "plataforma pode trocar.")
+      : null,
     el("button", {
       type: "button",
       class: "botao fin__acao",
-      onClick: () => editarArea(null, repintar),
-    }, "Marcar uma área"),
+      onClick: () => abrirEditorDeZonas(repintar),
+    }, "Abrir o mapa"),
   );
 }
 
-async function editarArea(area, repintar) {
-  const nome = el("input", {
-    class: "campo-texto",
-    type: "text",
-    value: area?.nome || "",
-    placeholder: "Como você chama a área",
-    maxLength: 40,
-  });
-  const termos = el("input", {
-    class: "campo-texto",
-    type: "text",
-    value: (area?.termos || []).join(", "),
-    placeholder: "Morro do Papagaio, Alto Vera Cruz",
-  });
-
-  let nivel = area?.nivel || "atencao";
-  const escolhaNivel = chips(risco.NIVEIS.map((n) => ({ id: n.id, nome: n.nome })), {
-    selecionado: nivel,
-    aoEscolher: (id) => {
-      nivel = id;
-    },
-  });
-
-  abrirFolha({
-    titulo: area ? "Editar área" : "Marcar área",
-    classe: "folha--alta",
-    conteudo: [
-      el("label", { class: "perfil__rotulo" }, "Nome"),
-      nome,
-      el("label", { class: "perfil__rotulo" }, "Nomes que aparecem na oferta"),
-      termos,
-      el("p", { class: "folha__ajuda" },
-        "Separe por vírgula. O aviso só dispara com a palavra inteira, então " +
-        "\"Ana\" não casa dentro de \"Cabana\". Termos de menos de três letras " +
-        "são ignorados, porque casariam com meia cidade."),
-      escolhaNivel,
-      el("p", { class: "folha__ajuda" },
-        "\"Não pegar\" recusa mesmo com o valor bom. \"Atenção\" só avisa."),
-    ],
-    rodape: (folha) => [
-      area
-        ? el("button", {
-            type: "button",
-            class: "botao botao--perigo",
-            onClick: async () => {
-              await salvarConfig("areasRisco", (cfg("areasRisco") || []).filter((x) => x.id !== area.id));
-              await semaforo.sincronizarAreas();
-              folha.fechar();
-              repintar();
-            },
-          }, "Apagar")
-        : null,
-      el("button", {
-        type: "button",
-        class: "botao botao--primario botao--gigante",
-        onClick: async () => {
-          const limpa = risco.normalizarArea({
-            id: area?.id,
-            nome: nome.value,
-            nivel,
-            termos: termos.value.split(","),
-          });
-          if (!limpa.termos.length) {
-            mostrarToast({ titulo: "Falta um nome com três letras ou mais", tom: "alerta" });
-            return;
-          }
-          const atuais = (cfg("areasRisco") || []).filter((x) => x.id !== limpa.id);
-          await salvarConfig("areasRisco", [...atuais, limpa]);
-          await semaforo.sincronizarAreas();
-          vibrar(20);
-          folha.fechar();
-          repintar();
-        },
-      }, "Salvar"),
-    ].filter(Boolean),
-  });
+function descreverZona(z) {
+  const partes = [];
+  if (z.tipo === "poligono" && Z.temGeometria(z)) partes.push(`contorno de ${z.pontos.length} pontos`);
+  else if (Z.temGeometria(z)) partes.push(`círculo de ${z.raio} m`);
+  if (z.termos?.length) partes.push(z.termos.join(" · "));
+  return partes.join(" · ") || "sem desenho e sem nome";
 }
 
 function pendencia(texto, rotuloBotao, acao) {

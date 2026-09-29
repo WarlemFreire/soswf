@@ -1454,3 +1454,27 @@ button { cursor: pointer; border: 0; background: none; }
 .areas__selo--atencao { background: var(--zona-piso); color: var(--tinta); }
 .areas__nome { font-size: 16px; }
 .areas__termos { font-size: 12px; color: var(--tinta-fraca); }
+
+/* -------------------------------------------------------- áreas no mapa */
+
+/* Não há telha de servidor aqui: o fundo é o rastro dele. Por isso a moldura
+   discreta — a tela precisa parecer mapa sem fingir que é um. */
+.zonas__tela {
+  width: 100%; height: auto; aspect-ratio: 1;
+  border-radius: var(--raio-g); border: 1px solid var(--linha);
+  background: var(--fundo); display: block; touch-action: manipulation;
+}
+.zonas__legenda {
+  margin: 10px 0 12px; font-size: 13px; color: var(--tinta-fraca);
+  font-variant-numeric: tabular-nums;
+}
+.zonas__acoes { display: flex; gap: 8px; margin-bottom: 16px; }
+.zonas__acoes .botao { flex: 1; min-height: 64px; white-space: normal; }
+.zonas__lista { display: flex; flex-direction: column; gap: 8px; }
+
+.zonas__raio {
+  display: flex; align-items: center; gap: 10px; margin: 16px 0;
+}
+.zonas__raio .botao { min-height: 64px; min-width: 76px; }
+.zonas__raio .orc__campo-rotulo { flex: 1; }
+.zonas__raio .orc__campo-valor { min-width: 78px; text-align: center; }

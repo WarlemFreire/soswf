@@ -86,9 +86,9 @@ public class SemaforoService extends AccessibilityService {
                 java.util.Locale.ROOT, "%.2f|%.2f|%.0f", oferta.valor, oferta.km, oferta.minutos);
         if (assinatura.equals(ultimaAssinatura) && agora - ultimoVeredito < 30000) return;
 
-        // A area vem do texto inteiro da tela, nao so dos numeros: o bairro do
-        // destino aparece como texto solto no cartao da oferta.
-        Areas area = Areas.casar(String.join("\n", textos), Areas.ler(this));
+        // Tudo local: a posicao ja esta em SharedPreferences e os poligonos sao
+        // aritmetica. Roda no mesmo evento que leu a tela, sem esperar nada.
+        Zonas.Achado area = Zonas.casar(this, String.join("\n", textos));
 
         Oferta.Veredito veredito = Oferta.julgar(oferta, pisos);
         // Sem piso medido nao se opina. Ver Oferta.julgar.
@@ -96,6 +96,8 @@ public class SemaforoService extends AccessibilityService {
 
         // Area marcada como "nao pegar" recusa mesmo com o dinheiro bom: o
         // motorista ja decidiu isso antes, com a cabeca fria.
+        // "Nao pegar" recusa mesmo com o dinheiro bom: ele decidiu isso antes,
+        // com a cabeca fria.
         if (area != null && area.deveRecusar()) veredito = Oferta.Veredito.RECUSAR;
         if (veredito == null) return;
 

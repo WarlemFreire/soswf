@@ -25,7 +25,7 @@ import * as store from "./store.js";
 import * as M from "./metrics.js";
 import { custoTotalKm, configAtual } from "./config.js";
 import { db, novoId } from "./db.js";
-import * as risco from "./risco.js";
+import * as Z from "./zonas.js";
 
 function plugin() {
   return globalThis.Capacitor?.Plugins?.Semaforo ?? null;
@@ -93,15 +93,27 @@ export function cortesAgora(agora = Date.now(), { aceite, config } = {}) {
   };
 }
 
-/** Manda as áreas de risco para o serviço, já normalizadas. */
-export async function sincronizarAreas() {
+/**
+ * Manda as áreas para o serviço: desenho no mapa e apelidos.
+ *
+ * Os dois juntos porque respondem metades diferentes. A geometria alcança o
+ * INÍCIO da corrida, com coordenada, que não envelhece. O apelido alcança o
+ * DESTINO, que só existe como texto na tela -- e é por isso que ele é apelido
+ * do polígono e não a área em si: quando a plataforma renomeia, troca-se o
+ * apelido e o desenho continua valendo.
+ */
+export async function sincronizarZonas() {
   if (!disponivel()) return false;
-  await plugin().definirAreas({ areas: risco.paraOServico(cfgAreas()) });
+  const zonas = (configAtual().zonasRisco || []).map(Z.normalizarZona);
+  await plugin().definirZonas({ zonas: Z.paraOServico(zonas) });
   return true;
 }
 
-function cfgAreas() {
-  return configAtual().areasRisco || [];
+/** Onde ele está agora. O serviço roda em processo próprio e não tem GPS. */
+export async function publicarPosicao(ponto) {
+  if (!disponivel() || !Z.coordenadaValida(ponto)) return false;
+  await plugin().definirPosicao({ lat: ponto.lat, lon: ponto.lon });
+  return true;
 }
 
 /** Manda os cortes para o serviço. Barato: é uma escrita em SharedPreferences. */
@@ -138,6 +150,8 @@ async function guardar(oferta) {
     periodo: String(oferta.periodo || ""),
     area: String(oferta.area || ""),
     areaNivel: String(oferta.areaNivel || ""),
+    // "inicio" veio do GPS e é certo; "destino" veio do texto e é indício.
+    areaMotivo: String(oferta.areaMotivo || ""),
     // Preenchido a mão depois, quando ele quiser conferir se a leitura bateu.
     conferida: null,
   };
@@ -165,7 +179,7 @@ export async function iniciar() {
   });
 
   await sincronizar();
-  await sincronizarAreas();
+  await sincronizarZonas();
 
   // Uma corrida nova muda a distribuição; a virada de período muda o corte.
   store.assinar(() => {
@@ -175,9 +189,13 @@ export async function iniciar() {
     sincronizar().catch(() => {});
   }, 300000);
 
+  document.addEventListener("copiloto:posicao", (evento) => {
+    publicarPosicao(evento.detail?.ponto).catch(() => {});
+  });
+
   document.addEventListener("copiloto:config", () => {
     sincronizar().catch(() => {});
-    sincronizarAreas().catch(() => {});
+    sincronizarZonas().catch(() => {});
   });
   return true;
 }

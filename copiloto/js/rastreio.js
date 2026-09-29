@@ -43,6 +43,7 @@ let anterior = null;
 let acumulado = 0;
 let ultimoSalvoEm = 0;
 let gravar = null;
+let aoPontoAceito = null;
 
 function plugin() {
   return globalThis.Capacitor?.Plugins?.BackgroundGeolocation ?? null;
@@ -60,13 +61,14 @@ export function disponivel() {
  * `kmInicial` retoma de onde parou, para reabrir o app no meio da jornada não
  * zerar o que já foi medido.
  */
-export async function iniciar({ kmInicial = 0, aoAcumular } = {}) {
+export async function iniciar({ kmInicial = 0, aoAcumular, aoPonto } = {}) {
   if (!disponivel() || vigia) return false;
 
   acumulado = Number.isFinite(kmInicial) ? kmInicial : 0;
   ultimoSalvoEm = 0;
   anterior = null;
   gravar = aoAcumular;
+  aoPontoAceito = aoPonto || null;
 
   try {
     vigia = await plugin().addWatcher(
@@ -103,6 +105,7 @@ export async function parar() {
   const total = acumulado;
   await salvar(true);
   gravar = null;
+  aoPontoAceito = null;
   return total;
 }
 
@@ -148,6 +151,9 @@ export function receber(posicao, agora = Date.now()) {
 
   acumulado += km;
   anterior = ponto;
+  // O ponto aceito vira rastro: é o fundo do editor de zonas, já que não existe
+  // mapa de telha aqui (seria rede, e mandaria a posição dele para fora).
+  aoPontoAceito?.(ponto);
   salvar(false);
 }
 
@@ -170,4 +176,5 @@ export function zerarParaTeste() {
   acumulado = 0;
   ultimoSalvoEm = 0;
   gravar = null;
+  aoPontoAceito = null;
 }

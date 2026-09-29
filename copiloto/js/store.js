@@ -7,6 +7,7 @@ import * as M from "./metrics.js";
 import * as F from "./faixas.js";
 import { posicaoAgora, distanciaKm, manterTelaLigada, liberarTela } from "./geo.js";
 import * as rastreio from "./rastreio.js";
+import * as Z from "./zonas.js";
 
 const estado = {
   jornada: null,
@@ -227,6 +228,65 @@ export async function abrirJornada({ odometroInicio, metas, saldoInicial }) {
   return jornada;
 }
 
+/* ------------------------------------------------------ rastro e zonas */
+
+/** Um ponto a cada 150 m basta para o fundo do editor e mantém o banco leve. */
+const PASSO_TRILHA_M = 150;
+/** Teto do rastro. Passando disto, o mais antigo sai. */
+const MAX_TRILHA = 4000;
+
+let ultimoDaTrilha = null;
+let zonaAtual = null;
+
+async function registrarNaTrilha(ponto) {
+  if (ultimoDaTrilha) {
+    const d = Z.metrosEntre(ultimoDaTrilha, ponto);
+    if (d != null && d < PASSO_TRILHA_M) return;
+  }
+  ultimoDaTrilha = { lat: ponto.lat, lon: ponto.lon };
+  await db.put("trilha", { id: novoId(), quando: ponto.quando || Date.now(), lat: ponto.lat, lon: ponto.lon });
+
+  // Poda barata: só olha o tamanho de vez em quando.
+  if (Math.random() < 0.02) await podarTrilha();
+}
+
+async function podarTrilha() {
+  const todos = await db.todos("trilha");
+  if (todos.length <= MAX_TRILHA) return;
+  const sobra = todos.sort((a, b) => a.quando - b.quando).slice(0, todos.length - MAX_TRILHA);
+  for (const p of sobra) await db.remover("trilha", p.id);
+}
+
+export async function trilha() {
+  return (await db.todos("trilha")).sort((a, b) => a.quando - b.quando);
+}
+
+/**
+ * Avisa ao entrar numa zona marcada, uma vez por entrada.
+ *
+ * Uma vez por ENTRADA e não por ponto: o GPS entrega posição a cada poucos
+ * segundos, e um aviso repetido a cada leitura vira ruído que ele desliga.
+ */
+function verZona(ponto) {
+  const zonas = cfg("zonasRisco") || [];
+  const achada = Z.avaliar(ponto, zonas);
+  const chave = achada ? `${achada.id}:${achada.dentro ? "dentro" : "perto"}` : null;
+
+  // Publica a posição para o serviço de acessibilidade, que não tem GPS
+  // próprio: é ela que permite o selo dizer em que zona ele está.
+  document.dispatchEvent(new CustomEvent("copiloto:posicao", { detail: { ponto, zona: achada } }));
+
+  if (chave === zonaAtual) return;
+  zonaAtual = chave;
+  if (!achada) return;
+
+  document.dispatchEvent(new CustomEvent("copiloto:zona", { detail: achada }));
+}
+
+export function zonaDeAgora() {
+  return zonaAtual;
+}
+
 /* --------------------------------------------------------------- rastreio */
 
 /**
@@ -249,6 +309,10 @@ export async function ligarRastreio(jornada = jornadaAtiva()) {
       atual.kmGps = km;
       await db.put("jornadas", atual);
       notificar();
+    },
+    aoPonto: (ponto) => {
+      registrarNaTrilha(ponto).catch(() => {});
+      verZona({ lat: ponto.lat, lon: ponto.lon });
     },
   });
 }

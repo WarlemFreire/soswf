@@ -52,7 +52,7 @@ public final class Sobreposicao {
         return Settings.canDrawOverlays(contexto);
     }
 
-    public void mostrar(Oferta oferta, Oferta.Veredito veredito, Areas area) {
+    public void mostrar(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area) {
         if (!permitido(contexto) || veredito == null) return;
         mao.post(() -> desenhar(oferta, veredito, area));
     }
@@ -61,7 +61,7 @@ public final class Sobreposicao {
         mao.post(this::remover);
     }
 
-    private void desenhar(Oferta oferta, Oferta.Veredito veredito, Areas area) {
+    private void desenhar(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area) {
         remover();
 
         if (janelas == null) {
@@ -97,7 +97,7 @@ public final class Sobreposicao {
         mao.postDelayed(this::remover, VIDA_MS);
     }
 
-    private View montarSelo(Oferta oferta, Oferta.Veredito veredito, Areas area) {
+    private View montarSelo(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area) {
         LinearLayout caixa = new LinearLayout(contexto);
         caixa.setOrientation(LinearLayout.VERTICAL);
         caixa.setPadding(dp(14), dp(10), dp(14), dp(12));
@@ -135,7 +135,7 @@ public final class Sobreposicao {
         // area que voce marcou" sao decisoes diferentes.
         if (area != null) {
             TextView zona = new TextView(contexto);
-            zona.setText((area.deveRecusar() ? "⛔ " : "⚠ ") + area.nome);
+            zona.setText((area.deveRecusar() ? "⛔ " : "⚠ ") + area.rotulo());
             zona.setTextColor(cor(area.deveRecusar() ? Oferta.Veredito.RECUSAR : Oferta.Veredito.FRACA));
             zona.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             zona.setTypeface(null, android.graphics.Typeface.BOLD);

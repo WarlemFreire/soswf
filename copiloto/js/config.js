@@ -105,10 +105,14 @@ export const CONFIG_PADRAO = {
   // O que a plataforma informou ter pago, por período. Chave = período.
   conciliacoes: {},
 
-  // Areas que ele nao quer pegar, casadas contra o texto da oferta pelo
-  // semaforo. Lista propria dele: o app nao tem, e nao deveria ter, opiniao
-  // sobre qual bairro e perigoso.
-  areasRisco: [],
+  // Areas que ele nao quer pegar: desenho no mapa, mais os nomes que as
+  // plataformas usam para o mesmo lugar. Lista propria dele -- o app nao tem, e
+  // nao deveria ter, opiniao sobre qual bairro e perigoso.
+  //
+  // O desenho e a identidade estavel e alcanca o INICIO da corrida, pelo GPS.
+  // O nome e apelido do desenho e alcanca o DESTINO, que so existe como texto
+  // na tela. Plataforma renomeia bairro; coordenada nao muda.
+  zonasRisco: [],
   // Ultimo alvo de R$/h usado no orcamento de particular.
   alvoHoraOrcamento: 40,
   vibrar: true,

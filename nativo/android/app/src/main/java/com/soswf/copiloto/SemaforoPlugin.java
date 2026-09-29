@@ -47,7 +47,7 @@ public class SemaforoPlugin extends Plugin {
     }
 
     /** Chamado pelo servico a cada oferta julgada. */
-    public static void avisarOferta(Oferta oferta, Oferta.Veredito veredito, String periodo, Areas area) {
+    public static void avisarOferta(Oferta oferta, Oferta.Veredito veredito, String periodo, Zonas.Achado area) {
         SemaforoPlugin p = instancia;
         if (p == null || oferta == null || veredito == null) return;
 
@@ -60,8 +60,9 @@ public class SemaforoPlugin extends Plugin {
         dados.put("veredito", veredito.name().toLowerCase(java.util.Locale.ROOT));
         dados.put("periodo", periodo == null ? "" : periodo);
         dados.put("quando", System.currentTimeMillis());
-        dados.put("area", area == null ? "" : area.nome);
-        dados.put("areaNivel", area == null ? "" : area.nivel);
+        dados.put("area", area == null ? "" : area.zona.nome);
+        dados.put("areaNivel", area == null ? "" : area.zona.nivel);
+        dados.put("areaMotivo", area == null ? "" : area.motivo);
         p.notifyListeners("oferta", dados);
     }
 
@@ -104,13 +105,30 @@ public class SemaforoPlugin extends Plugin {
     }
 
     /**
-     * Recebe as areas de risco, ja normalizadas pelo JavaScript. Ver Areas.java
-     * para por que a normalizacao nao e refeita aqui.
+     * Recebe as areas de risco: desenho no mapa e apelidos, ja normalizados
+     * pelo JavaScript. Ver Zonas.java para por que os dois convivem.
      */
     @PluginMethod
-    public void definirAreas(PluginCall chamada) {
-        com.getcapacitor.JSArray areas = chamada.getArray("areas");
-        Areas.gravar(getContext(), areas == null ? "[]" : areas.toString());
+    public void definirZonas(PluginCall chamada) {
+        com.getcapacitor.JSArray zonas = chamada.getArray("zonas");
+        Zonas.gravar(getContext(), zonas == null ? "[]" : zonas.toString());
+        chamada.resolve();
+    }
+
+    /**
+     * Onde ele esta agora. O servico de acessibilidade roda em processo proprio
+     * e nao tem GPS; e esta posicao que permite dizer "a corrida comeca numa
+     * area marcada" sem esperar por nada no instante da oferta.
+     */
+    @PluginMethod
+    public void definirPosicao(PluginCall chamada) {
+        Double lat = chamada.getDouble("lat");
+        Double lon = chamada.getDouble("lon");
+        if (lat == null || lon == null || lat.isNaN() || lon.isNaN()) {
+            chamada.resolve();
+            return;
+        }
+        Zonas.gravarPosicao(getContext(), lat, lon, System.currentTimeMillis());
         chamada.resolve();
     }
 
