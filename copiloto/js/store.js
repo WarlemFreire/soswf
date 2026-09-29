@@ -6,6 +6,7 @@ import { cfg, configAtual, salvarConfig, PLATAFORMAS } from "./config.js";
 import * as M from "./metrics.js";
 import * as F from "./faixas.js";
 import { posicaoAgora, distanciaKm, manterTelaLigada, liberarTela } from "./geo.js";
+import * as rastreio from "./rastreio.js";
 
 const estado = {
   jornada: null,
@@ -84,6 +85,9 @@ export async function carregarJornadaAberta() {
   Object.assign(estado, { jornada: aberta }, carga, dia);
 
   if (aberta && cfg("manterTelaLigada")) manterTelaLigada();
+  // Reabrir o app no meio do turno tem que voltar a medir, retomando de onde
+  // o acumulado parou — não zerar e não medir duas vezes o mesmo trecho.
+  if (aberta && cfg("rastrearKm")) ligarRastreio(aberta);
   notificar();
   return aberta;
 }
@@ -206,6 +210,9 @@ export async function abrirJornada({ odometroInicio, metas, saldoInicial }) {
     observacoes: "",
     status: "aberta",
     criadaEm: agora,
+    // Acumulado do GPS. Fica na jornada (e não em memória) para o app ser
+    // morto pelo Android no meio do turno e não perder o km já medido.
+    kmGps: 0,
   };
   await db.put("jornadas", jornada);
   estado.jornada = jornada;
@@ -215,8 +222,50 @@ export async function abrirJornada({ odometroInicio, metas, saldoInicial }) {
   estado.custos = [];
   await carregarDia(jornada.data);
   if (cfg("manterTelaLigada")) manterTelaLigada();
+  if (cfg("rastrearKm")) ligarRastreio(jornada);
   notificar();
   return jornada;
+}
+
+/* --------------------------------------------------------------- rastreio */
+
+/**
+ * Liga o acumulador de km da jornada aberta.
+ *
+ * Retoma de `kmGps` em vez de zerar: reabrir o app no meio do turno, ou o
+ * Android matar o processo e o motorista voltar, não pode apagar o que já foi
+ * medido.
+ */
+export async function ligarRastreio(jornada = jornadaAtiva()) {
+  if (!jornada || jornada.status !== "aberta") return false;
+  if (!rastreio.disponivel() || rastreio.estaRastreando()) return false;
+
+  return rastreio.iniciar({
+    kmInicial: Number(jornada.kmGps) || 0,
+    aoAcumular: async (km) => {
+      const atual = jornadaAtiva();
+      // A jornada pode ter fechado entre dois pontos do GPS.
+      if (!atual || atual.id !== jornada.id) return;
+      atual.kmGps = km;
+      await db.put("jornadas", atual);
+      notificar();
+    },
+  });
+}
+
+export async function desligarRastreio() {
+  if (!rastreio.estaRastreando()) return;
+  const km = await rastreio.parar();
+  const atual = jornadaAtiva();
+  if (atual) {
+    atual.kmGps = km;
+    await db.put("jornadas", atual);
+    notificar();
+  }
+}
+
+export function rastreando() {
+  return rastreio.estaRastreando();
 }
 
 export async function fecharJornada({ odometroFim, observacoes } = {}) {
@@ -226,8 +275,13 @@ export async function fecharJornada({ odometroFim, observacoes } = {}) {
   if (M.pausaAberta(estado.pausas)) await encerrarPausa();
   await liberarTela();
 
+  // Para antes de montar `fechada`: o último trecho medido tem que entrar no
+  // objeto que vai para o banco, senão o km do fim do turno se perde.
+  const kmGps = rastreio.estaRastreando() ? await rastreio.parar() : jornada.kmGps;
+
   const fechada = {
     ...jornada,
+    kmGps: kmGps ?? jornada.kmGps ?? 0,
     horaFim: Date.now(),
     odometroFim: odometroOuNulo(odometroFim),
     observacoes: observacoes ?? jornada.observacoes ?? "",

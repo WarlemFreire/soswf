@@ -90,6 +90,10 @@ export const CONFIG_PADRAO = {
 
   marcarPosicao: true,
   manterTelaLigada: true,
+  // Mede o km por GPS durante a jornada. Só funciona no app nativo, e liga por
+  // padrão porque é o que tira o odômetro da mão — o atrito que fazia o km
+  // faltar. O odômetro digitado continua valendo mais quando existir.
+  rastrearKm: true,
   vibrar: true,
   tts: false,
   tema: "auto",

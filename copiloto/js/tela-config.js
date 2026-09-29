@@ -84,6 +84,9 @@ export function montarConfig(raiz) {
 
     secao("No carro", [
       interruptor("Marcar a zona no registro (GPS)", "marcarPosicao"),
+      interruptor("Medir o km por GPS", "rastrearKm", {
+        aoMudar: (ligado) => (ligado ? store.ligarRastreio() : store.desligarRastreio()),
+      }),
       interruptor("Manter a tela ligada", "manterTelaLigada", {
         aoMudar: (ligado) => (ligado ? manterTelaLigada() : liberarTela()),
       }),

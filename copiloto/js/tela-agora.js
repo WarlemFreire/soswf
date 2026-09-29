@@ -391,6 +391,9 @@ function tileKm(m) {
     valorDia: m.reaisPorKm,
     nivelDia: m.nivelKm,
     casas: 2,
+    // GPS é estimativa; odômetro é medição. Quem usa esse número para aceitar
+    // corrida tem direito de saber qual dos dois está vendo.
+    sufixoDia: m.fonteKm === "gps" ? " ᴳᴾˢ" : "",
   });
 }
 

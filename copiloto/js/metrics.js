@@ -177,16 +177,38 @@ export function msAtivo(jornada, pausas, agora = Date.now()) {
 /* ---------------------------------------------------------------------- km */
 
 /**
- * O km vem só do odômetro do painel, digitado. A medição por GPS foi removida
- * depois de errar por mais da metade numa noite real: o navegador suspende a
- * geolocalização quando o app sai de primeiro plano, e o motorista passa a
- * jornada dentro do app da plataforma.
+ * O km tem duas origens possíveis, e elas NÃO se somam.
  *
- * Sem odômetro digitado o km fica em zero e as métricas que dependem dele
+ * ODÔMETRO — digitado do painel. É a verdade: mede o que o carro andou,
+ * inclusive o que o GPS perde em túnel e em prédio alto.
+ *
+ * GPS — acumulado pelo rastreio nativo (`kmGps` na jornada). Existe porque
+ * anotar odômetro nas duas pontas de cada trecho é o atrito que na prática
+ * fazia o km faltar. Mede a mesma grandeza: distância percorrida na jornada,
+ * km vazio incluído.
+ *
+ * O odômetro ganha sempre que existir, porque é medição direta contra
+ * estimativa. Na web, onde não há rastreio, isto se comporta exatamente como
+ * antes: a geolocalização do navegador é suspensa quando o app sai de primeiro
+ * plano, e o motorista passa a jornada dentro do app da plataforma -- foi por
+ * isso que a medição por GPS saiu da versão web.
+ *
+ * Sem nenhuma das duas o km fica em zero e as métricas que dependem dele
  * mostram "—". É de propósito: melhor não ter número do que ter um inventado.
  */
+export function kmComFonte(jornada, registros) {
+  const odometro = kmAte(jornada, registros, Infinity);
+  if (odometro > 0) return { km: odometro, fonte: "odometro" };
+
+  const gps = Number(jornada?.kmGps);
+  if (Number.isFinite(gps) && gps > 0) return { km: gps, fonte: "gps" };
+
+  return { km: 0, fonte: null };
+}
+
+/** O km da jornada, de onde quer que ele venha. Ver `kmComFonte`. */
 export function kmPercorrido(jornada, registros) {
-  return kmAte(jornada, registros, Infinity);
+  return kmComFonte(jornada, registros).km;
 }
 
 /** Km percorrido até um instante, para medir a janela do bloco. */
@@ -307,7 +329,7 @@ export function metricasAoVivo({
   const saldoDia = saldoTotal(eventos);
   const ganho = ganhoDaJornada(eventos, jornada);
   const ativo = msAtivo(jornada, pausas, agora);
-  const km = kmPercorrido(jornada, validos);
+  const { km, fonte: fonteKm } = kmComFonte(jornada, validos);
 
   const rh = reaisPorHora(ganho, ativo);
   const rk = reaisPorKm(ganho, km);
@@ -335,6 +357,10 @@ export function metricasAoVivo({
     msRua: msRua(jornada, agora),
     msPausado: msPausado(pausas, agora),
     km,
+    // "odometro", "gps" ou null. A tela precisa dizer de onde o número veio:
+    // GPS é estimativa, odômetro é medição, e quem decide corrida com esse
+    // número tem direito de saber a diferença.
+    fonteKm,
     ancoras: ancorasOdometro(validos),
     reaisPorHora: rh,
     reaisPorKm: rk,
