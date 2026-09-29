@@ -47,7 +47,7 @@ public class SemaforoPlugin extends Plugin {
     }
 
     /** Chamado pelo servico a cada oferta julgada. */
-    public static void avisarOferta(Oferta oferta, Oferta.Veredito veredito, String periodo) {
+    public static void avisarOferta(Oferta oferta, Oferta.Veredito veredito, String periodo, Areas area) {
         SemaforoPlugin p = instancia;
         if (p == null || oferta == null || veredito == null) return;
 
@@ -60,6 +60,8 @@ public class SemaforoPlugin extends Plugin {
         dados.put("veredito", veredito.name().toLowerCase(java.util.Locale.ROOT));
         dados.put("periodo", periodo == null ? "" : periodo);
         dados.put("quando", System.currentTimeMillis());
+        dados.put("area", area == null ? "" : area.nome);
+        dados.put("areaNivel", area == null ? "" : area.nivel);
         p.notifyListeners("oferta", dados);
     }
 
@@ -98,6 +100,17 @@ public class SemaforoPlugin extends Plugin {
                 valor(chamada, "pisoKm"),
                 valor(chamada, "custoKm"),
                 chamada.getString("periodo", ""));
+        chamada.resolve();
+    }
+
+    /**
+     * Recebe as areas de risco, ja normalizadas pelo JavaScript. Ver Areas.java
+     * para por que a normalizacao nao e refeita aqui.
+     */
+    @PluginMethod
+    public void definirAreas(PluginCall chamada) {
+        com.getcapacitor.JSArray areas = chamada.getArray("areas");
+        Areas.gravar(getContext(), areas == null ? "[]" : areas.toString());
         chamada.resolve();
     }
 

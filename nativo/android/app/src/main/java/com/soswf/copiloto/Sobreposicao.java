@@ -52,16 +52,16 @@ public final class Sobreposicao {
         return Settings.canDrawOverlays(contexto);
     }
 
-    public void mostrar(Oferta oferta, Oferta.Veredito veredito) {
+    public void mostrar(Oferta oferta, Oferta.Veredito veredito, Areas area) {
         if (!permitido(contexto) || veredito == null) return;
-        mao.post(() -> desenhar(oferta, veredito));
+        mao.post(() -> desenhar(oferta, veredito, area));
     }
 
     public void esconder() {
         mao.post(this::remover);
     }
 
-    private void desenhar(Oferta oferta, Oferta.Veredito veredito) {
+    private void desenhar(Oferta oferta, Oferta.Veredito veredito, Areas area) {
         remover();
 
         if (janelas == null) {
@@ -69,7 +69,7 @@ public final class Sobreposicao {
         }
         if (janelas == null) return;
 
-        selo = montarSelo(oferta, veredito);
+        selo = montarSelo(oferta, veredito, area);
 
         WindowManager.LayoutParams p = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -97,7 +97,7 @@ public final class Sobreposicao {
         mao.postDelayed(this::remover, VIDA_MS);
     }
 
-    private View montarSelo(Oferta oferta, Oferta.Veredito veredito) {
+    private View montarSelo(Oferta oferta, Oferta.Veredito veredito, Areas area) {
         LinearLayout caixa = new LinearLayout(contexto);
         caixa.setOrientation(LinearLayout.VERTICAL);
         caixa.setPadding(dp(14), dp(10), dp(14), dp(12));
@@ -129,6 +129,19 @@ public final class Sobreposicao {
         numeros.setTextColor(Color.parseColor("#F2F6FB"));
         numeros.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         caixa.addView(numeros);
+
+        // A area entra como LINHA PROPRIA, nao como cor: o motivo de recusar
+        // muda o que ele faz. "Recusar porque paga mal" e "recusar porque e
+        // area que voce marcou" sao decisoes diferentes.
+        if (area != null) {
+            TextView zona = new TextView(contexto);
+            zona.setText((area.deveRecusar() ? "⛔ " : "⚠ ") + area.nome);
+            zona.setTextColor(cor(area.deveRecusar() ? Oferta.Veredito.RECUSAR : Oferta.Veredito.FRACA));
+            zona.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            zona.setTypeface(null, android.graphics.Typeface.BOLD);
+            zona.setPadding(0, dp(6), 0, 0);
+            caixa.addView(zona);
+        }
 
         return caixa;
     }

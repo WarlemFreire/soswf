@@ -104,6 +104,13 @@ export const CONFIG_PADRAO = {
   impostoPct: 0,
   // O que a plataforma informou ter pago, por período. Chave = período.
   conciliacoes: {},
+
+  // Areas que ele nao quer pegar, casadas contra o texto da oferta pelo
+  // semaforo. Lista propria dele: o app nao tem, e nao deveria ter, opiniao
+  // sobre qual bairro e perigoso.
+  areasRisco: [],
+  // Ultimo alvo de R$/h usado no orcamento de particular.
+  alvoHoraOrcamento: 40,
   vibrar: true,
   tts: false,
   tema: "auto",

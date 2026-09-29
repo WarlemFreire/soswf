@@ -1,6 +1,6 @@
 // tela-config.js — todos os numeros do "cerebro" ficam editaveis aqui.
 
-import { el, limpar, abrirFolha } from "./ui.js";
+import { el, limpar, abrirFolha, chips } from "./ui.js";
 import * as M from "./metrics.js";
 import {
   cfg, configAtual, salvarConfig, restaurarPadroes,
@@ -17,6 +17,7 @@ import { db } from "./db.js";
 import { manterTelaLigada, liberarTela } from "./geo.js";
 import { abrirCusto, painelCombustivel } from "./tela-custo.js";
 import * as semaforo from "./semaforo.js";
+import * as risco from "./risco.js";
 
 export function montarConfig(raiz) {
   limpar(raiz);
@@ -127,10 +128,14 @@ function secaoSemaforo() {
     const filhos = [el("h2", { class: "secao__titulo" }, "Semáforo de ofertas")];
 
     if (!e.suportado) {
+      // A lista de áreas continua aqui de propósito: ela é dado dele, e vale
+      // cadastrar no navegador para já chegar pronta quando abrir o aplicativo.
       filhos.push(
         el("p", { class: "campo__ajuda" },
-          "Só no aplicativo instalado. O navegador não pode ler a tela de outro aplicativo."
-        )
+          "O semáforo só funciona no aplicativo instalado: o navegador não pode " +
+          "ler a tela de outro aplicativo. As áreas abaixo já podem ser marcadas."
+        ),
+        listaDeAreas(() => pintar())
       );
       caixa.replaceChildren(...filhos);
       return;
@@ -188,6 +193,8 @@ function secaoSemaforo() {
       );
     }
 
+    filhos.push(listaDeAreas(() => pintar()));
+
     caixa.replaceChildren(...filhos);
   };
 
@@ -197,6 +204,124 @@ function secaoSemaforo() {
     if (document.visibilityState === "visible") pintar();
   });
   return caixa;
+}
+
+/**
+ * As áreas que ele não quer pegar.
+ *
+ * Casadas por NOME contra o texto da oferta, não por raio no mapa: no instante
+ * da oferta o app sabe onde ELE está, não para onde a corrida vai — o destino
+ * só existe como texto na tela. Ver risco.js.
+ */
+function listaDeAreas(repintar) {
+  const areas = cfg("areasRisco") || [];
+
+  return el(
+    "div",
+    { class: "areas" },
+    el("h3", { class: "areas__titulo" }, "Áreas que eu não pego"),
+    areas.length
+      ? el("div", { class: "areas__lista" },
+          ...areas.map((a) =>
+            el("button", {
+              type: "button",
+              class: `areas__item ${a.ativa === false ? "areas__item--off" : ""}`.trim(),
+              onClick: () => editarArea(a, repintar),
+            },
+              el("span", { class: `areas__selo areas__selo--${a.nivel}` },
+                a.nivel === "evitar" ? "não pegar" : "atenção"),
+              el("span", { class: "areas__nome" }, a.nome),
+              el("small", { class: "areas__termos" }, (a.termos || []).join(" · ")),
+            )
+          ),
+        )
+      : el("p", { class: "campo__ajuda" },
+          "Nenhuma área marcada. O semáforo avisa quando o nome de uma delas " +
+          "aparecer na oferta."),
+    el("button", {
+      type: "button",
+      class: "botao fin__acao",
+      onClick: () => editarArea(null, repintar),
+    }, "Marcar uma área"),
+  );
+}
+
+async function editarArea(area, repintar) {
+  const nome = el("input", {
+    class: "campo-texto",
+    type: "text",
+    value: area?.nome || "",
+    placeholder: "Como você chama a área",
+    maxLength: 40,
+  });
+  const termos = el("input", {
+    class: "campo-texto",
+    type: "text",
+    value: (area?.termos || []).join(", "),
+    placeholder: "Morro do Papagaio, Alto Vera Cruz",
+  });
+
+  let nivel = area?.nivel || "atencao";
+  const escolhaNivel = chips(risco.NIVEIS.map((n) => ({ id: n.id, nome: n.nome })), {
+    selecionado: nivel,
+    aoEscolher: (id) => {
+      nivel = id;
+    },
+  });
+
+  abrirFolha({
+    titulo: area ? "Editar área" : "Marcar área",
+    classe: "folha--alta",
+    conteudo: [
+      el("label", { class: "perfil__rotulo" }, "Nome"),
+      nome,
+      el("label", { class: "perfil__rotulo" }, "Nomes que aparecem na oferta"),
+      termos,
+      el("p", { class: "folha__ajuda" },
+        "Separe por vírgula. O aviso só dispara com a palavra inteira, então " +
+        "\"Ana\" não casa dentro de \"Cabana\". Termos de menos de três letras " +
+        "são ignorados, porque casariam com meia cidade."),
+      escolhaNivel,
+      el("p", { class: "folha__ajuda" },
+        "\"Não pegar\" recusa mesmo com o valor bom. \"Atenção\" só avisa."),
+    ],
+    rodape: (folha) => [
+      area
+        ? el("button", {
+            type: "button",
+            class: "botao botao--perigo",
+            onClick: async () => {
+              await salvarConfig("areasRisco", (cfg("areasRisco") || []).filter((x) => x.id !== area.id));
+              await semaforo.sincronizarAreas();
+              folha.fechar();
+              repintar();
+            },
+          }, "Apagar")
+        : null,
+      el("button", {
+        type: "button",
+        class: "botao botao--primario botao--gigante",
+        onClick: async () => {
+          const limpa = risco.normalizarArea({
+            id: area?.id,
+            nome: nome.value,
+            nivel,
+            termos: termos.value.split(","),
+          });
+          if (!limpa.termos.length) {
+            mostrarToast({ titulo: "Falta um nome com três letras ou mais", tom: "alerta" });
+            return;
+          }
+          const atuais = (cfg("areasRisco") || []).filter((x) => x.id !== limpa.id);
+          await salvarConfig("areasRisco", [...atuais, limpa]);
+          await semaforo.sincronizarAreas();
+          vibrar(20);
+          folha.fechar();
+          repintar();
+        },
+      }, "Salvar"),
+    ].filter(Boolean),
+  });
 }
 
 function pendencia(texto, rotuloBotao, acao) {

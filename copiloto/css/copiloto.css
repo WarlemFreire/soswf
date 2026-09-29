@@ -1391,3 +1391,66 @@ button { cursor: pointer; border: 0; background: none; }
   font-size: 44px; text-align: center; padding: 18px 0 10px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ------------------------------------------------------------- orçamento */
+
+.orc__topo { text-align: center; padding: 6px 0 14px; border-bottom: 1px solid var(--linha); }
+.orc__preco { font-size: 52px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.orc__explica-linha { margin: 4px 0 0; font-size: 14px; color: var(--tinta-fraca); }
+
+.orc__campos { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.orc__campo {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 64px; padding: 0 16px;
+  border-radius: var(--raio-m); border: 1px solid var(--linha);
+  background: var(--fundo-cartao); color: var(--tinta); font-size: 16px;
+}
+.orc__campo-rotulo { text-align: left; }
+.orc__campo-valor { font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.orc__detalhe { border-top: 1px solid var(--linha); padding-top: 10px; }
+.orc__linha {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--linha);
+}
+.orc__linha:last-child { border-bottom: 0; }
+.orc__linha--destaque { border-top: 2px solid var(--linha); margin-top: 4px; padding-top: 12px; }
+.orc__linha-rotulo { display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
+.orc__linha-rotulo small { font-size: 12px; color: var(--tinta-fraca); }
+.orc__linha strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.orc__salvos { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.orc__salvo {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--raio-m); background: var(--fundo);
+}
+.orc__salvo-texto { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.orc__salvo-texto strong { font-size: 19px; font-variant-numeric: tabular-nums; }
+.orc__salvo-texto small { font-size: 12px; color: var(--tinta-fraca); }
+.orc__apagar {
+  width: 64px; height: 64px; flex-shrink: 0;
+  border: 0; background: transparent; color: var(--tinta-fraca); font-size: 20px;
+}
+
+/* --------------------------------------------------------- áreas de risco */
+
+.areas { margin-top: 18px; }
+.areas__titulo { font-size: 15px; margin: 0 0 10px; color: var(--tinta-fraca); font-weight: 700; }
+.areas__lista { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.areas__item {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center;
+  width: 100%; min-height: 64px; padding: 10px 14px; text-align: left;
+  border-radius: var(--raio-m); border: 1px solid var(--linha);
+  background: var(--fundo-cartao); color: var(--tinta);
+}
+.areas__item--off { opacity: 0.55; }
+.areas__selo {
+  grid-row: span 2; align-self: center;
+  padding: 4px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em; white-space: nowrap;
+}
+/* Palavra junto da cor: o motivo de recusar muda o que ele faz. */
+.areas__selo--evitar { background: var(--zona-abaixo); color: var(--tinta); }
+.areas__selo--atencao { background: var(--zona-piso); color: var(--tinta); }
+.areas__nome { font-size: 16px; }
+.areas__termos { font-size: 12px; color: var(--tinta-fraca); }

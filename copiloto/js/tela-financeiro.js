@@ -15,6 +15,7 @@ import * as F from "./financeiro.js";
 import { db } from "./db.js";
 import { Teclado } from "./keypad.js";
 import { vibrar, mostrarToast } from "./feedback.js";
+import { abrirOrcamento, orcamentosSalvos, apagarOrcamento } from "./tela-orcamento.js";
 
 /** Quantos períodos a barra do "para onde vai" mostra. */
 const PERIODOS_NA_SERIE = { semana: 8, mes: 6 };
@@ -27,13 +28,15 @@ export async function montarFinanceiro(raiz) {
 
   const resumos = await store.historico();
   const custos = await db.todos("custos");
+  const orcamentos = await orcamentosSalvos();
   const config = configAtual();
   const energiaKm = M.analiseAbastecimentos(custos).porKm;
 
   limpar(raiz);
   raiz.append(
     seletorDeJanela(() => montarFinanceiro(raiz)),
-    ...conteudo(resumos, { config, energiaKm })
+    ...conteudo(resumos, { config, energiaKm }),
+    cartaoOrcamento(orcamentos, () => montarFinanceiro(raiz))
   );
 }
 
@@ -59,6 +62,57 @@ function conteudo(resumos, { config, energiaKm }) {
     cartaoParaOndeVai(periodos, fechado),
     cartaoConciliacao(periodos[0], atual),
   ];
+}
+
+/* ------------------------------------------------------------- orçamento */
+
+/**
+ * Orçamento de corrida particular.
+ *
+ * Fica no Financeiro e não numa aba própria porque é decisão de preço, e
+ * porque ele orça parado — esperando o cliente responder, não dirigindo.
+ */
+function cartaoOrcamento(orcamentos, repintar) {
+  return el(
+    "section",
+    { class: "cartao" },
+    el("h2", { class: "cartao__titulo" }, "Orçar particular"),
+    el("p", { class: "cartao__nota" },
+      "Conta o km e o tempo que a corrida ocupa de verdade, incluindo a ida até " +
+      "o cliente e a volta vazia."),
+
+    orcamentos.length
+      ? el("div", { class: "orc__salvos" },
+          ...orcamentos.map((o) =>
+            el("div", { class: "orc__salvo" },
+              el("div", { class: "orc__salvo-texto" },
+                el("strong", {}, `R$ ${M.formatarReais(o.preco, { comCentavos: false })}`),
+                el("small", {},
+                  `${o.km} km · ${o.minutos} min · ` +
+                  `${o.reaisPorHora == null ? "—" : `${o.reaisPorHora.toFixed(0)} R$/h`} · ` +
+                  M.formatarData(o.timestamp)),
+              ),
+              el("button", {
+                type: "button",
+                class: "orc__apagar",
+                "aria-label": "Apagar orçamento",
+                onClick: async () => {
+                  await apagarOrcamento(o.id);
+                  vibrar(8);
+                  repintar();
+                },
+              }, "✕"),
+            )
+          ),
+        )
+      : null,
+
+    el("button", {
+      type: "button",
+      class: "botao botao--primario fin__acao",
+      onClick: () => abrirOrcamento(repintar),
+    }, "Fazer um orçamento"),
+  );
 }
 
 /* ------------------------------------------------------- entrada de número */

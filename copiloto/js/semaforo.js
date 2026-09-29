@@ -23,8 +23,9 @@
 import { nativo } from "./plataforma.js";
 import * as store from "./store.js";
 import * as M from "./metrics.js";
-import { custoTotalKm } from "./config.js";
+import { custoTotalKm, configAtual } from "./config.js";
 import { db, novoId } from "./db.js";
+import * as risco from "./risco.js";
 
 function plugin() {
   return globalThis.Capacitor?.Plugins?.Semaforo ?? null;
@@ -92,6 +93,17 @@ export function cortesAgora(agora = Date.now(), { aceite, config } = {}) {
   };
 }
 
+/** Manda as áreas de risco para o serviço, já normalizadas. */
+export async function sincronizarAreas() {
+  if (!disponivel()) return false;
+  await plugin().definirAreas({ areas: risco.paraOServico(cfgAreas()) });
+  return true;
+}
+
+function cfgAreas() {
+  return configAtual().areasRisco || [];
+}
+
 /** Manda os cortes para o serviço. Barato: é uma escrita em SharedPreferences. */
 export async function sincronizar(agora = Date.now()) {
   if (!disponivel()) return false;
@@ -124,6 +136,8 @@ async function guardar(oferta) {
     reaisPorHora: Number(oferta.reaisPorHora) || 0,
     veredito: String(oferta.veredito || ""),
     periodo: String(oferta.periodo || ""),
+    area: String(oferta.area || ""),
+    areaNivel: String(oferta.areaNivel || ""),
     // Preenchido a mão depois, quando ele quiser conferir se a leitura bateu.
     conferida: null,
   };
@@ -151,6 +165,7 @@ export async function iniciar() {
   });
 
   await sincronizar();
+  await sincronizarAreas();
 
   // Uma corrida nova muda a distribuição; a virada de período muda o corte.
   store.assinar(() => {
@@ -162,6 +177,7 @@ export async function iniciar() {
 
   document.addEventListener("copiloto:config", () => {
     sincronizar().catch(() => {});
+    sincronizarAreas().catch(() => {});
   });
   return true;
 }
