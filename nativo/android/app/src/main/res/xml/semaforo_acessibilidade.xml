@@ -8,7 +8,7 @@
   - typeWindowContentChanged e typeWindowStateChanged bastam: sao os eventos em
     que um cartao de oferta aparece. Nao pedimos toque, foco nem digitacao.
   - packageNames limita ao que interessa. Sem isso o servico receberia evento de
-    banco, mensagem e tudo mais -- e ele nao tem nada que ver isso.
+    banco, mensagem e tudo mais, e ele nao tem nada que ver isso.
   - notificationTimeout segura a enxurrada: a tela muda muitas vezes por
     segundo, e nenhuma decisao precisa dessa frequencia.
 
