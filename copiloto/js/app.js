@@ -14,6 +14,7 @@ import { religarAoVoltar, manterTelaLigada } from "./geo.js";
 import { mostrarToast, vibrar, falar } from "./feedback.js";
 import { formatarDuracao, MINUTO } from "./metrics.js";
 import { nativo } from "./plataforma.js";
+import * as semaforo from "./semaforo.js";
 
 const TELAS = {
   agora: () => {},
@@ -34,6 +35,9 @@ async function iniciar() {
   montarTopbar(document.getElementById("topbar"));
   document.addEventListener("copiloto:config", atualizarTopbar);
   await store.carregarJornadaAberta();
+  // Depois da jornada: o semáforo precisa da referência de aceite já carregada
+  // para mandar cortes verdadeiros, e não zeros, ao serviço.
+  if (cfg("semaforoLigado")) semaforo.iniciar();
 
   let aberta = "agora";
   const abrirTela = (id, { doHistorico = false } = {}) => {

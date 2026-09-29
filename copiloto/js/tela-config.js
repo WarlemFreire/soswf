@@ -16,6 +16,7 @@ import {
 import { db } from "./db.js";
 import { manterTelaLigada, liberarTela } from "./geo.js";
 import { abrirCusto, painelCombustivel } from "./tela-custo.js";
+import * as semaforo from "./semaforo.js";
 
 export function montarConfig(raiz) {
   limpar(raiz);
@@ -82,6 +83,8 @@ export function montarConfig(raiz) {
       ),
     ]),
 
+    secaoSemaforo(),
+
     secao("No carro", [
       interruptor("Marcar a zona no registro (GPS)", "marcarPosicao"),
       interruptor("Medir o km por GPS", "rastrearKm", {
@@ -107,6 +110,103 @@ export function montarConfig(raiz) {
 }
 
 /* ------------------------------------------------------------ componentes */
+
+/**
+ * O semáforo de ofertas. Seção própria porque depende de duas permissões que só
+ * o usuário concede, na tela do Android — e porque cada uma, faltando, deixa o
+ * recurso mudo de um jeito diferente. Dizer qual está faltando é a diferença
+ * entre "não funciona" e "falta um toque aqui".
+ */
+function secaoSemaforo() {
+  const caixa = el("div", { class: "config__secao" });
+
+  const pintar = async () => {
+    const e = await semaforo.estado();
+    const cortes = semaforo.cortesAgora();
+
+    const filhos = [el("h2", { class: "secao__titulo" }, "Semáforo de ofertas")];
+
+    if (!e.suportado) {
+      filhos.push(
+        el("p", { class: "campo__ajuda" },
+          "Só no aplicativo instalado. O navegador não pode ler a tela de outro aplicativo."
+        )
+      );
+      caixa.replaceChildren(...filhos);
+      return;
+    }
+
+    filhos.push(
+      el("p", { class: "campo__ajuda" },
+        "Lê o valor, o km e o tempo da oferta na tela da plataforma e mostra na hora " +
+        "se ela paga acima do seu piso. O texto lido não é gravado nem enviado para " +
+        "nenhum lugar."
+      ),
+      interruptor("Ligado", "semaforoLigado", {
+        ler: () => !!cfg("semaforoLigado"),
+        gravar: async (v) => {
+          await salvarConfig("semaforoLigado", v);
+          await semaforo.ligar(v);
+        },
+        aoMudar: () => pintar(),
+      })
+    );
+
+    // Cada pendência é uma linha com o botão que resolve ela.
+    if (!e.acessibilidadeAtiva) {
+      filhos.push(
+        pendencia(
+          "Falta autorizar a leitura de tela",
+          "Abrir acessibilidade",
+          () => semaforo.abrirAcessibilidade()
+        )
+      );
+    }
+    if (!e.podeSobrepor) {
+      filhos.push(
+        pendencia(
+          "Falta autorizar desenhar sobre outros aplicativos",
+          "Abrir permissão",
+          () => semaforo.abrirSobreposicao()
+        )
+      );
+    }
+    if (!cortes) {
+      filhos.push(
+        el("p", { class: "campo__ajuda" },
+          "Ainda sem histórico suficiente nesta faixa horária. Até ter, o selo não " +
+          "aparece — melhor calado do que com cor chutada."
+        )
+      );
+    } else {
+      filhos.push(
+        el("p", { class: "campo__ajuda" },
+          `Agora (${cortes.periodo}): recusar abaixo de ${cortes.pisoHora.toFixed(0)} R$/h. ` +
+          `Boa a partir de ${cortes.idealHora.toFixed(0)}, ótima de ${cortes.otimoHora.toFixed(0)}. ` +
+          `Prejuízo abaixo de ${cortes.custoKm.toFixed(2).replace(".", ",")} R$/km.`
+        )
+      );
+    }
+
+    caixa.replaceChildren(...filhos);
+  };
+
+  pintar();
+  // Voltar da tela do Android tem que atualizar o que está pendente.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") pintar();
+  });
+  return caixa;
+}
+
+function pendencia(texto, rotuloBotao, acao) {
+  return el(
+    "div",
+    { class: "campo" },
+    el("span", { class: "campo__rotulo campo__rotulo--alerta" }, texto),
+    el("button", { type: "button", class: "botao", onClick: acao }, rotuloBotao)
+  );
+}
 
 function secao(titulo, filhos) {
   return el("section", { class: "config__secao" }, el("h2", { class: "secao__titulo" }, titulo), ...filhos.filter(Boolean));

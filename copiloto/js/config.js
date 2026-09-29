@@ -94,6 +94,10 @@ export const CONFIG_PADRAO = {
   // padrão porque é o que tira o odômetro da mão — o atrito que fazia o km
   // faltar. O odômetro digitado continua valendo mais quando existir.
   rastrearKm: true,
+  // Semáforo de ofertas. Desligado por padrão: depende de duas autorizações que
+  // só o usuário concede na tela do Android, e ligar sozinho um recurso que lê
+  // a tela de outro aplicativo seria errado, mesmo sendo o aparelho dele.
+  semaforoLigado: false,
   vibrar: true,
   tts: false,
   tema: "auto",

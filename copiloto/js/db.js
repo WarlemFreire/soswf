@@ -3,7 +3,9 @@
 // nao tem build step, entao nada de CDN.
 
 const DB_NAME = "copiloto";
-const DB_VERSION = 1;
+// 2 acrescentou `ofertas`. A migracao e segura porque o onupgradeneeded abaixo
+// pula store que ja existe: quem ja tem dados so ganha a store nova, vazia.
+const DB_VERSION = 2;
 
 // Stores das fases seguintes (custos, corridas, contextos) ja nascem aqui para
 // evitar uma migracao de schema quando a Fase 2 chegar.
@@ -14,6 +16,9 @@ const STORES = {
   custos: { keyPath: "id", indexes: [["jornadaId", "jornadaId"], ["timestamp", "timestamp"]] },
   corridas: { keyPath: "id", indexes: [["jornadaId", "jornadaId"], ["timestamp", "timestamp"]] },
   contextos: { keyPath: "id", indexes: [["jornadaId", "jornadaId"], ["timestamp", "timestamp"]] },
+  // Ofertas lidas da tela da plataforma pelo semaforo. Sao o que foi OFERECIDO,
+  // aceito ou nao -- o unico registro de quanto ele recusou, e por que.
+  ofertas: { keyPath: "id", indexes: [["timestamp", "timestamp"], ["veredito", "veredito"]] },
   config: { keyPath: "chave" },
 };
 

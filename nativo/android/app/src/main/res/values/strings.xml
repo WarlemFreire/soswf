@@ -4,4 +4,5 @@
     <string name="title_activity_main">Copiloto</string>
     <string name="package_name">com.soswf.copiloto</string>
     <string name="custom_url_scheme">com.soswf.copiloto</string>
+    <string name="semaforo_descricao">Lê a oferta de corrida na tela do aplicativo da plataforma e mostra na hora se ela paga acima do seu piso. O texto lido não é gravado nem enviado para nenhum lugar.</string>
 </resources>
