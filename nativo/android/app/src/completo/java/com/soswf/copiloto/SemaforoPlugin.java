@@ -165,6 +165,28 @@ public class SemaforoPlugin extends Plugin {
         chamada.resolve();
     }
 
+    /**
+     * Desliga o leitor no Android, para o aplicativo de banco voltar a abrir.
+     *
+     * Nao e o mesmo que o interruptor "Ligado": aquele e uma flag nossa, que o
+     * banco nao enxerga. Este tira o servico da lista de acessibilidade do
+     * sistema -- o banco deixa de ver porque deixa de existir.
+     *
+     * Religar exige a tela do Android. Nao ha como um app se reconceder leitura
+     * de tela, e nao deveria haver.
+     */
+    @PluginMethod
+    public void desligarLeitor(PluginCall chamada) {
+        boolean desligou = SemaforoService.desligarNoSistema();
+        // Se o servico nem estava de pe, o resultado pratico e o mesmo.
+        if (desligou || !SemaforoService.emPe()) Pisos.ligar(getContext(), false);
+
+        JSObject r = new JSObject();
+        r.put("desligou", desligou || !SemaforoService.emPe());
+        r.put("aindaAtivo", acessibilidadeAtiva(getContext()));
+        chamada.resolve(r);
+    }
+
     /** Abre a tela do sistema onde ele concede a leitura de tela. */
     @PluginMethod
     public void abrirAjustesDeAcessibilidade(PluginCall chamada) {

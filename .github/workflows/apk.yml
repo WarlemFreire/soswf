@@ -48,23 +48,29 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Compilar o APK de debug
-        run: ./gradlew --no-daemon assembleDebug
+      # Dois sabores: "limpo" sem leitura de tela nem sobreposicao (nao briga com
+      # aplicativo de banco) e "completo" com o semaforo.
+      - name: Compilar os dois APKs de debug
+        run: ./gradlew --no-daemon assembleLimpoDebug assembleCompletoDebug
         working-directory: nativo/android
 
       - name: Renomear com a data e o commit
         id: apk
         run: |
-          origem=app/build/outputs/apk/debug/app-debug.apk
-          nome="copiloto-$(date +%Y%m%d)-${GITHUB_SHA::7}.apk"
-          mv "$origem" "$nome"
-          echo "nome=$nome" >> "$GITHUB_OUTPUT"
-          ls -lh "$nome"
+          data=$(date +%Y%m%d)
+          curto=${GITHUB_SHA::7}
+          mkdir -p saida
+          mv app/build/outputs/apk/limpo/debug/app-limpo-debug.apk \
+             "saida/copiloto-LIMPO-$data-$curto.apk"
+          mv app/build/outputs/apk/completo/debug/app-completo-debug.apk \
+             "saida/copiloto-COMPLETO-$data-$curto.apk"
+          echo "nome=copiloto-$data-$curto" >> "$GITHUB_OUTPUT"
+          ls -lh saida
         working-directory: nativo/android
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.apk.outputs.nome }}
-          path: nativo/android/${{ steps.apk.outputs.nome }}
+          path: nativo/android/saida
           if-no-files-found: error
           retention-days: 90

@@ -135,9 +135,14 @@ function secaoSemaforo() {
       // cadastrar no navegador para já chegar pronta quando abrir o aplicativo.
       filhos.push(
         el("p", { class: "campo__ajuda" },
-          "O semáforo só funciona no aplicativo instalado: o navegador não pode " +
-          "ler a tela de outro aplicativo. As áreas abaixo já podem ser marcadas."
+          e.nativo
+            ? "Esta é a versão LIMPA: ela não lê a tela de outros aplicativos nem " +
+              "desenha por cima deles, e por isso não é barrada por aplicativo de " +
+              "banco. O semáforo está na versão Copiloto+."
+            : "O semáforo só funciona no aplicativo instalado: o navegador não " +
+              "pode ler a tela de outro aplicativo."
         ),
+        el("p", { class: "campo__ajuda" }, "As áreas abaixo já podem ser marcadas."),
         listaDeAreas(() => pintar())
       );
       caixa.replaceChildren(...filhos);
@@ -159,6 +164,33 @@ function secaoSemaforo() {
         aoMudar: () => pintar(),
       })
     );
+
+    // Com o leitor de pé, o botão de desligar vem ANTES de tudo: ele é
+    // procurado com pressa, na fila do banco, não com calma em casa.
+    if (e.acessibilidadeAtiva) {
+      filhos.push(
+        el("button", {
+          type: "button",
+          class: "botao botao--perigo fin__acao",
+          onClick: async () => {
+            const r = await semaforo.desligarLeitor();
+            vibrar(30);
+            mostrarToast(
+              r.desligou
+                ? { titulo: "Leitor desligado", detalhe: "O aplicativo de banco já deve abrir." }
+                : { titulo: "Não consegui desligar", detalhe: "Desligue na tela de acessibilidade.", tom: "alerta" }
+            );
+            pintar();
+          },
+        }, "Desligar o leitor (para usar o banco)"),
+        el("p", { class: "campo__ajuda" },
+          "Tira o leitor da lista de acessibilidade do Android. O aplicativo de " +
+          "banco recusa o aparelho enquanto ele estiver lá, e com razão: ler a " +
+          "tela de outro aplicativo é metade do golpe de sobreposição. " +
+          "Para religar depois, é pela tela do Android — nenhum aplicativo pode " +
+          "se reconceder isso sozinho."),
+      );
+    }
 
     // Cada pendência é uma linha com o botão que resolve ela.
     if (!e.acessibilidadeAtiva) {

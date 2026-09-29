@@ -64,6 +64,22 @@ public class SemaforoService extends AccessibilityService {
     private static final Pattern DINHEIRO = Pattern.compile("R\\$\\s*\\d");
     private static final Pattern DISTANCIA = Pattern.compile("\\d\\s*km\\b", Pattern.CASE_INSENSITIVE);
 
+    /**
+     * O servico em execucao, para o app poder desliga-lo.
+     *
+     * DESLIGAR DE VERDADE E O PONTO. O interruptor "Ligado" do Copiloto e uma
+     * flag nossa, em SharedPreferences -- o aplicativo de banco nao a enxerga.
+     * O que ele le e a lista do Android de servicos de acessibilidade
+     * HABILITADOS, e so disableSelf() tira o nosso de la. Depois disso o banco
+     * nao ve mais nada, porque de fato nao ha mais nada: o servico perde a
+     * capacidade de ler tela, nao apenas a vontade.
+     *
+     * Religar nao da para fazer daqui: o Android exige que o proprio usuario
+     * marque de novo, na tela de acessibilidade. E isso esta certo -- uma
+     * permissao dessas nao deveria voltar sozinha.
+     */
+    private static SemaforoService emExecucao = null;
+
     private final Handler mao = new Handler(Looper.getMainLooper());
     private Sobreposicao sobreposicao;
     private String ultimaAssinatura = "";
@@ -73,7 +89,34 @@ public class SemaforoService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        emExecucao = this;
         sobreposicao = new Sobreposicao(this);
+    }
+
+    /** O leitor esta habilitado no Android neste instante? */
+    public static boolean emPe() {
+        return emExecucao != null;
+    }
+
+    /**
+     * Desliga o leitor no nivel do Android, nao so no nosso interruptor.
+     *
+     * Devolve false quando o servico nem estava de pe, ou quando a versao do
+     * Android e velha demais para isto (disableSelf existe desde o Android 7).
+     */
+    public static boolean desligarNoSistema() {
+        SemaforoService servico = emExecucao;
+        if (servico == null) return false;
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) return false;
+
+        servico.esconderSelo();
+        boolean desligou = servico.disableSelf();
+        if (desligou) emExecucao = null;
+        return desligou;
+    }
+
+    private void esconderSelo() {
+        if (sobreposicao != null) sobreposicao.esconder();
     }
 
     @Override
@@ -212,7 +255,14 @@ public class SemaforoService extends AccessibilityService {
     public boolean onUnbind(android.content.Intent intent) {
         mao.removeCallbacksAndMessages(null);
         if (sobreposicao != null) sobreposicao.esconder();
+        if (emExecucao == this) emExecucao = null;
         return super.onUnbind(intent);
+    }
+
+    @Override
+    public void onDestroy() {
+        if (emExecucao == this) emExecucao = null;
+        super.onDestroy();
     }
 
     private static boolean appDeCorrida(CharSequence pacote) {

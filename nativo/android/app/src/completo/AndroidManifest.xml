@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  O que SO existe na versao completa.
+
+  Estas duas declaracoes sao o motivo de aplicativo de banco recusar o aparelho:
+  ler a tela de outro app e desenhar por cima dele sao as duas pernas do golpe
+  de sobreposicao, e o banco nao tem como saber que aqui o uso e legitimo. Ficam
+  fora do manifesto principal para que a versao limpa nao as carregue nem no
+  arquivo.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Desenha o selo do semaforo sobre o app da plataforma: quando a oferta
+         chega, quem esta em primeiro plano e a Uber, nao o Copiloto. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application>
+        <!-- Le a oferta de corrida na tela da plataforma. Habilitado a mao pelo
+             usuario nas configuracoes do Android; ver res/xml. -->
+        <service
+            android:name=".SemaforoService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/semaforo_acessibilidade" />
+        </service>
+    </application>
+</manifest>

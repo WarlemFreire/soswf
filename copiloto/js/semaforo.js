@@ -38,10 +38,34 @@ export function disponivel() {
 /** O que o Android já autorizou, e se o semáforo está ligado. */
 export async function estado() {
   if (!disponivel()) {
-    return { suportado: false, acessibilidadeAtiva: false, podeSobrepor: false, ligado: false, temPisos: false };
+    // Navegador e "versão limpa do aplicativo" são situações diferentes, e
+    // dizer a mesma coisa para as duas seria mentira.
+    return {
+      suportado: false,
+      nativo: nativo(),
+      acessibilidadeAtiva: false,
+      podeSobrepor: false,
+      ligado: false,
+      temPisos: false,
+    };
   }
   const r = await plugin().estado();
   return { suportado: true, ...r };
+}
+
+/**
+ * Desliga o leitor no Android, para o aplicativo de banco voltar a abrir.
+ *
+ * Diferente do interruptor "Ligado": aquele é uma flag nossa, que o banco não
+ * enxerga. Este tira o serviço da lista de acessibilidade do sistema — o banco
+ * deixa de ver porque deixa de existir.
+ *
+ * Religar exige a tela do Android. Nenhum aplicativo pode se reconceder leitura
+ * de tela, e não deveria poder.
+ */
+export async function desligarLeitor() {
+  if (!disponivel()) return { desligou: false, aindaAtivo: false };
+  return plugin().desligarLeitor();
 }
 
 /** Leva ele à tela do Android que concede a leitura de tela. */

@@ -6,7 +6,7 @@
   "scripts": {
     "web": "node scripts/copiar-web.mjs",
     "sync": "npm run web && cap sync android",
-    "apk": "npm run sync && cd android && ./gradlew assembleDebug"
+    "apk": "npm run sync && cd android && ./gradlew assembleLimpoDebug assembleCompletoDebug"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

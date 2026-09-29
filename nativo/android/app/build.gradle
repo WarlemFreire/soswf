@@ -16,6 +16,25 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Dois sabores do mesmo codigo. O applicationId e o MESMO nos dois: trocar de
+    // versao e uma atualizacao, nao uma instalacao nova, entao o historico dele
+    // nao se perde na troca.
+    flavorDimensions "leitor"
+    productFlavors {
+        // Sem leitura de tela e sem sobreposicao. Nao briga com aplicativo de
+        // banco, e tem todo o resto do app.
+        limpo {
+            dimension "leitor"
+            resValue "string", "app_name", "Copiloto"
+        }
+        // Com o semaforo. Banco brasileiro recusa aparelho com servico de
+        // acessibilidade desconhecido habilitado -- e a troca e consciente.
+        completo {
+            dimension "leitor"
+            resValue "string", "app_name", "Copiloto+"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
