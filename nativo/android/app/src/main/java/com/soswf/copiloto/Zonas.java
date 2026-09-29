@@ -80,11 +80,14 @@ public final class Zonas {
         /** "inicio" veio do GPS e e certo; "destino" veio do texto e e indicio. */
         public final String motivo;
         public final boolean dentro;
+        /** Qual palavra casou. Sem isto, um aviso errado e impossivel de depurar. */
+        public final String termo;
 
-        Achado(Zonas zona, String motivo, boolean dentro) {
+        Achado(Zonas zona, String motivo, boolean dentro, String termo) {
             this.zona = zona;
             this.motivo = motivo;
             this.dentro = dentro;
+            this.termo = termo == null ? "" : termo;
         }
 
         public boolean deveRecusar() {
@@ -94,7 +97,8 @@ public final class Zonas {
         /** Texto do selo. Diz de onde veio, porque a confianca e diferente. */
         public String rotulo() {
             if ("inicio".equals(motivo)) return (dentro ? "aqui: " : "perto de: ") + zona.nome;
-            return "vai para: " + zona.nome;
+            // Mostra a palavra que casou: sem ela, um aviso errado vira misterio.
+            return "\"" + termo + "\" → " + zona.nome;
         }
     }
 
@@ -192,7 +196,7 @@ public final class Zonas {
             for (Zonas z : zonas) {
                 double d = z.distancia(lat, lon);
                 if (d > APROXIMACAO_M) continue;
-                Achado candidato = new Achado(z, "inicio", d <= 0);
+                Achado candidato = new Achado(z, "inicio", d <= 0, "");
                 if (melhor == null || prefere(candidato, melhor)) melhor = candidato;
             }
         }
@@ -203,8 +207,9 @@ public final class Zonas {
         if (textoDaTela != null) {
             String[] palavras = normalizar(textoDaTela).split(" ");
             for (Zonas z : zonas) {
-                if (!z.apareceNoTexto(palavras)) continue;
-                Achado candidato = new Achado(z, "destino", false);
+                String casou = z.qualTermoAparece(palavras);
+                if (casou == null) continue;
+                Achado candidato = new Achado(z, "destino", false, casou);
                 if (melhor == null || prefere(candidato, melhor)) melhor = candidato;
             }
         }
@@ -262,11 +267,12 @@ public final class Zonas {
 
     /* --------------------------------------------------------------- nome */
 
-    private boolean apareceNoTexto(String[] palavras) {
+    /** Qual termo apareceu, ou null. O termo entra no selo para poder ser auditado. */
+    private String qualTermoAparece(String[] palavras) {
         for (String[] termo : termos) {
-            if (sequencia(palavras, termo)) return true;
+            if (sequencia(palavras, termo)) return String.join(" ", termo);
         }
-        return false;
+        return null;
     }
 
     /**

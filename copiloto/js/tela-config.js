@@ -19,6 +19,7 @@ import { abrirCusto, painelCombustivel } from "./tela-custo.js";
 import * as semaforo from "./semaforo.js";
 import * as Z from "./zonas.js";
 import * as risco from "./risco.js";
+import { entregarArquivo } from "./plataforma.js";
 import { abrirEditorDeZonas, abrirDetalheDeZona } from "./tela-zonas.js";
 
 export function montarConfig(raiz) {
@@ -195,7 +196,7 @@ function secaoSemaforo() {
       );
     }
 
-    filhos.push(listaDeAreas(() => pintar()));
+    filhos.push(listaDeAreas(() => pintar()), blocoDiagnostico(e, () => pintar()));
 
     caixa.replaceChildren(...filhos);
   };
@@ -291,6 +292,74 @@ function listaDeAreas(repintar) {
       onClick: () => abrirEditorDeZonas(repintar),
     }, "Desenhar no mapa"),
   );
+}
+
+/**
+ * Captura do que o serviço lê. É o que substitui o chute.
+ *
+ * Fica no fim da seção, discreto: não é para uso diário. Mas quando o semáforo
+ * erra, é a única forma de saber POR QUE sem estar no carro junto.
+ */
+function blocoDiagnostico(estado, repintar) {
+  if (!estado?.suportado) return null;
+
+  const caixa = el("div", { class: "areas" });
+
+  const pintar = async () => {
+    const d = await semaforo.lerDiagnostico();
+    caixa.replaceChildren(
+      el("h3", { class: "areas__titulo" }, "Ver o que ele está lendo"),
+      el("p", { class: "campo__ajuda" },
+        d.ligado
+          ? `Gravando. ${d.capturas.length} ${d.capturas.length === 1 ? "captura" : "capturas"} guardadas. ` +
+            "Desliga sozinho em duas horas."
+          : "Guarda no aparelho o texto que o serviço lê da tela da plataforma, " +
+            "para descobrir por que ele erra. Nada sai daqui sozinho."),
+      el("div", { class: "zonas__acoes" },
+        el("button", {
+          type: "button",
+          class: "botao",
+          onClick: async () => {
+            await semaforo.ligarDiagnostico(!d.ligado);
+            vibrar(20);
+            pintar();
+          },
+        }, d.ligado ? "Parar de gravar" : "Gravar"),
+        d.capturas.length
+          ? el("button", {
+              type: "button",
+              class: "botao",
+              onClick: async () => {
+                const texto = semaforo.diagnosticoEmTexto(d.capturas);
+                try {
+                  await entregarArquivo(`copiloto-leitura-${Date.now()}.txt`, texto, "text/plain");
+                } catch {
+                  mostrarToast({ titulo: "Não consegui compartilhar", tom: "alerta" });
+                }
+              },
+            }, "Compartilhar")
+          : null,
+        d.capturas.length
+          ? el("button", {
+              type: "button",
+              class: "botao botao--perigo",
+              onClick: async () => {
+                await semaforo.limparDiagnostico();
+                vibrar(8);
+                pintar();
+              },
+            }, "Apagar")
+          : null,
+      ),
+      d.capturas.length
+        ? el("pre", { class: "diag__amostra" },
+            semaforo.diagnosticoEmTexto(d.capturas.slice(0, 1)))
+        : null,
+    );
+  };
+
+  pintar();
+  return caixa;
 }
 
 function descreverZona(z) {

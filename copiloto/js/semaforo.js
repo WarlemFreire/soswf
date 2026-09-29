@@ -109,6 +109,57 @@ export async function sincronizarZonas() {
   return true;
 }
 
+/* ----------------------------------------------------------- diagnóstico */
+
+/**
+ * Captura o que o serviço lê da tela.
+ *
+ * Existe porque o layout do cartão de oferta só aparece na rua, no aparelho
+ * dele. Sem ver o texto de verdade, todo conserto no leitor é chute -- e chute
+ * errado custa uma noite de trabalho. Fica desligado por padrão, guarda poucas
+ * amostras truncadas, e se desliga sozinho depois de duas horas.
+ */
+export async function ligarDiagnostico(ligado) {
+  if (!disponivel()) return false;
+  await plugin().ligarDiagnostico({ ligado: Boolean(ligado) });
+  return true;
+}
+
+export async function lerDiagnostico() {
+  if (!disponivel()) return { ligado: false, capturas: [] };
+  return plugin().lerDiagnostico();
+}
+
+export async function limparDiagnostico() {
+  if (!disponivel()) return false;
+  await plugin().limparDiagnostico();
+  return true;
+}
+
+/**
+ * Junta as capturas num texto que dá para ler e mandar.
+ *
+ * Diz de cada uma se os números saíram e se o cartão foi isolado, porque são
+ * essas duas respostas que apontam onde o leitor está falhando.
+ */
+export function diagnosticoEmTexto(capturas) {
+  if (!capturas?.length) return "Nenhuma captura ainda.";
+  return capturas
+    .map((c, i) => {
+      const quando = new Date(c.quando).toLocaleTimeString("pt-BR");
+      return [
+        `--- captura ${i + 1} · ${quando} · ${c.pacote}`,
+        `leu os números: ${c.leu ? "sim" : "NÃO"}`,
+        `isolou o cartão: ${c.cartao ? "sim" : "NÃO"}`,
+        c.cartao ? `[cartão]\n${c.cartao}` : "",
+        `[tela inteira]\n${c.tela}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n\n");
+}
+
 /** Onde ele está agora. O serviço roda em processo próprio e não tem GPS. */
 export async function publicarPosicao(ponto) {
   if (!disponivel() || !Z.coordenadaValida(ponto)) return false;

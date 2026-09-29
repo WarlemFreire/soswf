@@ -27,8 +27,10 @@ import android.widget.TextView;
  *   Alem do daltonismo, ele le isso de relance, no escuro, dirigindo.
  * - Fica no alto e a esquerda, longe dos botoes de aceitar e recusar. Um selo
  *   sobre o botao seria pior que nao ter selo: faria ele tocar errado.
- * - Nao aceita toque (FLAG_NOT_TOUCHABLE). Nada nosso pode roubar um toque
- *   que era para a plataforma.
+ * - UM TOQUE FAZ SUMIR. Ele pediu, e a razao e boa: por melhor que seja a
+ *   posicao, as vezes o selo atrapalha o que esta embaixo. Entao ele recebe
+ *   toque -- mas so o proprio selo, que e pequeno e fica longe dos botoes de
+ *   aceitar e recusar. O resto da tela segue inteiramente da plataforma.
  * - Some sozinho. Selo esquecido na tela vira sujeira e desinforma na proxima
  *   oferta.
  */
@@ -70,6 +72,7 @@ public final class Sobreposicao {
         if (janelas == null) return;
 
         selo = montarSelo(oferta, veredito, area);
+        selo.setOnClickListener((v) -> remover());
 
         WindowManager.LayoutParams p = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -77,8 +80,9 @@ public final class Sobreposicao {
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE,
+                // NAO_FOCALIZAVEL mantem o teclado e o foco com a plataforma;
+                // o toque so chega ao retangulo do proprio selo.
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 android.graphics.PixelFormat.TRANSLUCENT);
         p.gravity = Gravity.TOP | Gravity.START;

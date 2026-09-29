@@ -1487,3 +1487,12 @@ button { cursor: pointer; border: 0; background: none; }
 
 /* O mapa fica de lado: existe, mas nao e o que ele usa todo dia. */
 .areas__mapa { width: 100%; margin-top: 14px; min-height: 56px; }
+
+/* Amostra do que o serviço leu. Fonte monoespaçada porque o que importa aqui é
+   a forma exata do texto, e rolagem própria para não empurrar a tela toda. */
+.diag__amostra {
+  margin-top: 12px; padding: 12px; max-height: 260px; overflow: auto;
+  border-radius: var(--raio-m); background: var(--fundo); border: 1px solid var(--linha);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+}

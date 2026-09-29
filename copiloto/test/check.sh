@@ -15,6 +15,11 @@ rm -rf "$tmp"
 [ "$erros" != 0 ] && exit 1
 
 echo "sintaxe ok"
+
+validador="$(dirname "$0")/../../nativo/scripts/validar-xml.py"
+if [ -f "$validador" ] && command -v python3 >/dev/null 2>&1; then
+  if python3 "$validador"; then echo "xml ok"; else erros=1; fi
+fi
 for suite in "$(dirname "$0")"/*.test.mjs; do
   node "$suite" || erros=1
 done

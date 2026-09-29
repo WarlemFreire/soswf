@@ -132,6 +132,39 @@ public class SemaforoPlugin extends Plugin {
         chamada.resolve();
     }
 
+    /* ---------------------------------------------------------- diagnostico */
+
+    /**
+     * Liga a captura do que o servico le.
+     *
+     * Existe porque o layout do cartao de oferta so aparece na rua, no aparelho
+     * dele -- sem ver o texto de verdade, todo conserto no leitor e chute. Fica
+     * desligado por padrao e se desliga sozinho depois de duas horas.
+     */
+    @PluginMethod
+    public void ligarDiagnostico(PluginCall chamada) {
+        Diagnostico.ligar(getContext(), chamada.getBoolean("ligado", false));
+        chamada.resolve();
+    }
+
+    @PluginMethod
+    public void lerDiagnostico(PluginCall chamada) {
+        JSObject r = new JSObject();
+        r.put("ligado", Diagnostico.ligado(getContext()));
+        try {
+            r.put("capturas", new com.getcapacitor.JSArray(Diagnostico.capturas(getContext())));
+        } catch (org.json.JSONException erro) {
+            r.put("capturas", new com.getcapacitor.JSArray());
+        }
+        chamada.resolve(r);
+    }
+
+    @PluginMethod
+    public void limparDiagnostico(PluginCall chamada) {
+        Diagnostico.limpar(getContext());
+        chamada.resolve();
+    }
+
     /** Abre a tela do sistema onde ele concede a leitura de tela. */
     @PluginMethod
     public void abrirAjustesDeAcessibilidade(PluginCall chamada) {
