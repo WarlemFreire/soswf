@@ -8,6 +8,7 @@ import { montarAgora } from "./tela-agora.js";
 import { montarHistorico } from "./tela-historico.js";
 import { montarRotina } from "./tela-rotina.js";
 import { montarAnalise } from "./tela-analise.js";
+import { montarFinanceiro } from "./tela-financeiro.js";
 import { montarConfig } from "./tela-config.js";
 import { montarTopbar, atualizarTopbar } from "./topbar.js";
 import { religarAoVoltar, manterTelaLigada } from "./geo.js";
@@ -21,6 +22,7 @@ const TELAS = {
   historico: () => montarHistorico(document.getElementById("tela-historico")),
   rotina: () => montarRotina(document.getElementById("tela-rotina")),
   analise: () => montarAnalise(document.getElementById("tela-analise")),
+  financeiro: () => montarFinanceiro(document.getElementById("tela-financeiro")),
   config: () => montarConfig(document.getElementById("tela-config")),
 };
 

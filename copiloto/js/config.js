@@ -98,6 +98,12 @@ export const CONFIG_PADRAO = {
   // só o usuário concede na tela do Android, e ligar sozinho um recurso que lê
   // a tela de outro aplicativo seria errado, mesmo sendo o aparelho dele.
   semaforoLigado: false,
+
+  // Quanto do bruto guardar para imposto. Entra na RESERVA da aba Financeiro,
+  // nunca no líquido: é dinheiro que ainda está na conta e não é dele.
+  impostoPct: 0,
+  // O que a plataforma informou ter pago, por período. Chave = período.
+  conciliacoes: {},
   vibrar: true,
   tts: false,
   tema: "auto",

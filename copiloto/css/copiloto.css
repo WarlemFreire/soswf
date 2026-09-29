@@ -17,6 +17,13 @@
   --nivel-neutro: #a9b8c9;
 
   --serie-1: #3987e5;
+  /* Categoricas do Financeiro. Quatro e o teto: acima disso os pares deixam de
+     se separar sob daltonismo. Validado contra #172029 (escuro) e #ffffff
+     (claro) com o validador da paleta. */
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
   --heat-0: #131a23;
   --heat-1: #16304f;
   --heat-2: #1c4a7d;
@@ -58,6 +65,10 @@
   --nivel-neutro: #3d4c5c;
 
   --serie-1: #2a78d6;
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
   --heat-0: #f1f4f8;
   --heat-1: #cde2fb;
   --heat-2: #9ec5f4;
@@ -1313,3 +1324,70 @@ button { cursor: pointer; border: 0; background: none; }
 .pendentes__hora { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pendentes__medido { flex: 1; font-size: 14px; color: var(--tinta-fraca); }
 .pendentes__acao { font-size: 14px; font-weight: 700; color: var(--nivel-piso); }
+
+
+/* -------------------------------------------------------------- financeiro */
+
+.fin__janelas { display: flex; gap: 8px; margin-bottom: 14px; }
+.fin__janelas .chip { flex: 1; min-height: 52px; font-size: 16px; }
+
+.fin__topo { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.fin__rotulo { font-size: 14px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+
+.fin__conta { margin: 14px 0 6px; }
+.fin__linha {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--linha);
+}
+.fin__linha:last-child { border-bottom: 0; }
+.fin__linha--destaque {
+  margin-top: 6px; padding-top: 14px;
+  border-top: 2px solid var(--linha); border-bottom: 0;
+}
+.fin__linha-rotulo { display: flex; flex-direction: column; gap: 2px; font-size: 16px; }
+.fin__fonte { font-size: 12px; color: var(--tinta-fraca); }
+.fin__fonte--alerta { color: var(--nivel-piso); }
+.fin__linha-valor { font-size: 18px; font-variant-numeric: tabular-nums; }
+.fin__linha-valor--forte { font-size: 26px; }
+
+.fin__pes { display: flex; gap: 10px; margin-top: 12px; }
+.fin__pe {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 6px; border-radius: var(--raio-m); background: var(--fundo);
+}
+.fin__pe-valor { font-size: 20px; font-variant-numeric: tabular-nums; }
+.fin__pe-rotulo { font-size: 12px; color: var(--tinta-fraca); text-align: center; }
+
+.fin__delta { margin-top: 12px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.fin__delta--sobe { color: var(--nivel-ideal); }
+.fin__delta--desce { color: var(--nivel-abaixo); }
+
+/* Legenda sempre com nome: cor nunca e a unica informacao, e em claro os tons
+   3 e 4 ficam abaixo de 3:1 contra o cartao branco -- o rotulo e o alivio. */
+.fin__legenda { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 16px; }
+.fin__legenda-item { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.fin__legenda-nome { flex: 1; }
+.fin__legenda-item strong { font-variant-numeric: tabular-nums; }
+.fin__legenda-item small { color: var(--tinta-fraca); min-width: 38px; text-align: right; }
+.fin__ponto { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+
+.fin__serie { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+.fin__coluna { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+.fin__pilha {
+  flex: 1; width: 100%; display: flex; flex-direction: column-reverse;
+  justify-content: flex-start; gap: 2px; /* 2px de respiro entre fatias */
+}
+.fin__fatia { width: 100%; border-radius: 3px; min-height: 2px; }
+.fin__coluna-rotulo { font-size: 11px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+
+/* Botao de acao do Financeiro: largura toda e texto que quebra em vez de
+   vazar. Rotulo cortado num app que se le de relance nao e rotulo. */
+.fin__acao {
+  width: 100%; margin-top: 14px; min-height: 56px;
+  white-space: normal; text-align: center;
+}
+
+.folha__mostrador {
+  font-size: 44px; text-align: center; padding: 18px 0 10px;
+  font-variant-numeric: tabular-nums;
+}
