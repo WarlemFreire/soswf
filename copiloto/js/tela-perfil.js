@@ -1,4 +1,7 @@
-// tela-perfil.js — nome, foto, nível e moedas.
+// tela-perfil.js — nome e foto.
+//
+// Ja teve nivel, XP e moedas. Sairam: contador que ninguem gasta nao e
+// recompensa, e a folha ficou sendo o que precisa ser -- onde se diz quem e.
 //
 // É a única folha do app com campo de texto de teclado do sistema: ninguém
 // digita o próprio nome dirigindo, e um teclado numérico gigante não serve
@@ -6,7 +9,6 @@
 
 import { el, abrirFolha } from "./ui.js";
 import { cfg, salvarConfig } from "./config.js";
-import { formatarXp, XP_DIA, XP_META, XP_POR_DIA_DE_OFENSIVA, MOEDA_POR_MISSAO, MOEDA_POR_DIA } from "./progresso.js";
 import { ultimoProgresso, atualizarTopbar, iniciais } from "./topbar.js";
 import { vibrar, mostrarToast } from "./feedback.js";
 
@@ -49,8 +51,7 @@ export function abrirPerfil() {
       el("div", { class: "perfil__topo" }, foto, acoes, arquivo),
       el("label", { class: "perfil__rotulo" }, "Nome"),
       nome,
-      dados ? cartaoNivel(dados) : el("p", { class: "folha__ajuda" }, "Calculando seu progresso…"),
-      dados ? cartaoMoedas(dados) : null,
+      cartaoOfensiva(dados),
     ],
     rodape: (folha) => [
       el(
@@ -101,65 +102,42 @@ export function abrirPerfil() {
   desenharFoto();
 }
 
-function cartaoNivel({ nivel, xp }) {
-  const linhas = [
-    [`${xp.quantasMissoes} missões cumpridas`, xp.missoes],
-    [`Dias rodados (${XP_DIA} XP cada)`, xp.dias],
-    [`Metas batidas (${XP_META.minima}/${XP_META.ideal}/${XP_META.otima} XP)`, xp.metas],
-    [`Recorde de ofensiva (${XP_POR_DIA_DE_OFENSIVA} XP por dia)`, xp.ofensiva],
-  ].filter(([, valor]) => valor > 0);
 
-  return el(
-    "section",
-    { class: "perfil__cartao" },
-    el(
-      "div",
-      { class: "perfil__nivel" },
-      el("span", { class: "perfil__nivel-selo" }, String(nivel.nivel)),
-      el(
-        "div",
-        {},
-        el("strong", { class: "perfil__nivel-titulo" }, `Nível ${nivel.nivel}`),
-        el("span", { class: "perfil__nivel-nota" }, `${formatarXp(nivel.faltam)} XP para o nível ${nivel.nivel + 1}`)
-      )
-    ),
-    el("div", { class: "perfil__trilha" }, el("div", { class: "perfil__marca", style: { width: `${Math.round(nivel.progresso * 100)}%` } })),
-    el("span", { class: "perfil__legenda" }, `${formatarXp(nivel.noNivel)} / ${formatarXp(nivel.custo)} XP neste nível`),
-    el(
-      "div",
-      { class: "perfil__linhas" },
-      ...linhas.map(([rotulo, valor]) =>
-        el("div", { class: "perfil__linha" }, el("span", {}, rotulo), el("strong", {}, `+${formatarXp(valor)}`))
-      )
-    )
-  );
-}
-
-function cartaoMoedas({ moedas }) {
-  return el(
-    "section",
-    { class: "perfil__cartao perfil__cartao--moedas" },
-    el(
-      "div",
-      { class: "perfil__moedas" },
-      el("span", { class: "perfil__moeda-icone", "aria-hidden": "true" }, "🪙"),
-      el("strong", { class: "perfil__moeda-valor" }, formatarXp(moedas)),
-      el("span", { class: "perfil__moeda-nome" }, "moedas")
-    ),
-    el(
-      "p",
-      { class: "perfil__legenda" },
-      `${MOEDA_POR_MISSAO} por missão cumprida e ${MOEDA_POR_DIA} por dia rodado. ` +
-        "Ainda não há nada para comprar com elas — estão acumulando."
-    )
-  );
-}
 
 /**
  * A foto vai para o mesmo IndexedDB do resto. Guardar o arquivo original
  * encheria o banco com megabytes para exibir 40 pixels na barra de cima, e o
  * app precisa continuar cabendo offline.
  */
+/**
+ * A ofensiva, e so ela. Nao e placar: é o aviso de quantos dias de folga ainda
+ * cabem antes da corrente quebrar, que é a única parte disso que muda uma
+ * decisão real.
+ */
+function cartaoOfensiva(dados) {
+  const of = dados?.of;
+  if (!of) return el("p", { class: "folha__ajuda" }, "Carregando…");
+
+  const nota = !of.viva
+    ? "A corrente quebrou. O próximo dia rodado começa outra."
+    : of.trabalhouHoje
+      ? `Hoje já conta. Recorde: ${of.recorde} dias.`
+      : `${of.folgasRestantes} ${of.folgasRestantes === 1 ? "dia" : "dias"} de folga antes de quebrar. Recorde: ${of.recorde}.`;
+
+  return el(
+    "div",
+    { class: "perfil__cartao" },
+    el(
+      "div",
+      { class: "perfil__ofensiva" },
+      el("span", { class: "perfil__ofensiva-icone", "aria-hidden": "true" }, of.viva ? "🔥" : "🕯️"),
+      el("strong", { class: "perfil__ofensiva-valor" }, String(of.atual)),
+      el("span", { class: "perfil__ofensiva-nome" }, of.atual === 1 ? "dia seguido" : "dias seguidos")
+    ),
+    el("p", { class: "folha__ajuda" }, nota)
+  );
+}
+
 function reduzir(arquivo) {
   return new Promise((resolver, rejeitar) => {
     const leitor = new FileReader();

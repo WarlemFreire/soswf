@@ -1,16 +1,21 @@
-// topbar.js — a faixa de identidade: quem é, em que nível está e se a
+// topbar.js — a faixa de identidade: quem é, como está a semana no bolso e se a
 // ofensiva está acesa. Fica fora das telas porque acompanha todas elas.
 //
 // Some no modo dirigindo: ali a tela existe para ser lida de relance a 60
 // por hora, e avatar não ajuda ninguém a decidir se aceita a corrida.
+//
+// O subtítulo já foi "Nível 7 · 1,2k XP". Virou a média dos últimos 7 dias
+// porque nível e XP não mudavam decisão nenhuma, e a média muda: ela diz, sem
+// abrir aba, se esta semana está acima ou abaixo do normal.
 
 import { el } from "./ui.js";
 import { cfg } from "./config.js";
 import * as store from "./store.js";
-import * as C from "./conquistas.js";
-import { progresso, formatarXp } from "./progresso.js";
-import { db } from "./db.js";
+import * as M from "./metrics.js";
+import { ofensiva } from "./ofensiva.js";
 import { abrirPerfil } from "./tela-perfil.js";
+
+const JANELA_DIAS = 7;
 
 let raiz = null;
 let pendente = null;
@@ -43,12 +48,7 @@ export async function atualizarTopbar() {
 
   const resumos = await store.historico();
   const dias = store.agruparPorDia(resumos);
-  const corridas = await db.todos("corridas");
-  const custos = await db.todos("custos");
-  const est = C.estatisticas({ dias, historico: resumos, corridas, custos });
-  const avaliadas = C.avaliar(est);
-
-  ultimo = { of: C.ofensiva(dias), ...progresso(avaliadas, est), est, avaliadas };
+  ultimo = { of: ofensiva(dias), semana: mediaRecente(dias) };
   desenhar(ultimo);
 }
 
@@ -57,10 +57,26 @@ export function ultimoProgresso() {
   return ultimo;
 }
 
+/**
+ * Média por dia trabalhado na última semana.
+ *
+ * Usa o líquido só quando TODOS os dias da janela têm líquido; senão declara
+ * bruto. Média que mistura dia com custo lançado e dia sem custo não é nem
+ * bruto nem líquido — é um número que não descreve nada.
+ */
+function mediaRecente(dias, agora = Date.now()) {
+  const corte = M.chaveData(agora - JANELA_DIAS * 86400000);
+  const janela = (dias || []).filter((d) => d.data > corte);
+  if (!janela.length) return null;
+
+  const todosComLiquido = janela.every((d) => d.temLiquido);
+  const soma = janela.reduce((t, d) => t + (todosComLiquido ? d.liquido : d.saldo), 0);
+  return { valor: soma / janela.length, liquido: todosComLiquido, dias: janela.length };
+}
+
 function desenhar(dados) {
   const proprio = (cfg("nome") || "").trim();
   const nome = proprio || "Motorista";
-  const nivel = dados?.nivel;
   const of = dados?.of;
 
   raiz.replaceChildren(
@@ -74,11 +90,7 @@ function desenhar(dados) {
         "span",
         { class: "topbar__texto" },
         el("strong", { class: "topbar__nome" }, nome),
-        el(
-          "span",
-          { class: "topbar__nivel" },
-          nivel ? `Nível ${nivel.nivel} · ${formatarXp(nivel.xp)} XP` : "carregando…"
-        )
+        el("span", { class: "topbar__media" }, textoDaMedia(dados))
       )
     ),
     el(
@@ -86,13 +98,16 @@ function desenhar(dados) {
       { class: `topbar__ofensiva ${of?.viva ? "" : "topbar__ofensiva--apagada"}`.trim(), title: "Ofensiva" },
       el("span", { "aria-hidden": "true" }, of?.viva ? "🔥" : "🕯️"),
       el("strong", {}, String(of?.atual ?? 0))
-    ),
-    el(
-      "div",
-      { class: "topbar__barra", role: "progressbar", "aria-label": "Progresso do nível" },
-      el("div", { class: "topbar__marca", style: { width: `${Math.round((nivel?.progresso ?? 0) * 100)}%` } })
     )
   );
+}
+
+function textoDaMedia(dados) {
+  if (!dados) return "carregando…";
+  const s = dados.semana;
+  // Sem dia nenhum na janela não existe média: travessão, nunca zero.
+  if (!s) return "7 dias · —";
+  return `7 dias · ${M.formatarReais(s.valor)}/dia ${s.liquido ? "líquido" : "bruto"}`;
 }
 
 /** Sem foto, as iniciais. Melhor um monograma do que um boneco genérico. */

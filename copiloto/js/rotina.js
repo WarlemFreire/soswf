@@ -6,7 +6,7 @@
 // que produzir os mesmos números hoje, amanhã e no ano que vem.
 
 import { PERIODOS } from "./config.js";
-import { FOLGA_MAXIMA } from "./conquistas.js";
+import { FOLGA_MAXIMA } from "./ofensiva.js";
 
 export const MIN_DIA = 1440;
 
