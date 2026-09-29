@@ -246,19 +246,36 @@ function desenharZona(ctx, zona, caixa, cor) {
 
 /* ------------------------------------------------------------- detalhe */
 
+/**
+ * Edita uma área, venha ela do mapa ou da lista de Ajustes.
+ *
+ * Lê e grava a configuração sozinha em vez de receber a lista pronta: os dois
+ * caminhos de entrada precisam salvar exatamente igual, e duas cópias da mesma
+ * gravação divergem na primeira correção.
+ */
+export function abrirDetalheDeZona(zona, aoSalvar) {
+  const zonas = (cfg("zonasRisco") || []).map(Z.normalizarZona);
+  const salvar = async (novas) => {
+    await salvarConfig("zonasRisco", novas.map(Z.normalizarZona));
+    await semaforo.sincronizarZonas();
+    aoSalvar?.();
+  };
+  return abrirDetalhe(zona, zonas, salvar);
+}
+
 function abrirDetalhe(zona, zonas, salvar) {
   const nome = el("input", {
     class: "campo-texto",
     type: "text",
     value: zona.nome === "Sem nome" ? "" : zona.nome,
-    placeholder: "Como você chama este lugar",
+    placeholder: "Nome do bairro",
     maxLength: 40,
   });
   const termos = el("input", {
     class: "campo-texto",
     type: "text",
     value: (zona.termos || []).join(", "),
-    placeholder: "Nomes que a plataforma usa (opcional)",
+    placeholder: "Outros nomes para o mesmo lugar",
   });
 
   let nivel = zona.nivel;
@@ -302,12 +319,12 @@ function abrirDetalhe(zona, zonas, salvar) {
       el("div", { class: "chips" }, chipNivel("atencao", "Atenção"), chipNivel("evitar", "Não pegar")),
       el("p", { class: "folha__ajuda" }, '"Não pegar" recusa mesmo com o valor bom. "Atenção" só avisa.'),
 
-      el("label", { class: "perfil__rotulo" }, "Nomes (opcional)"),
+      el("label", { class: "perfil__rotulo" }, "Outros nomes"),
       termos,
       el("p", { class: "folha__ajuda" },
-        "A coordenada diz onde VOCÊ está. O nome é o único jeito de pegar corrida " +
-        "que VAI para cá, porque o destino só aparece como texto na tela. " +
-        "Separe por vírgula; se a plataforma trocar o nome, o desenho continua valendo."),
+        "Separe por vírgula. Sirva-se aqui conforme a plataforma for mudando o " +
+        "nome do lugar: cada nome novo é mais uma forma de a mesma área ser " +
+        "reconhecida, e os antigos continuam valendo."),
     ],
     rodape: (folha) => [
       zonas.some((z) => z.id === zona.id)

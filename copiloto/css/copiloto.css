@@ -1478,3 +1478,12 @@ button { cursor: pointer; border: 0; background: none; }
 .zonas__raio .botao { min-height: 64px; min-width: 76px; }
 .zonas__raio .orc__campo-rotulo { flex: 1; }
 .zonas__raio .orc__campo-valor { min-width: 78px; text-align: center; }
+
+/* Cadastro por texto: o caminho principal. Campo e botao na mesma linha, os
+   dois com altura de dedo, para acrescentar bairro sem abrir folha nenhuma. */
+.areas__novo { display: flex; gap: 8px; margin: 12px 0 8px; }
+.areas__novo .campo-texto { flex: 1; min-height: 64px; }
+.areas__novo .botao { min-height: 64px; min-width: 118px; }
+
+/* O mapa fica de lado: existe, mas nao e o que ele usa todo dia. */
+.areas__mapa { width: 100%; margin-top: 14px; min-height: 56px; }

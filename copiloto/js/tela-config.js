@@ -18,7 +18,8 @@ import { manterTelaLigada, liberarTela } from "./geo.js";
 import { abrirCusto, painelCombustivel } from "./tela-custo.js";
 import * as semaforo from "./semaforo.js";
 import * as Z from "./zonas.js";
-import { abrirEditorDeZonas } from "./tela-zonas.js";
+import * as risco from "./risco.js";
+import { abrirEditorDeZonas, abrirDetalheDeZona } from "./tela-zonas.js";
 
 export function montarConfig(raiz) {
   limpar(raiz);
@@ -208,24 +209,62 @@ function secaoSemaforo() {
 }
 
 /**
- * As áreas que ele não quer pegar.
+ * Os bairros que ele não quer pegar.
  *
- * O cadastro mora no editor de mapa; aqui fica só o resumo e a porta de
- * entrada. Desenho e nome convivem porque respondem metades diferentes: a
- * coordenada alcança o início da corrida, o nome alcança o destino.
+ * O caminho principal é DIGITAR O NOME, porque é o nome que aparece na oferta e
+ * é o que ele consegue alimentar aos poucos, conforme a plataforma muda. O mapa
+ * continua ali, mas de lado: exige estar no lugar ou reconhecer o rastro, e
+ * isso trava o cadastro em vez de destravá-lo.
+ *
+ * Nome de RUA não entra por escolha dele, e a escolha é certa: rua com número
+ * viraria uma lista infinita que nunca fica pronta. Bairro é a unidade que a
+ * oferta mostra e que ele reconhece de cabeça.
  */
 function listaDeAreas(repintar) {
   const zonas = (cfg("zonasRisco") || []).map(Z.normalizarZona);
-  const comDesenho = zonas.filter(Z.temGeometria).length;
+
+  const entrada = el("input", {
+    class: "campo-texto",
+    type: "text",
+    placeholder: "Nome do bairro",
+    maxLength: 40,
+    autocomplete: "off",
+  });
+
+  const adicionar = async () => {
+    const nome = entrada.value.trim();
+    if (!nome) return;
+    if (!risco.termoValido(nome)) {
+      mostrarToast({ titulo: "Nome curto demais", detalhe: "Três letras ou mais.", tom: "alerta" });
+      return;
+    }
+    // Entra como "não pegar": é uma lista do que ele NÃO quer. Um toque no item
+    // rebaixa para "atenção" quando o bairro é ruim só em parte.
+    const nova = Z.normalizarZona({ nome, nivel: "evitar", termos: [nome] });
+    await salvarConfig("zonasRisco", [...zonas, nova]);
+    await semaforo.sincronizarZonas();
+    entrada.value = "";
+    vibrar(20);
+    repintar();
+  };
+
+  entrada.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") adicionar();
+  });
 
   return el(
     "div",
     { class: "areas" },
-    el("h3", { class: "areas__titulo" }, "Áreas que eu não pego"),
+    el("h3", { class: "areas__titulo" }, "Bairros que eu não pego"),
+
     zonas.length
       ? el("div", { class: "areas__lista" },
           ...zonas.map((z) =>
-            el("div", { class: `areas__item ${z.ativa === false ? "areas__item--off" : ""}`.trim() },
+            el("button", {
+              type: "button",
+              class: `areas__item ${z.ativa === false ? "areas__item--off" : ""}`.trim(),
+              onClick: () => abrirDetalheDeZona(z, repintar),
+            },
               el("span", { class: `areas__selo areas__selo--${z.nivel}` },
                 z.nivel === "evitar" ? "não pegar" : "atenção"),
               el("span", { class: "areas__nome" }, z.nome),
@@ -233,28 +272,36 @@ function listaDeAreas(repintar) {
             )
           ),
         )
-      : el("p", { class: "campo__ajuda" },
-          "Nenhuma área marcada. Desenhe no mapa: a coordenada avisa quando a " +
-          "corrida COMEÇA ali; os nomes avisam quando ela VAI para lá."),
-    zonas.length && comDesenho < zonas.length
-      ? el("p", { class: "campo__ajuda" },
-          `${zonas.length - comDesenho} sem desenho: só avisam pelo nome, que a ` +
-          "plataforma pode trocar.")
       : null,
+
+    el("div", { class: "areas__novo" },
+      entrada,
+      el("button", { type: "button", class: "botao", onClick: adicionar }, "Adicionar"),
+    ),
+
+    el("p", { class: "campo__ajuda" },
+      zonas.length
+        ? "Toque num bairro para acrescentar outros nomes, rebaixar para atenção ou apagar."
+        : "Digite o nome como ele aparece na oferta. Depois dá para acrescentar " +
+          "outros nomes para o mesmo bairro, conforme a plataforma mudar."),
+
     el("button", {
       type: "button",
-      class: "botao fin__acao",
+      class: "botao areas__mapa",
       onClick: () => abrirEditorDeZonas(repintar),
-    }, "Abrir o mapa"),
+    }, "Desenhar no mapa"),
   );
 }
 
 function descreverZona(z) {
   const partes = [];
-  if (z.tipo === "poligono" && Z.temGeometria(z)) partes.push(`contorno de ${z.pontos.length} pontos`);
-  else if (Z.temGeometria(z)) partes.push(`círculo de ${z.raio} m`);
-  if (z.termos?.length) partes.push(z.termos.join(" · "));
-  return partes.join(" · ") || "sem desenho e sem nome";
+  // O termo igual ao nome não é informação: ele já está escrito acima. Só os
+  // apelidos ADICIONAIS valem a linha.
+  const proprio = risco.normalizar(z.nome);
+  const apelidos = (z.termos || []).filter((t) => risco.normalizar(t) !== proprio);
+  if (apelidos.length) partes.push(`também: ${apelidos.join(" · ")}`);
+  if (Z.temGeometria(z)) partes.push(z.tipo === "poligono" ? `contorno de ${z.pontos.length} pontos` : `círculo de ${z.raio} m`);
+  return partes.join(" · ") || "só este nome";
 }
 
 function pendencia(texto, rotuloBotao, acao) {
