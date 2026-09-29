@@ -14,6 +14,7 @@ import { montarTopbar, atualizarTopbar } from "./topbar.js";
 import { religarAoVoltar, manterTelaLigada } from "./geo.js";
 import { mostrarToast, vibrar, falar } from "./feedback.js";
 import { formatarDuracao, MINUTO } from "./metrics.js";
+import { nativo } from "./plataforma.js";
 
 const TELAS = {
   agora: () => {},
@@ -107,6 +108,10 @@ function vigiarPausa() {
 
 function registrarServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
+  // Dentro do APK os arquivos ja estao no aparelho. Um service worker
+  // cache-first aqui nao adiciona offline nenhum e cria um jeito de servir
+  // arquivo velho depois de atualizar o app.
+  if (nativo()) return;
   // iniciar() é async: quando chegamos aqui o evento `load` normalmente já
   // passou, e um listener registrado depois nunca dispararia.
   const registrar = () =>

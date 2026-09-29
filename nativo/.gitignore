@@ -1,0 +1,21 @@
+# www/ e sempre derivado de ../copiloto (npm run web). Nunca editar a mao.
+www/
+
+node_modules/
+
+# saidas de build do Android
+android/build/
+android/app/build/
+android/.gradle/
+android/captures/
+android/local.properties
+android/app/release/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# gerados por `cap sync` a partir de www/ e de capacitor.config.json
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json

@@ -1,0 +1,70 @@
+# Compila o APK do Copiloto. O aparelho de compilacao e o runner do GitHub:
+# ele ja vem com o Android SDK, que nao existe na maquina de ninguem aqui.
+#
+# O APK sai como artefato da execucao, em Actions > a execucao > Artifacts.
+# E um APK de debug: vem assinado com a chave de debug do Android, entao
+# instala direto no celular (habilitando "instalar de fontes desconhecidas").
+# Para a Play Store depois e preciso um APK/AAB de release assinado com chave
+# propria -- veja nativo/README.md.
+name: APK
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "copiloto/**"
+      - "nativo/**"
+      - ".github/workflows/apk.yml"
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: nativo/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Testes do app web
+        run: ./test/check.sh
+        working-directory: copiloto
+
+      - name: Instalar o Capacitor
+        run: npm ci
+        working-directory: nativo
+
+      - name: Montar www/ e sincronizar o projeto Android
+        run: npm run sync
+        working-directory: nativo
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar o APK de debug
+        run: ./gradlew --no-daemon assembleDebug
+        working-directory: nativo/android
+
+      - name: Renomear com a data e o commit
+        id: apk
+        run: |
+          origem=app/build/outputs/apk/debug/app-debug.apk
+          nome="copiloto-$(date +%Y%m%d)-${GITHUB_SHA::7}.apk"
+          mv "$origem" "$nome"
+          echo "nome=$nome" >> "$GITHUB_OUTPUT"
+          ls -lh "$nome"
+        working-directory: nativo/android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.nome }}
+          path: nativo/android/${{ steps.apk.outputs.nome }}
+          if-no-files-found: error
+          retention-days: 90

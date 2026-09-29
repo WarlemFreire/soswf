@@ -2,20 +2,16 @@
 // unico caminho de saida é este, e é o motorista quem aperta.
 
 import { db, NOMES_STORES } from "./db.js";
+import { entregarArquivo } from "./plataforma.js";
 import { cfg, configAtual, aplicarConfig } from "./config.js";
 import * as M from "./metrics.js";
 
 const VERSAO_BACKUP = 1;
 
+// Na web isto e um download; dentro do APK o WebView ignora <a download>, e o
+// arquivo vai para a folha de compartilhamento. Quem decide e plataforma.js.
 function baixar(nome, conteudo, tipo) {
-  const url = URL.createObjectURL(new Blob([conteudo], { type: `${tipo};charset=utf-8` }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nome;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return entregarArquivo(nome, conteudo, tipo);
 }
 
 function carimbo() {
@@ -33,7 +29,7 @@ export async function exportarJson() {
     config: configAtual(),
     dados,
   };
-  baixar(`copiloto-backup-${carimbo()}.json`, JSON.stringify(pacote, null, 2), "application/json");
+  await baixar(`copiloto-backup-${carimbo()}.json`, JSON.stringify(pacote, null, 2), "application/json");
   return pacote;
 }
 
@@ -110,7 +106,7 @@ export async function exportarCsvJornadas() {
     ]);
   }
 
-  baixar(`copiloto-jornadas-${carimbo()}.csv`, csv(linhas), "text/csv");
+  await baixar(`copiloto-jornadas-${carimbo()}.csv`, csv(linhas), "text/csv");
   return linhas.length - 1;
 }
 
@@ -145,7 +141,7 @@ export async function exportarCsvRegistros() {
     ]);
   }
 
-  baixar(`copiloto-registros-${carimbo()}.csv`, csv(linhas), "text/csv");
+  await baixar(`copiloto-registros-${carimbo()}.csv`, csv(linhas), "text/csv");
   return linhas.length - 1;
 }
 
@@ -165,7 +161,7 @@ export async function exportarCsvPausas() {
       p.jornadaId,
     ]);
   }
-  baixar(`copiloto-pausas-${carimbo()}.csv`, csv(linhas), "text/csv");
+  await baixar(`copiloto-pausas-${carimbo()}.csv`, csv(linhas), "text/csv");
   return linhas.length - 1;
 }
 
@@ -238,7 +234,7 @@ export async function copiarParaAreaDeTransferencia(texto) {
 
 export async function exportarCsvPlanilha(corridas) {
   const linhas = [COLUNAS_PLANILHA, ...corridas.map(linhaPlanilha)];
-  baixar(`copiloto-corridas-${carimbo()}.csv`, csv(linhas), "text/csv");
+  await baixar(`copiloto-corridas-${carimbo()}.csv`, csv(linhas), "text/csv");
   return linhas.length - 1;
 }
 
@@ -282,7 +278,7 @@ export async function exportarCsvCorridasRico() {
     ]);
   }
 
-  baixar(`copiloto-corridas-rico-${carimbo()}.csv`, csv(linhas), "text/csv");
+  await baixar(`copiloto-corridas-rico-${carimbo()}.csv`, csv(linhas), "text/csv");
   return linhas.length - 1;
 }
 

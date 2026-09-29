@@ -1,0 +1,11 @@
+{
+  "appId": "com.soswf.copiloto",
+  "appName": "Copiloto",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
