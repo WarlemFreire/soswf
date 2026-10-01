@@ -1496,3 +1496,39 @@ button { cursor: pointer; border: 0; background: none; }
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word;
 }
+
+/* ------------------------------------------------------------ assistente */
+
+.ia__atalho { margin: 0 0 16px; }
+
+.ia__campo { width: 100%; min-height: 92px; resize: vertical; font-size: 16px; }
+
+/* Perguntas prontas vêm antes do campo: digitar no carro é caro, e a pergunta
+   boa vale mais que a resposta boa. */
+.ia__prontas { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.ia__pronta {
+  width: 100%; min-height: 64px; padding: 12px 14px; text-align: left;
+  border-radius: var(--raio-m); border: 1px solid var(--linha);
+  background: var(--fundo-cartao); color: var(--tinta);
+  font-size: 15px; line-height: 1.35; white-space: normal;
+}
+
+.ia__resposta { margin-top: 16px; }
+.ia__pensando { color: var(--tinta-fraca); font-size: 15px; }
+.ia__texto p { margin: 0 0 10px; font-size: 16px; line-height: 1.5; }
+.ia__texto p:empty { display: none; }
+.ia__uso { font-size: 12px; color: var(--tinta-fraca); font-variant-numeric: tabular-nums; }
+.ia__erro { color: var(--nivel-abaixo); font-size: 16px; margin-bottom: 8px; }
+
+.ia__modelos { margin-top: 12px; }
+.ia__grade { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow: auto; }
+.ia__modelo {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  width: 100%; min-height: 64px; padding: 10px 12px; text-align: left;
+  border-radius: var(--raio-m); border: 1px solid var(--linha);
+  background: var(--fundo); color: var(--tinta);
+}
+.ia__modelo strong { font-size: 15px; }
+.ia__modelo small { font-size: 11px; color: var(--tinta-fraca); word-break: break-all; }
+
+.folha__ajuda--alerta { color: var(--nivel-piso); }

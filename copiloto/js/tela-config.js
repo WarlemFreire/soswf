@@ -20,6 +20,8 @@ import * as semaforo from "./semaforo.js";
 import * as Z from "./zonas.js";
 import * as risco from "./risco.js";
 import { entregarArquivo } from "./plataforma.js";
+import * as IA from "./ia.js";
+import { abrirConfigDaIA, abrirPergunta } from "./tela-ia.js";
 import { abrirEditorDeZonas, abrirDetalheDeZona } from "./tela-zonas.js";
 
 export function montarConfig(raiz) {
@@ -87,6 +89,8 @@ export function montarConfig(raiz) {
       ),
     ]),
 
+    secaoAssistente(),
+
     secaoSemaforo(),
 
     secao("No carro", [
@@ -121,6 +125,47 @@ export function montarConfig(raiz) {
  * recurso mudo de um jeito diferente. Dizer qual está faltando é a diferença
  * entre "não funciona" e "falta um toque aqui".
  */
+/**
+ * O assistente.
+ *
+ * Seção própria e separada do semáforo porque são opostos: o semáforo é
+ * determinístico, offline e decide em fração de segundo; o assistente depende
+ * de rede, custa dinheiro por pergunta e responde em texto. Juntá-los na mesma
+ * seção sugeriria que um depende do outro -- e a independência é o ponto.
+ */
+function secaoAssistente() {
+  const caixa = el("div", { class: "config__secao" });
+
+  const pintar = () => {
+    const pronto = IA.configurada();
+    caixa.replaceChildren(
+      el("h2", { class: "secao__titulo" }, "Assistente"),
+      el("p", { class: "campo__ajuda" },
+        pronto
+          ? `Pronto, usando ${cfg("iaModelo")}. Pergunte pela aba Análise.`
+          : "Responde perguntas sobre os seus números, em texto. É a única parte " +
+            "do aplicativo que manda dado para fora, e por isso vem desligada."),
+      el("div", { class: "zonas__acoes" },
+        el("button", {
+          type: "button",
+          class: "botao",
+          onClick: () => abrirConfigDaIA(pintar),
+        }, pronto ? "Mexer na configuração" : "Configurar"),
+        pronto
+          ? el("button", { type: "button", class: "botao", onClick: () => abrirPergunta() }, "Perguntar")
+          : null,
+      ),
+      pronto
+        ? el("p", { class: "campo__ajuda" },
+            "O semáforo não usa isto: ele continua decidindo offline e sozinho.")
+        : null,
+    );
+  };
+
+  pintar();
+  return caixa;
+}
+
 function secaoSemaforo() {
   const caixa = el("div", { class: "config__secao" });
 

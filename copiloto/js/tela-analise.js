@@ -9,6 +9,8 @@ import * as A from "./analise.js";
 import * as store from "./store.js";
 import { db } from "./db.js";
 import { configAtual, MOTIVOS_PAUSA } from "./config.js";
+import * as IA from "./ia.js";
+import { abrirPergunta } from "./tela-ia.js";
 
 export async function montarAnalise(raiz) {
   limpar(raiz);
@@ -19,6 +21,18 @@ export async function montarAnalise(raiz) {
   const registros = await db.todos("registros");
   const corridas = await db.todos("corridas");
   const custos = await db.todos("custos");
+
+  // O assistente entra aqui e não na tela principal: a aba Análise é onde ele
+  // vem com tempo, querendo entender, não decidir no semáforo.
+  if (IA.configurada()) {
+    raiz.append(
+      el("button", {
+        type: "button",
+        class: "botao fin__acao ia__atalho",
+        onClick: () => abrirPergunta(),
+      }, "Perguntar ao assistente")
+    );
+  }
 
   if (!dias.length && !corridas.length) {
     raiz.append(

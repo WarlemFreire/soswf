@@ -115,6 +115,15 @@ export const CONFIG_PADRAO = {
   zonasRisco: [],
   // Ultimo alvo de R$/h usado no orcamento de particular.
   alvoHoraOrcamento: 40,
+
+  // Assistente opcional, via OpenRouter. Desligado e vazio por padrao: ele é a
+  // unica parte do app que manda dado para fora, e isso tem que ser uma escolha
+  // explicita, nunca um padrao.
+  //
+  // A chave fica aqui, no aparelho. Nao e cofre -- quem tiver o aparelho
+  // desbloqueado le, como le o resto. Vale uma chave com limite de gasto.
+  iaChave: "",
+  iaModelo: "",
   vibrar: true,
   tts: false,
   tema: "auto",
