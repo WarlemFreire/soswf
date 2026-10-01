@@ -180,7 +180,9 @@ function secaoSemaforo() {
                 ? { titulo: "Leitor desligado", detalhe: "O aplicativo de banco já deve abrir." }
                 : { titulo: "Não consegui desligar", detalhe: "Desligue na tela de acessibilidade.", tom: "alerta" }
             );
-            pintar();
+            // O Android leva um instante para tirar o serviço da lista. Repintar
+            // na hora mostraria o estado velho, que é pior que não mostrar nada.
+            setTimeout(pintar, 600);
           },
         }, "Desligar o leitor (para usar o banco)"),
         el("p", { class: "campo__ajuda" },

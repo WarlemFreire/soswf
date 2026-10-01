@@ -110,9 +110,12 @@ public class SemaforoService extends AccessibilityService {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) return false;
 
         servico.esconderSelo();
-        boolean desligou = servico.disableSelf();
-        if (desligou) emExecucao = null;
-        return desligou;
+        // disableSelf() devolve void: nao ha confirmacao aqui. Quem confirma e
+        // quem chama, relendo a lista de acessibilidade do sistema -- que e a
+        // fonte que o aplicativo de banco tambem le.
+        servico.disableSelf();
+        emExecucao = null;
+        return true;
     }
 
     private void esconderSelo() {
