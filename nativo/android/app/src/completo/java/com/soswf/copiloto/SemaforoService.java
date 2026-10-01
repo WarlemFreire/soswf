@@ -219,6 +219,11 @@ public class SemaforoService extends AccessibilityService {
                 Colheita c = new Colheita();
                 varrer(raiz, c, 0);
                 Oferta o = Oferta.ler(c.cartao != null ? c.cartao : c.tudo);
+                // Se o recorte do cartao ficou apertado demais e pegou so uma
+                // perna, a janela inteira ainda e do app de corrida e merece a
+                // tentativa. A tela de navegacao nao passa nem assim: ela tem
+                // uma perna so, recortada ou inteira.
+                if (o == null && c.cartao != null) o = Oferta.ler(c.tudo);
                 if (colheita == null) colheita = c;
                 if (o != null) {
                     colheita = c;

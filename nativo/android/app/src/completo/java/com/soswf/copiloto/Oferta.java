@@ -46,6 +46,31 @@ public final class Oferta {
     private static final Pattern HORAS =
             Pattern.compile("(\\d+)\\s*h(?:ora)?s?\\b", Pattern.CASE_INSENSITIVE);
 
+    /* ------------------------------------------------------------- limites
+     *
+     * Toda leitura de tela erra. A pergunta nao e se, e o que fazer quando.
+     *
+     * O caso que escreveu estas linhas: com o leitor ja funcionando, o servico
+     * leu a tela de NAVEGACAO (indo buscar a passageira) e anunciou
+     * "OTIMA · 8427 R$/h · 140,45 R$/km". Uma oferta impossivel nao e uma
+     * oferta otima: e uma leitura errada, e o certo e calar.
+     *
+     * Os limites sao folgados de proposito -- nao e para julgar corrida, e para
+     * reconhecer que aquilo nao era corrida nenhuma.
+     */
+
+    /** Abaixo disto nao e corrida; acima, nao e uma corrida de aplicativo. */
+    private static final double VALOR_MIN = 3;
+    private static final double VALOR_MAX = 1000;
+    private static final double KM_MIN = 0.5;
+    private static final double KM_MAX = 300;
+    private static final double MIN_MIN = 3;
+    private static final double MIN_MAX = 600;
+    /** Dinamico alto chega a 10; 140 e tela errada. */
+    private static final double RS_POR_KM_MAX = 15;
+    /** Acima disto nao existe, e foi o que o selo anunciou com a tela errada. */
+    private static final double RS_POR_HORA_MAX = 400;
+
     public final double valor;
     public final double km;
     public final double minutos;
@@ -75,6 +100,16 @@ public final class Oferta {
 
         if (dinheiros.isEmpty() || distancias.isEmpty()) return null;
 
+        // DUAS PERNAS. O cartao de oferta sempre traz a busca E a viagem: duas
+        // distancias e dois tempos. A tela de navegacao traz UMA distancia e UM
+        // tempo -- e foi ela que o servico leu como oferta. Nos tres cartoes
+        // reais que eu tenho transcritos, as duas pernas estao sempre la.
+        //
+        // Isto custa perder uma plataforma que mostre so o total. Perder oferta
+        // e ficar calado; anunciar 8427 R$/h e mandar ele aceitar lixo.
+        if (distancias.size() < 2) return null;
+        if (tempos.size() + emHoras.size() < 2) return null;
+
         // O VALOR e o maior: o cartao mostra o ganho da corrida e as vezes
         // tambem uma taxa ou um adicional menor. O maior e o que ele recebe.
         double valor = maior(dinheiros);
@@ -87,8 +122,14 @@ public final class Oferta {
         // O TEMPO tambem soma, pela mesma razao. Horas viram minutos.
         double minutos = soma(tempos) + soma(emHoras) * 60;
 
-        if (valor <= 0 || km <= 0 || minutos <= 0) return null;
-        return new Oferta(valor, km, minutos);
+        if (valor < VALOR_MIN || valor > VALOR_MAX) return null;
+        if (km < KM_MIN || km > KM_MAX) return null;
+        if (minutos < MIN_MIN || minutos > MIN_MAX) return null;
+
+        Oferta oferta = new Oferta(valor, km, minutos);
+        if (oferta.reaisPorKm() > RS_POR_KM_MAX) return null;
+        if (oferta.reaisPorHora() > RS_POR_HORA_MAX) return null;
+        return oferta;
     }
 
     public double reaisPorKm() {

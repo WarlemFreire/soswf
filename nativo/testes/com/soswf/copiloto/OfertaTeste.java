@@ -50,17 +50,49 @@ public final class OfertaTeste {
         conferir("com duas quantias, vale a maior", so != null && so.valor == 31.40, "valor errado");
 
         // Sem uma das tres grandezas nao da para decidir, e chutar e pior.
-        conferir("sem km, não lê", Oferta.ler(Arrays.asList("R$ 20,00", "15 min")) == null, "leu sem km");
-        conferir("sem tempo, não lê", Oferta.ler(Arrays.asList("R$ 20,00", "5 km")) == null, "leu sem tempo");
+        conferir("sem km, não lê", Oferta.ler(Arrays.asList("R$ 20,00", "5 min", "15 min")) == null, "leu sem km");
+        conferir("sem tempo, não lê", Oferta.ler(Arrays.asList("R$ 20,00", "2 km", "5 km")) == null, "leu sem tempo");
         conferir("tela sem oferta não vira oferta",
                 Oferta.ler(Arrays.asList("Saldo da semana", "Ganhos")) == null, "inventou oferta");
 
+        /* ---------------------------------------------------------------- *
+         * O QUE NAO E OFERTA.
+         *
+         * Com o leitor ja funcionando, o servico leu a tela de NAVEGACAO --
+         * ele indo buscar a passageira -- e anunciou "OTIMA · 8427 R$/h ·
+         * 140,45 R$/km". Transcrito do print dele, 01/10/2026 17:03.
+         * ---------------------------------------------------------------- */
+        conferir("tela de navegação NÃO é oferta", Oferta.ler(Arrays.asList(
+                "Rua João Carvalho Morais",
+                "Rua Aparecida - Ponto Chic, Nova Iguaçu - RJ, 26041-185",
+                "R$ 140,45",
+                "1 min",
+                "0,6 km",
+                "Encontro com Kátia",
+                "30", "LIMITE")) == null, "leu a navegação como oferta");
+
+        conferir("uma perna só não é cartão de oferta",
+                Oferta.ler(Arrays.asList("R$ 20,00", "12 min", "8,0 km")) == null,
+                "aceitou uma perna só");
+
+        conferir("R$/km impossível é leitura errada, não corrida ótima",
+                Oferta.ler(Arrays.asList("R$ 300,00", "1 min (0,5 km)", "2 minutos (0,5 km)")) == null,
+                "aceitou R$/km absurdo");
+
+        conferir("R$/h impossível também",
+                Oferta.ler(Arrays.asList("R$ 200,00", "2 min (3,0 km)", "3 minutos (5,0 km)")) == null,
+                "aceitou R$/h absurdo");
+
+        // E o contrário: dinâmico alto e legítimo continua passando.
+        Oferta boa = Oferta.ler(Arrays.asList("R$ 90,00", "4 min (1,5 km)", "26 minutos (12,0 km)"));
+        conferir("corrida cara mas possível continua sendo lida", boa != null, "recusou corrida boa");
+
         // Outras formas de escrever tempo que ja aparecem por aí.
-        tempo("'1 h 05 min' vira 65", "1 h 05 min", 65);
-        tempo("'2 horas' vira 120", "2 horas", 120);
-        tempo("'8 minutos' sozinho vira 8", "8 minutos", 8);
-        tempo("'5 mins' vira 5", "5 mins", 5);
-        tempo("'7 minuto' vira 7", "7 minuto", 7);
+        tempo("'1 h 05 min' soma 5 + 65", "1 h 05 min", 70);
+        tempo("'2 horas' soma 5 + 120", "2 horas", 125);
+        tempo("'8 minutos' soma 5 + 8", "8 minutos", 13);
+        tempo("'5 mins' soma 5 + 5", "5 mins", 10);
+        tempo("'7 minuto' soma 5 + 7", "7 minuto", 12);
 
         // Veredito, com a escala de OFERTA (nao a da jornada).
         Pisos p = new Pisos(40, 55, 75, 2.6, 1.10);
@@ -74,7 +106,12 @@ public final class OfertaTeste {
 
     /** Falha limpo quando o texto nem vira oferta, em vez de estourar NullPointer. */
     private static void tempo(String nome, String escrito, double esperado) {
-        Oferta o = Oferta.ler(Arrays.asList("R$ 90,00", "40 km", escrito));
+        // Duas pernas, porque um cartao de oferta tem duas. O tempo sob teste e
+        // o segundo; o primeiro e fixo e ja conhecido (5 min).
+        // R$ 40 e nao R$ 90: com 13 minutos, noventa reais dao 415 R$/h e
+        // caem no limite de implausibilidade -- o teste do tempo nao pode
+        // esbarrar no teste do absurdo.
+        Oferta o = Oferta.ler(Arrays.asList("R$ 40,00", "5 min (2,0 km)", "38,0 km", escrito));
         if (o == null) { conferir(nome, false, "não leu \"" + escrito + "\""); return; }
         perto(nome, o.minutos, esperado);
     }
