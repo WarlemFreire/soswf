@@ -53,23 +53,58 @@ jobs:
       # Sem este passo cada APK sai com uma assinatura diferente e nao instala
       # sobre o anterior. Com ele, instalar e atualizar, e o banco de dados do
       # motorista sobrevive a troca de versao e de sabor.
-      # O segredo ANDROID_KEYSTORE traz duas coisas numa colagem so: a senha na
-      # primeira linha, o cofre em base64 nas demais. Um segredo em vez de tres,
-      # porque criar segredo no navegador do celular e a parte chata deste conserto.
+      # O segredo ANDROID_KEYSTORE traz duas coisas numa colagem so: a senha e o
+      # cofre em base64. Um segredo em vez de tres, porque criar segredo no
+      # navegador do celular e a parte chata deste conserto.
+      #
+      # A leitura e DELIBERADAMENTE tolerante. A primeira tentativa separava por
+      # linha e o cofre chegou corrompido -- a colagem perdeu a quebra de linha, e
+      # o erro so apareceu trinta linhas depois, dentro do Gradle, como
+      # "Tag number over 30 is not supported". Nao se pede a um motorista que
+      # acerte formatacao de base64 no celular.
+      #
+      # Agora: tira todo espaco e quebra de linha e separa no "MII" -- base64 de
+      # PKCS12 sempre comeca assim (DER 0x30 0x82). Funciona com as partes em
+      # linhas separadas, juntas, ou requebradas pelo navegador.
       - name: Escrever a chave de assinatura
         id: chave
         env:
           CHAVE: ${{ secrets.ANDROID_KEYSTORE }}
         run: |
-          if [ -n "$CHAVE" ]; then
-            senha=$(printf '%s' "$CHAVE" | head -1 | tr -d ' \r')
-            printf '%s' "$CHAVE" | tail -n +2 | tr -d ' \n\r' | base64 -d > app/chave.p12
-            echo "::add-mask::$senha"
-            echo "senha=$senha" >> "$GITHUB_OUTPUT"
-            echo "Chave estavel escrita ($(stat -c%s app/chave.p12) bytes)."
-          else
+          if [ -z "$CHAVE" ]; then
             echo "::warning title=Sem chave estavel::O segredo ANDROID_KEYSTORE nao esta configurado. Este APK nao vai instalar sobre o anterior."
+            exit 0
           fi
+
+          limpo=$(printf '%s' "$CHAVE" | tr -d '[:space:]')
+          senha=${limpo%%MII*}
+          echo "::add-mask::$senha"
+          cofre="MII${limpo#*MII}"
+
+          if [ "$senha" = "$limpo" ]; then
+            echo "::error title=Falta o cofre no segredo::O segredo ANDROID_KEYSTORE nao tem a parte base64, que comeca com MII. Cole o arquivo COLAR-NO-GITHUB.txt INTEIRO (selecionar tudo), nao so a primeira linha."
+            exit 1
+          fi
+          if [ -z "$senha" ]; then
+            echo "::error title=Falta a senha no segredo::O segredo comeca direto no cofre. Falta a primeira linha, que e a senha."
+            exit 1
+          fi
+
+          if ! printf '%s' "$cofre" | base64 -d > app/chave.p12 2>/dev/null; then
+            echo "::error title=base64 invalido::A parte base64 do segredo nao decodifica. Provavel colagem incompleta -- refaca selecionando TUDO."
+            exit 1
+          fi
+          echo "senha: ${#senha} caracteres · cofre: $(stat -c%s app/chave.p12) bytes"
+
+          # Abrir o cofre AQUI, com uma mensagem que diz o que fazer, em vez de
+          # deixar o Gradle morrer com erro de DER no meio da compilacao.
+          if ! keytool -list -keystore app/chave.p12 -storetype PKCS12 \
+                 -storepass "$senha" -alias copiloto >/dev/null 2>&1; then
+            echo "::error title=O cofre nao abriu::O arquivo decodificou mas nao e um PKCS12 valido com a chave 'copiloto', ou a senha nao bate. Refaca o segredo colando o arquivo inteiro."
+            exit 1
+          fi
+          echo "Cofre aberto e chave 'copiloto' encontrada."
+          echo "senha=$senha" >> "$GITHUB_OUTPUT"
         working-directory: nativo/android
 
       # Dois sabores: "limpo" sem leitura de tela nem sobreposicao (nao briga com

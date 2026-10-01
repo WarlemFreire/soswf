@@ -58,11 +58,20 @@ A chave vive num unico segredo do repositorio, em
 
 | Segredo | Conteudo |
 |---|---|
-| `ANDROID_KEYSTORE` | linha 1: a senha do cofre. Linhas seguintes: o `.p12` em base64 |
+| `ANDROID_KEYSTORE` | a senha do cofre, e em seguida o `.p12` em base64 |
 
 Um segredo e nao tres de proposito: criar segredo no navegador do celular e a
-parte chata deste conserto, e as tres informacoes cabem numa colagem. O alias e
+parte chata deste conserto, e as duas informacoes cabem numa colagem. O alias e
 sempre `copiloto` e esta no `build.gradle` -- alias nao e segredo.
+
+A leitura do segredo e **tolerante**: o fluxo tira todo espaco e quebra de linha
+e separa as duas partes no `MII`, que e como todo base64 de PKCS12 comeca (DER
+`30 82`). Tanto faz as duas partes em linhas separadas, juntas ou requebradas
+pelo navegador. Isso nao e zelo gratuito: a primeira versao separava por linha,
+a colagem perdeu a quebra, e o erro apareceu la dentro do Gradle como
+`Tag number over 30 is not supported`. Depois de montar o arquivo, o fluxo
+tenta ABRIR o cofre com `keytool` e, se nao abrir, para ali dizendo o que
+refazer.
 
 O fluxo separa as duas partes do segredo, escreve
 `nativo/android/app/chave.p12` e passa a senha como variavel de ambiente
