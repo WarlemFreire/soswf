@@ -194,6 +194,12 @@ public class SemaforoService extends AccessibilityService {
         Diagnostico.contarPacote(this, pacote);
 
         if (!appDeCorrida(pacote)) return;
+
+        // O evento chegou e e de app de corrida. Anotado ANTES do interruptor,
+        // para "ligado=false" e "evento nunca chega" deixarem de ser o mesmo
+        // sintoma.
+        Pisos.marcarEvento(this, pacote);
+
         if (!Pisos.ler(this).ligado) return;
 
         // Sem janela de cegueira por tempo. Se ele recusa uma e a proxima entra
@@ -240,6 +246,8 @@ public class SemaforoService extends AccessibilityService {
         // layout que nao separa o cartao ainda e melhor lido do que nao lido.
         List<String> doCartao = colheita.cartao != null ? colheita.cartao : colheita.tudo;
         Oferta oferta = ofertaLida;
+
+        Pisos.marcarLeitura(this, oferta != null, colheita.cartao != null);
 
         Diagnostico.guardar(
                 this, pacote,

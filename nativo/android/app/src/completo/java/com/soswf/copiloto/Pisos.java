@@ -30,6 +30,14 @@ public final class Pisos {
     private static final String K_LIDAS_DIA = "lidasDia";
     private static final String K_LIDAS_N = "lidasN";
 
+    /* Rastro da ultima passagem pela cadeia. So metadado: quando, de qual
+     * aplicativo, e se os numeros sairam. Nunca o texto da tela. */
+    private static final String K_EV_MS = "evMs";
+    private static final String K_EV_PACOTE = "evPacote";
+    private static final String K_LEU_MS = "leuMs";
+    private static final String K_LEU_OK = "leuOk";
+    private static final String K_LEU_CARTAO = "leuCartao";
+
     public final double pisoHora;
     public final double idealHora;
     public final double otimoHora;
@@ -124,6 +132,49 @@ public final class Pisos {
     public static String hoje() {
         return new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT)
                 .format(new java.util.Date());
+    }
+
+    /**
+     * O rastro da cadeia: evento chegou -> tela foi lida -> numeros sairam.
+     *
+     * Existe porque "nada apareceu" e uma frase, nao um diagnostico, e eu gastei
+     * seis versoes adivinhando em qual elo ela parava. Com isto, UM print da
+     * tela de ajustes responde: se nao ha evento, o problema e o filtro de
+     * pacote; se ha evento e nao ha leitura, e a janela; se ha leitura e os
+     * numeros nao sairam, e o parser.
+     *
+     * So metadado -- quando, de qual aplicativo, e se deu certo. Nenhuma letra
+     * do texto da tela, nem com diagnostico ligado. Isto fica sempre de pe
+     * justamente por ser inofensivo.
+     */
+    public static void marcarEvento(Context contexto, CharSequence pacote) {
+        prefs(contexto).edit()
+                .putLong(K_EV_MS, System.currentTimeMillis())
+                .putString(K_EV_PACOTE, pacote == null ? "" : pacote.toString())
+                .apply();
+    }
+
+    public static void marcarLeitura(Context contexto, boolean numerosSairam, boolean cartaoIsolado) {
+        prefs(contexto).edit()
+                .putLong(K_LEU_MS, System.currentTimeMillis())
+                .putBoolean(K_LEU_OK, numerosSairam)
+                .putBoolean(K_LEU_CARTAO, cartaoIsolado)
+                .apply();
+    }
+
+    public static org.json.JSONObject rastro(Context contexto) {
+        SharedPreferences p = prefs(contexto);
+        org.json.JSONObject j = new org.json.JSONObject();
+        try {
+            j.put("eventoMs", p.getLong(K_EV_MS, 0));
+            j.put("eventoPacote", p.getString(K_EV_PACOTE, ""));
+            j.put("leituraMs", p.getLong(K_LEU_MS, 0));
+            j.put("leituraOk", p.getBoolean(K_LEU_OK, false));
+            j.put("leituraCartao", p.getBoolean(K_LEU_CARTAO, false));
+        } catch (org.json.JSONException erro) {
+            // Objeto vazio ainda e resposta.
+        }
+        return j;
     }
 
     public static void ligar(Context contexto, boolean ligado) {

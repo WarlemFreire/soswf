@@ -170,6 +170,56 @@ function secaoAssistente() {
   return caixa;
 }
 
+/** "há 12 s", "há 4 min", "há 2 h". Quanto mais velho, menos importa a precisão. */
+function haQuantoTempo(ms) {
+  if (!ms) return null;
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 90) return `há ${s} s`;
+  if (s < 5400) return `há ${Math.round(s / 60)} min`;
+  return `há ${Math.round(s / 3600)} h`;
+}
+
+/**
+ * Onde a cadeia parou.
+ *
+ * "Não apareceu nada" é uma frase, não um diagnóstico, e eu gastei seis
+ * versões adivinhando em qual elo ela parava. A cadeia tem três:
+ *
+ *   evento chega  →  a tela é lida  →  os números saem
+ *
+ * Sem evento, o problema é o filtro de pacote. Com evento e sem leitura, é a
+ * janela. Com leitura e sem números, é o parser. Um print responde.
+ *
+ * Só metadado: quando, de qual aplicativo, e se deu certo. Nenhuma letra do
+ * texto lido — é por isso que pode ficar sempre ligado.
+ */
+function rastroDaCadeia(rastro) {
+  if (!rastro) return [];
+  const linha = (rotulo, ok, detalhe) =>
+    el("div", { class: "campo" },
+      el("span", { class: `campo__rotulo${ok ? "" : " campo__rotulo--alerta"}` },
+        `${ok ? "✓" : "✗"} ${rotulo}`),
+      el("span", { class: "campo__ajuda" }, detalhe));
+
+  const quandoEvento = haQuantoTempo(rastro.eventoMs);
+  const quandoLeitura = haQuantoTempo(rastro.leituraMs);
+
+  return [
+    linha("Evento da plataforma", Boolean(quandoEvento),
+      quandoEvento
+        ? `${quandoEvento} · ${rastro.eventoPacote || "?"}`
+        : "nenhum — o nome do pacote da plataforma pode não estar na minha lista"),
+    linha("Tela lida", Boolean(quandoLeitura),
+      quandoLeitura
+        ? `${quandoLeitura} · cartão isolado: ${rastro.leituraCartao ? "sim" : "não"}`
+        : "o evento chegou mas a janela não foi lida"),
+    linha("Números saíram", Boolean(rastro.leituraOk),
+      rastro.leituraOk
+        ? "valor, km e tempo reconhecidos"
+        : "a tela foi lida e não parecia uma oferta — ligue \"Ver o que ele está lendo\""),
+  ];
+}
+
 /**
  * Quais aplicativos geraram evento, e quantos.
  *
@@ -444,6 +494,7 @@ async function blocoEstado(e) {
     linha("Ofertas lidas hoje", lidas > 0, lidas > 0
       ? `${lidas} — a leitura está funcionando`
       : "nenhuma ainda; com tudo autorizado e uma oferta na tela, isto tem que subir"),
+    ...rastroDaCadeia(e.rastro),
     botao,
     resultado,
     el("p", { class: "campo__ajuda" },

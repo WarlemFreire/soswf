@@ -45,6 +45,28 @@ public final class OfertaTeste {
         perto("R$/km bate com o que a Uber mostra", o.reaisPorKm(), 1.54, 0.01);
         perto("R$/h", o.reaisPorHora(), 45.18, 0.02);
 
+        /* Cartao com DINAMICO incluido. Print dele, 01/10/2026 17:32, Nova
+         * Iguacu. O outro aplicativo mostrou 2,94 R$/km e 60,06 R$/h na mesma
+         * tela -- os numeros abaixo sao conferiveis contra ele. */
+        Oferta d = Oferta.ler(Arrays.asList(
+                "UberX", "Exclusivo",
+                "R$ 10,01",
+                "R$2,94/km aprox.",
+                "4,95 (230)", "Verificado",
+                "+R$ 2,25 incluído",
+                "1 min (0.1 km)",
+                "Av. Governador Roberto Silveira, Centro, Nova Iguaçu",
+                "9 minutos (3.3 km)",
+                "Av. Abílio Augusto Távora, 2526, Dom Rodrigo, Nova Iguaçu"));
+        conferir("cartão com dinâmico é lido", d != null, "veio null");
+        if (d != null) {
+            perto("valor é o ganho, não o bônus de R$ 2,25", d.valor, 10.01);
+            perto("km soma 0,1 + 3,3", d.km, 3.4);
+            perto("minutos somam 1 + 9", d.minutos, 10);
+            perto("R$/km bate com o que a Uber mostra", d.reaisPorKm(), 2.94, 0.01);
+            perto("R$/h", d.reaisPorHora(), 60.06, 0.02);
+        }
+
         // O maior dinheiro e o ganho; "R$1,54/km" nao pode virar o valor.
         Oferta so = Oferta.ler(Arrays.asList("R$ 7,90", "R$ 31,40", "3 min (1,2 km)", "12 min (5,0 km)"));
         conferir("com duas quantias, vale a maior", so != null && so.valor == 31.40, "valor errado");

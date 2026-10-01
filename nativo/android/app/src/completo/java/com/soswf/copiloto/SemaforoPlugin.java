@@ -85,6 +85,7 @@ public class SemaforoPlugin extends Plugin {
         // nao havia como ele nem eu sabermos qual APK estava no aparelho.
         r.put("versao", versaoDoApp(getContext()));
         r.put("lidasHoje", Pisos.lidasHoje(getContext(), Pisos.hoje()));
+        r.put("rastro", Pisos.rastro(getContext()));
         chamada.resolve(r);
     }
 

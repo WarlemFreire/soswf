@@ -50,6 +50,7 @@ export async function estado() {
       temPisos: false,
       versao: "",
       lidasHoje: 0,
+      rastro: null,
     };
   }
   const r = await plugin().estado();
