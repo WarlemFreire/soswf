@@ -11,7 +11,7 @@
 //               carro é caro e porque a pergunta boa vale mais que a resposta
 //               boa.
 
-import { el, abrirFolha } from "./ui.js";
+import { el, abrirFolha, trocar } from "./ui.js";
 import { cfg, configAtual, salvarConfig, custoTotalKm } from "./config.js";
 import * as store from "./store.js";
 import * as M from "./metrics.js";
@@ -50,7 +50,7 @@ export function abrirConfigDaIA(aoSalvar) {
   const listaModelos = el("div", { class: "ia__modelos" });
 
   const buscar = async () => {
-    listaModelos.replaceChildren(el("p", { class: "folha__ajuda" }, "Buscando no OpenRouter…"));
+    trocar(listaModelos, el("p", { class: "folha__ajuda" }, "Buscando no OpenRouter…"));
     try {
       const modelos = await IA.listarModelos();
       // A lista inteira passa de trezentos. Mostrar tudo numa folha de celular
@@ -60,7 +60,7 @@ export function abrirConfigDaIA(aoSalvar) {
         .sort((a, b) => a.saidaPorMil - b.saidaPorMil)
         .slice(0, 40);
 
-      listaModelos.replaceChildren(
+      trocar(listaModelos, 
         el("p", { class: "folha__ajuda" },
           `${modelos.length} modelos disponíveis. Os 40 mais baratos por resposta:`),
         el("div", { class: "ia__grade" },
@@ -80,7 +80,7 @@ export function abrirConfigDaIA(aoSalvar) {
         )
       );
     } catch (erro) {
-      listaModelos.replaceChildren(
+      trocar(listaModelos, 
         el("p", { class: "folha__ajuda folha__ajuda--alerta" },
           `Não consegui buscar a lista: ${erro.message}. Dá para digitar o identificador à mão.`)
       );
@@ -149,7 +149,7 @@ export async function abrirPergunta() {
     if (emVoo) emVoo.abort();
     emVoo = new AbortController();
 
-    resposta.replaceChildren(el("p", { class: "ia__pensando" }, "Pensando…"));
+    trocar(resposta, el("p", { class: "ia__pensando" }, "Pensando…"));
     try {
       const contexto = await montarContextoAtual();
       const r = await IA.perguntar({ pergunta: texto, contexto, sinal: emVoo.signal });
@@ -159,7 +159,7 @@ export async function abrirPergunta() {
       // registrou. Ver aprendizado.js.
       const aposta = await A.registrar({ texto: r.texto, alvo: { tipo: "reaisPorHora" } });
 
-      resposta.replaceChildren(
+      trocar(resposta, 
         el("div", { class: "ia__texto" }, ...r.texto.split("\n").map((l) => el("p", {}, l))),
         seguiuOuNao(aposta),
         r.uso
@@ -168,7 +168,7 @@ export async function abrirPergunta() {
           : null
       );
     } catch (erro) {
-      resposta.replaceChildren(
+      trocar(resposta, 
         el("p", { class: "ia__erro" }, erro.message),
         el("p", { class: "folha__ajuda" },
           "Falhou com a rede ou com a chave. Nada do que o aplicativo calcula " +
@@ -221,7 +221,7 @@ function seguiuOuNao(aposta) {
   const responder = async (seguiu) => {
     await A.marcarSeguiu(aposta.id, seguiu);
     vibrar(8);
-    linha.replaceChildren(
+    trocar(linha, 
       el("p", { class: "folha__ajuda" },
         seguiu
           ? "Anotado. Daqui a uma semana o aplicativo mede se rendeu, comparando "
@@ -230,7 +230,7 @@ function seguiuOuNao(aposta) {
     );
   };
 
-  linha.replaceChildren(
+  trocar(linha, 
     el("span", { class: "ia__seguir-rotulo" }, "Vai seguir?"),
     el("button", { type: "button", class: "chip", onClick: () => responder(true) }, "Vou seguir"),
     el("button", { type: "button", class: "chip", onClick: () => responder(false) }, "Não vou")

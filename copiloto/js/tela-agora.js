@@ -1,7 +1,7 @@
 // tela-agora.js — a tela que fica aberta 90% do tempo. Responde uma pergunta
 // só: "como estou indo agora?".
 
-import { el, limpar, abrirFolha, chips } from "./ui.js";
+import { el, limpar, abrirFolha, chips, trocar } from "./ui.js";
 import * as M from "./metrics.js";
 import * as R from "./rotina.js";
 import * as FX from "./faixas.js";
@@ -254,7 +254,7 @@ async function abrirNovaJornada() {
   function selecionar(id) {
     valores[alvo] = teclados[alvo].valor;
     alvo = id;
-    caixaTeclado.replaceChildren(teclados[id].el);
+    trocar(caixaTeclado, teclados[id].el);
     teclados[id].definir(valores[id] ?? null);
     visor.classList.toggle("visor--odometro", id === "odometro");
     atualizar();

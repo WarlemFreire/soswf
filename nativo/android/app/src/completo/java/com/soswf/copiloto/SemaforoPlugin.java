@@ -154,6 +154,9 @@ public class SemaforoPlugin extends Plugin {
     @PluginMethod
     public void ligarDiagnostico(PluginCall chamada) {
         Diagnostico.ligar(getContext(), chamada.getBoolean("ligado", false));
+        // O filtro de pacotes do Android muda junto: sem isso, ligar o
+        // diagnostico nao faria diferenca nenhuma para o caso que mais importa.
+        SemaforoService.revisarFiltro();
         chamada.resolve();
     }
 
@@ -166,6 +169,7 @@ public class SemaforoPlugin extends Plugin {
         } catch (org.json.JSONException erro) {
             r.put("capturas", new com.getcapacitor.JSArray());
         }
+        r.put("pacotes", Diagnostico.pacotes(getContext()));
         chamada.resolve(r);
     }
 

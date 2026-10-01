@@ -1,7 +1,7 @@
 // tela-fechamento.js — fechamento, resumo do dia e correção de jornadas
 // anteriores (odômetro e dinheiro).
 
-import { el, limpar, abrirFolha } from "./ui.js";
+import { el, limpar, abrirFolha, trocar } from "./ui.js";
 import { Teclado } from "./keypad.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
@@ -376,7 +376,7 @@ export async function abrirCorrecao(jornada) {
   function selecionar(id) {
     valores[campo] = teclados[campo].valor;
     campo = id;
-    caixaTeclado.replaceChildren(teclados[id].el);
+    trocar(caixaTeclado, teclados[id].el);
     teclados[id].definir(valores[id] ?? null);
     for (const [chave, botao] of botoes) botao.classList.toggle("chip--ativo", chave === id);
     atualizar();

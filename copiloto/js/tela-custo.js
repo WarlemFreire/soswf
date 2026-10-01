@@ -4,7 +4,7 @@
 // mede de bomba a bomba, com o odômetro digitado no posto. Não depende de
 // rastreamento contínuo nenhum.
 
-import { el, limpar, abrirFolha, chips } from "./ui.js";
+import { el, limpar, abrirFolha, chips, trocar } from "./ui.js";
 import { Teclado } from "./keypad.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
@@ -110,7 +110,7 @@ export function abrirCusto({ tipoInicial = "gnv" } = {}) {
   function selecionarCampo(id) {
     valores[campo] = teclados[campo].valor;
     campo = id;
-    caixaTeclado.replaceChildren(teclados[id].el);
+    trocar(caixaTeclado, teclados[id].el);
     teclados[id].definir(valores[id] ?? null);
     for (const botao of linhaCampos.children) botao.classList.toggle("chip--ativo", botao.dataset.id === id);
     atualizar();
@@ -219,11 +219,11 @@ export function listaDeCustos(quantos = 8) {
     const recentes = todos.sort((a, b) => b.timestamp - a.timestamp).slice(0, quantos);
 
     if (!recentes.length) {
-      caixa.replaceChildren(el("p", { class: "campo__ajuda" }, "Nenhum custo lançado ainda."));
+      trocar(caixa, el("p", { class: "campo__ajuda" }, "Nenhum custo lançado ainda."));
       return;
     }
 
-    caixa.replaceChildren(
+    trocar(caixa, 
       el("h3", { class: "areas__titulo" }, "Últimos lançamentos"),
       ...recentes.map((c) => {
         const tipo = TIPOS.find((t) => t.id === c.tipo);

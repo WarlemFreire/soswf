@@ -1,6 +1,7 @@
 package com.soswf.copiloto;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
@@ -87,11 +88,24 @@ public class SemaforoService extends AccessibilityService {
     private long ultimoVeredito = 0;
     private boolean retentativaAgendada = false;
 
+    /**
+     * O filtro de pacotes que veio do XML, guardado para poder ser devolvido.
+     *
+     * Em diagnostico o filtro sai, para o servico ENXERGAR qual aplicativo esta
+     * gerando evento. Fora do diagnostico ele volta exatamente como estava --
+     * por isso guardado daqui, e nao reescrito a mao em dois lugares.
+     */
+    private String[] filtroDoXml;
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         emExecucao = this;
         sobreposicao = new Sobreposicao(this);
+
+        AccessibilityServiceInfo info = getServiceInfo();
+        if (info != null) filtroDoXml = info.packageNames;
+        revisarFiltro();
     }
 
     /** O leitor esta habilitado no Android neste instante? */
@@ -142,6 +156,27 @@ public class SemaforoService extends AccessibilityService {
         return true;
     }
 
+    /**
+     * Liga ou desliga o filtro de pacotes do Android, conforme o diagnostico.
+     *
+     * Com diagnostico ligado o servico recebe evento de todo aplicativo, para
+     * poder dizer o nome deles. Mesmo assim ele so LE a tela de aplicativo de
+     * corrida: a varredura inteira esta atras de appDeCorrida(). De banco nao
+     * se guarda uma letra, nem com o diagnostico ligado.
+     */
+    public static void revisarFiltro() {
+        SemaforoService servico = emExecucao;
+        if (servico == null) return;
+        try {
+            AccessibilityServiceInfo info = servico.getServiceInfo();
+            if (info == null) return;
+            info.packageNames = Diagnostico.ligado(servico) ? null : servico.filtroDoXml;
+            servico.setServiceInfo(info);
+        } catch (Exception erro) {
+            // Fabricante exotico pode recusar; o filtro do XML continua valendo.
+        }
+    }
+
     private void esconderSelo() {
         if (sobreposicao != null) sobreposicao.esconder();
     }
@@ -151,6 +186,13 @@ public class SemaforoService extends AccessibilityService {
         if (evento == null) return;
 
         CharSequence pacote = evento.getPackageName();
+
+        // Antes do filtro, e so em diagnostico: anota QUE aplicativo gerou o
+        // evento. So o nome. Sem isto, nome de pacote errado e invisivel --
+        // nenhum evento chega, nada e gravado, e o sintoma e identico ao de
+        // tudo funcionando menos a leitura.
+        Diagnostico.contarPacote(this, pacote);
+
         if (!appDeCorrida(pacote)) return;
         if (!Pisos.ler(this).ligado) return;
 

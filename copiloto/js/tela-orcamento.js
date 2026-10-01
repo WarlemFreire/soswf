@@ -9,7 +9,7 @@
 // "e se eu cobrar por isso?" -- não vale esconder o resultado atrás de um botão
 // calcular.
 
-import { el, abrirFolha } from "./ui.js";
+import { el, abrirFolha, trocar } from "./ui.js";
 import { configAtual, cfg, salvarConfig } from "./config.js";
 import * as store from "./store.js";
 import * as M from "./metrics.js";
@@ -40,7 +40,7 @@ export function abrirOrcamento(aoSalvar) {
     if (!r) {
       preco.textContent = "—";
       explicacao.textContent = "Informe o km e o tempo da viagem.";
-      detalhe.replaceChildren();
+      trocar(detalhe);
       return r;
     }
 
@@ -50,7 +50,7 @@ export function abrirOrcamento(aoSalvar) {
         ? "Mandou o tempo: é demorada para a distância."
         : "Mandou o custo: é longa para o tempo.";
 
-    detalhe.replaceChildren(
+    trocar(detalhe, 
       linha("Rodando de verdade", `${r.kmTotal.toFixed(0)} km`, `viagem ${r.kmViagem.toFixed(0)} · ida ${r.kmIda.toFixed(0)} · volta ${r.kmVolta.toFixed(0)}`),
       linha("Ocupado de verdade", M.formatarDuracao(r.minutosTotal * 60000), `${Math.round(r.minutosMorto)} min só de deslocamento`),
       linha("Custo de rodar", `R$ ${M.formatarReais(r.custo)}`, `${r.custoKm.toFixed(2).replace(".", ",")}/km`),
@@ -84,7 +84,7 @@ export function abrirOrcamento(aoSalvar) {
     return botao;
   };
 
-  campos.replaceChildren(
+  trocar(campos, 
     campo("Km da viagem", "km", { sufixo: " km" }),
     campo("Minutos da viagem", "minutos", { sufixo: " min" }),
     campo("Km até o cliente", "kmAteCliente", { sufixo: " km", ajuda: "Deslocamento para buscar." }),

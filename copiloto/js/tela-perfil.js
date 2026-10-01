@@ -7,7 +7,7 @@
 // digita o próprio nome dirigindo, e um teclado numérico gigante não serve
 // para escrever "Warlem".
 
-import { el, abrirFolha } from "./ui.js";
+import { el, abrirFolha, trocar } from "./ui.js";
 import { cfg, salvarConfig } from "./config.js";
 import { ultimoProgresso, atualizarTopbar, iniciais } from "./topbar.js";
 import { vibrar, mostrarToast } from "./feedback.js";
@@ -75,12 +75,12 @@ export function abrirPerfil() {
   // aparecer na hora, nao só na próxima vez que a folha abrir.
   function desenharFoto() {
     const url = cfg("avatar");
-    foto.replaceChildren(
+    trocar(foto, 
       url
         ? el("img", { class: "avatar avatar--grande avatar--foto", src: url, alt: "" })
         : el("span", { class: "avatar avatar--grande" }, iniciais(cfg("nome")))
     );
-    acoes.replaceChildren(
+    trocar(acoes, 
       el("button", { type: "button", class: "botao botao--secundario", onClick: () => arquivo.click() }, url ? "Trocar foto" : "Escolher foto"),
       url
         ? el(

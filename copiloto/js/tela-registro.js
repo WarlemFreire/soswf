@@ -5,7 +5,7 @@
 // motorista atualiza só a que mexeu — abrir tres apps a cada checkpoint seria
 // inviavel dirigindo.
 
-import { el, abrirFolha, chips } from "./ui.js";
+import { el, abrirFolha, chips, trocar } from "./ui.js";
 import { Teclado } from "./keypad.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
@@ -145,7 +145,7 @@ export function abrirRegistro() {
     alvo = id;
 
     const teclado = tecladoDoAlvo();
-    caixaTeclado.replaceChildren(teclado.el);
+    trocar(caixaTeclado, teclado.el);
     teclado.definir(valores[id] ?? null);
 
     linhaAvulso.classList.toggle("oculto", id !== "avulso");

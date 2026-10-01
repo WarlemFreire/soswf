@@ -29,6 +29,7 @@ public final class Diagnostico {
     private static final String K_LIGADO = "diagLigado";
     private static final String K_ATE = "diagAte";
     private static final String K_CAPTURAS = "diagCapturas";
+    private static final String K_PACOTES = "diagPacotes";
 
     /** Amostra, nao log. */
     private static final int MAX_CAPTURAS = 12;
@@ -58,7 +59,37 @@ public final class Diagnostico {
     }
 
     public static void limpar(Context contexto) {
-        prefs(contexto).edit().putString(K_CAPTURAS, "[]").apply();
+        prefs(contexto).edit().putString(K_CAPTURAS, "[]").putString(K_PACOTES, "{}").apply();
+    }
+
+    /**
+     * Conta um evento por pacote. SO O NOME DO APLICATIVO, nunca o texto.
+     *
+     * Existe porque eu passei seis versoes adivinhando o nome do pacote do
+     * aplicativo da Uber. Se o nome estiver errado, o filtro do Android nao
+     * entrega evento nenhum e TODOS os sintomas batem: o selo de teste
+     * funciona, o parser acerta, as permissoes estao dadas, e zero ofertas.
+     * Medir custa uma linha; adivinhar custou uma noite dele.
+     *
+     * A contagem anda so em diagnostico, que e opt-in e expira sozinho. O texto
+     * da tela continua sendo guardado apenas para aplicativo de corrida -- de
+     * banco nao se guarda nem uma letra.
+     */
+    public static void contarPacote(Context contexto, CharSequence pacote) {
+        if (pacote == null || !ligado(contexto)) return;
+        try {
+            SharedPreferences p = prefs(contexto);
+            JSONObject mapa = new JSONObject(p.getString(K_PACOTES, "{}"));
+            String nome = pacote.toString();
+            mapa.put(nome, mapa.optInt(nome, 0) + 1);
+            p.edit().putString(K_PACOTES, mapa.toString()).apply();
+        } catch (Exception erro) {
+            // Diagnostico nunca pode derrubar o semaforo.
+        }
+    }
+
+    public static String pacotes(Context contexto) {
+        return prefs(contexto).getString(K_PACOTES, "{}");
     }
 
     /**

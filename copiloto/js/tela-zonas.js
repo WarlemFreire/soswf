@@ -13,7 +13,7 @@
 //   CONTORNO   tocar o desenho ponto a ponto. Para área de formato irregular,
 //              marcada em casa olhando o rastro.
 
-import { el, abrirFolha } from "./ui.js";
+import { el, abrirFolha, trocar } from "./ui.js";
 import { cfg, salvarConfig } from "./config.js";
 import * as store from "./store.js";
 import * as Z from "./zonas.js";
@@ -116,7 +116,7 @@ function desenharEditor(raiz, { trilha, posicao, aoFechar }) {
   };
 
   const desenharLista = () => {
-    lista.replaceChildren(
+    trocar(lista, 
       ...zonas.map((z) =>
         el(
           "button",
@@ -161,7 +161,7 @@ function desenharEditor(raiz, { trilha, posicao, aoFechar }) {
 
   const editarZona = (zona) => abrirDetalhe(zona, zonas, salvar);
 
-  raiz.replaceChildren(
+  trocar(raiz, 
     tela,
     legenda,
     el(

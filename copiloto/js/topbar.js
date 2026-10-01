@@ -8,7 +8,7 @@
 // porque nível e XP não mudavam decisão nenhuma, e a média muda: ela diz, sem
 // abrir aba, se esta semana está acima ou abaixo do normal.
 
-import { el } from "./ui.js";
+import { el, trocar } from "./ui.js";
 import { cfg } from "./config.js";
 import * as store from "./store.js";
 import * as M from "./metrics.js";
@@ -79,7 +79,7 @@ function desenhar(dados) {
   const nome = proprio || "Motorista";
   const of = dados?.of;
 
-  raiz.replaceChildren(
+  trocar(raiz, 
     el(
       "button",
       { type: "button", class: "topbar__eu", onClick: () => abrirPerfil(), "aria-label": "Seu perfil" },

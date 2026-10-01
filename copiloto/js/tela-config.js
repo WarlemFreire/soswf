@@ -1,6 +1,6 @@
 // tela-config.js — todos os numeros do "cerebro" ficam editaveis aqui.
 
-import { el, limpar, abrirFolha, chips } from "./ui.js";
+import { el, limpar, abrirFolha, chips, trocar } from "./ui.js";
 import * as M from "./metrics.js";
 import {
   cfg, configAtual, salvarConfig, restaurarPadroes,
@@ -141,7 +141,7 @@ function secaoAssistente() {
 
   const pintar = () => {
     const pronto = IA.configurada();
-    caixa.replaceChildren(
+    trocar(caixa, 
       el("h2", { class: "secao__titulo" }, "Assistente"),
       el("p", { class: "campo__ajuda" },
         pronto
@@ -171,6 +171,44 @@ function secaoAssistente() {
 }
 
 /**
+ * Quais aplicativos geraram evento, e quantos.
+ *
+ * É a resposta para a pergunta que me custou seis versões: o nome do pacote do
+ * aplicativo da plataforma. Se ele não estiver na lista que o serviço escuta,
+ * NENHUM evento chega — e aí o selo de teste funciona, o parser acerta, as
+ * permissões estão todas dadas, e mesmo assim zero ofertas. Os sintomas são
+ * idênticos aos de tudo funcionando menos a leitura, e eu fiquei consertando o
+ * lado errado.
+ */
+function listaDePacotes(bruto) {
+  let mapa = {};
+  try {
+    mapa = JSON.parse(bruto || "{}");
+  } catch {
+    return null;
+  }
+  const linhas = Object.entries(mapa).sort((a, b) => b[1] - a[1]);
+  if (!linhas.length) return null;
+
+  const deCorrida = (p) =>
+    ["com.ubercab", "com.taxis99", "sinet.startup", "com.einnovation"].some((raiz) => p.startsWith(raiz));
+
+  return el("div", { class: "config__estado" },
+    el("p", { class: "campo__rotulo" }, "Aplicativos que geraram evento"),
+    ...linhas.map(([pacote, n]) =>
+      el("div", { class: "campo" },
+        el("span", { class: `campo__rotulo${deCorrida(pacote) ? "" : " campo__rotulo--alerta"}` },
+          `${deCorrida(pacote) ? "✓" : "·"} ${pacote}`),
+        el("span", { class: "campo__ajuda" },
+          `${n} ${n === 1 ? "evento" : "eventos"}${deCorrida(pacote) ? " · o serviço escuta este" : ""}`))
+    ),
+    el("p", { class: "campo__ajuda" },
+      "Se o aplicativo da plataforma aparecer aqui SEM o ✓, achamos o problema: " +
+      "o nome do pacote dele não está na minha lista. Me mande esta tela.")
+  );
+}
+
+/**
  * O que o aplicativo aprendeu sozinho.
  *
  * Fica visível e com número porque a alternativa seria pedir fé. Enquanto o
@@ -187,7 +225,7 @@ function blocoAprendizado() {
     const rec = treino.recomendacao(modelo);
 
     if (!d.pronto) {
-      caixa.replaceChildren(
+      trocar(caixa, 
         el("p", { class: "campo__ajuda" },
           `Aprendendo com as suas jornadas: ${modelo.n} ${modelo.n === 1 ? "observação" : "observações"}. ` +
           "Ele começa a opinar depois de rodar o bastante para errar menos que um palpite simples. " +
@@ -196,7 +234,7 @@ function blocoAprendizado() {
       return;
     }
 
-    caixa.replaceChildren(
+    trocar(caixa, 
       el("div", { class: "aprend__linha" },
         el("span", {}, "Erro do modelo"),
         el("strong", {}, `${d.erro} R$/h`)),
@@ -245,7 +283,7 @@ function secaoSemaforo() {
         el("p", { class: "campo__ajuda" }, "As áreas abaixo já podem ser marcadas."),
         listaDeAreas(() => pintar())
       );
-      caixa.replaceChildren(...filhos);
+      trocar(caixa, ...filhos);
       return;
     }
 
@@ -337,7 +375,7 @@ function secaoSemaforo() {
 
     filhos.push(await blocoEstado(e), listaDeAreas(() => pintar()), blocoDiagnostico(e, () => pintar()));
 
-    caixa.replaceChildren(...filhos);
+    trocar(caixa, ...filhos);
   };
 
   pintar();
@@ -517,7 +555,7 @@ function blocoDiagnostico(estado, repintar) {
 
   const pintar = async () => {
     const d = await semaforo.lerDiagnostico();
-    caixa.replaceChildren(
+    trocar(caixa, 
       el("h3", { class: "areas__titulo" }, "Ver o que ele está lendo"),
       el("p", { class: "campo__ajuda" },
         d.ligado
@@ -525,6 +563,13 @@ function blocoDiagnostico(estado, repintar) {
             "Desliga sozinho em duas horas."
           : "Guarda no aparelho o texto que o serviço lê da tela da plataforma, " +
             "para descobrir por que ele erra. Nada sai daqui sozinho."),
+      d.ligado
+        ? el("p", { class: "campo__ajuda" },
+            "Enquanto grava, ele também anota o NOME dos aplicativos que geram " +
+            "evento — só o nome, nunca o texto. Texto de tela só é guardado de " +
+            "aplicativo de corrida; de banco não se guarda uma letra.")
+        : null,
+      listaDePacotes(d.pacotes),
       el("div", { class: "zonas__acoes" },
         el("button", {
           type: "button",
@@ -571,6 +616,7 @@ function blocoDiagnostico(estado, repintar) {
   pintar();
   return caixa;
 }
+
 
 function descreverZona(z) {
   const partes = [];

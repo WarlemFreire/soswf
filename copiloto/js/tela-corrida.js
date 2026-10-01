@@ -4,7 +4,7 @@
 //
 // Diferente do registro rápido, esta tela é usada parado — pode rolar.
 
-import { el, limpar, abrirFolha, chips } from "./ui.js";
+import { el, limpar, abrirFolha, chips, trocar } from "./ui.js";
 import { Teclado } from "./keypad.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
@@ -121,7 +121,7 @@ export function abrirCorrida({ pendente = null } = {}) {
   function selecionarCampo(id) {
     valores[campo] = teclados[campo].valor;
     campo = id;
-    caixaTeclado.replaceChildren(teclados[id].el);
+    trocar(caixaTeclado, teclados[id].el);
     teclados[id].definir(valores[id] ?? null);
     for (const botao of linhaCampos.children) {
       botao.classList.toggle("chip--ativo", botao.dataset.id === id);

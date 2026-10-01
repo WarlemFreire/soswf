@@ -24,6 +24,23 @@ export function el(tag, props = {}, ...filhos) {
   return node;
 }
 
+/**
+ * Troca os filhos de um nó, ignorando null/false.
+ *
+ * replaceChildren() NÃO ignora: ele transforma null no texto "null" e escreve
+ * isso na tela. O el() daqui de cima sempre filtrou, então o mesmo
+ * `condição ? el(...) : null` funcionava dentro de el() e vazava dentro de
+ * replaceChildren() -- e vazou, na tela de ajustes, visível para o motorista.
+ * Duas regras para a mesma coisa é uma a mais.
+ */
+export function trocar(node, ...filhos) {
+  node.replaceChildren(
+    ...filhos.flat().filter((f) => f != null && f !== false)
+      .map((f) => (f.nodeType ? f : document.createTextNode(String(f))))
+  );
+  return node;
+}
+
 export function limpar(node) {
   while (node.firstChild) node.firstChild.remove();
   return node;
