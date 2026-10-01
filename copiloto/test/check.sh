@@ -16,10 +16,12 @@ rm -rf "$tmp"
 
 echo "sintaxe ok"
 
-validador="$(dirname "$0")/../../nativo/scripts/validar-xml.py"
-if [ -f "$validador" ] && command -v python3 >/dev/null 2>&1; then
-  if python3 "$validador"; then echo "xml ok"; else erros=1; fi
-fi
+for v in validar-xml.py validar-plugincall.py; do
+  validador="$(dirname "$0")/../../nativo/scripts/$v"
+  if [ -f "$validador" ] && command -v python3 >/dev/null 2>&1; then
+    python3 "$validador" || erros=1
+  fi
+done
 for suite in "$(dirname "$0")"/*.test.mjs; do
   node "$suite" || erros=1
 done

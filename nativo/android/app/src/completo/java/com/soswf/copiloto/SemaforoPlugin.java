@@ -102,7 +102,7 @@ public class SemaforoPlugin extends Plugin {
                 valor(chamada, "pisoKm"),
                 valor(chamada, "custoKm"),
                 chamada.getString("periodo", ""),
-                chamada.getInteger("amostra", 0));
+                chamada.getInt("amostra", 0));
         chamada.resolve();
     }
 
