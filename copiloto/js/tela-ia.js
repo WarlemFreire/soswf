@@ -21,6 +21,8 @@ import { ofensiva } from "./ofensiva.js";
 import * as E from "./estrategia.js";
 import * as A from "./aprendizado.js";
 import * as F2 from "./faixas.js";
+import * as Mod from "./modelo.js";
+import * as treino from "./treino.js";
 import { db } from "./db.js";
 import { vibrar, mostrarToast } from "./feedback.js";
 
@@ -261,6 +263,10 @@ async function montarContextoAtual(hoje = Date.now()) {
   const trilha = await store.trilha();
   const corridas = await db.todos("corridas");
 
+  // Treina antes de montar o contexto, para o resumo já sair atualizado.
+  await store.treinarModelo();
+  const modelo = await store.carregarModelo();
+
   const trechos = F2.trechosDe(jornadas, registros);
   await A.medirPendentes(trechos, hoje);
   const placar = A.placar(await A.apostas(), hoje);
@@ -292,6 +298,7 @@ async function montarContextoAtual(hoje = Date.now()) {
     ofensiva: ofensiva(dias, hoje),
     diagnostico,
     placar,
+    aprendido: Mod.resumo(modelo, hoje),
     config: { ...config, custoTotalKm: custoTotalKm(config) },
     hoje,
   });

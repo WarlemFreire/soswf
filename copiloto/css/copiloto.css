@@ -1541,3 +1541,14 @@ button { cursor: pointer; border: 0; background: none; }
 }
 .ia__seguir-rotulo { font-size: 15px; color: var(--tinta-fraca); }
 .ia__seguir .chip { min-height: 56px; padding: 0 18px; }
+
+/* O que o app aprendeu. O erro do modelo aparece ao lado do erro de um palpite
+   simples porque "erro de 8" sozinho não diz se o modelo serve para algo. */
+.aprend { margin: 12px 0; }
+.aprend__linha {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--linha); font-size: 15px;
+}
+.aprend__linha strong { font-variant-numeric: tabular-nums; }
+.aprend__bom { color: var(--nivel-ideal); }
+.aprend__ruim { color: var(--nivel-piso); }

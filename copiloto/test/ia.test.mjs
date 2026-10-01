@@ -72,8 +72,9 @@ teste("o contexto é só o que foi declarado", () => {
   const c = IA.montarContexto({ dias: [dia(1)], hoje: HOJE });
   assert.deepEqual(
     Object.keys(c).sort(),
-    ["custosPorCategoria", "diagnostico", "dias", "faixasDaJornada", "faixasDaOferta",
-     "hoje", "mes", "ofensiva", "parametros", "semana", "sugestoesAnteriores"].sort()
+    ["aprendido", "custosPorCategoria", "diagnostico", "dias", "faixasDaJornada",
+     "faixasDaOferta", "hoje", "mes", "ofensiva", "parametros", "semana",
+     "sugestoesAnteriores"].sort()
   );
   assert.deepEqual(
     Object.keys(c.dias[0]).sort(),
@@ -86,6 +87,31 @@ teste("o contexto é só o que foi declarado", () => {
 teste("a janela corta o histórico antigo", () => {
   const c = IA.montarContexto({ dias: [dia(200), dia(2)], hoje: HOJE });
   assert.equal(c.dias.length, 1, "dia de 200 dias atrás não entra");
+});
+
+teste("O CUSTO NÃO CRESCE COM O USO — este é o ponto", () => {
+  // Um ano de histórico contra dez dias: o contexto tem que ser do mesmo
+  // tamanho, porque o que o passado longo ensinou vem em `aprendido`.
+  const umAno = Array.from({ length: 365 }, (_, i) => dia(i));
+  const dezDias = Array.from({ length: 10 }, (_, i) => dia(i));
+  const aprendido = { observacoes: 4200, desempenho: { ganhoPct: 31, melhorQueAMedia: true },
+    mediaGeral: 41.2, agora: [{ regiao: "região 1", previsaoReaisPorHora: 52, confianca: 0.8 }] };
+
+  const grande = JSON.stringify(IA.montarContexto({ dias: umAno, aprendido, hoje: HOJE })).length;
+  const pequeno = JSON.stringify(IA.montarContexto({ dias: dezDias, aprendido, hoje: HOJE })).length;
+  assert.equal(grande, pequeno, "um ano de uso não pode custar mais token que dez dias");
+});
+
+teste("o aprendido vai no contexto, inteiro", () => {
+  const aprendido = { observacoes: 900, desempenho: { melhorQueAMedia: true, ganhoPct: 22 } };
+  const c = IA.montarContexto({ aprendido, hoje: HOJE });
+  assert.equal(c.aprendido.observacoes, 900);
+});
+
+teste("o prompt manda ignorar o modelo enquanto ele erra mais que a média", () => {
+  const p = IA.promptDoSistema();
+  assert.ok(/melhorQueAMedia/.test(p), "a tela de escape precisa estar no prompt");
+  assert.ok(/ainda está aprendendo/.test(p));
 });
 
 teste("números saem arredondados, não com 14 casas", () => {

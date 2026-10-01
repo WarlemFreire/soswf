@@ -151,6 +151,25 @@ export function celulaDe(ponto) {
  * não aparece; região onde ele foi uma vez num dia ruim aparece ruim. Por isso
  * o mínimo de amostra, e por isso o prompt tem que dizer isso em voz alta.
  */
+/**
+ * A célula em que ele passou mais tempo durante o trecho.
+ *
+ * Exportada porque o treino do modelo precisa exatamente disto, e uma segunda
+ * implementação divergiria da primeira na primeira correção.
+ */
+export function regiaoDoTrecho(trecho, pontos) {
+  const dentro = (pontos || []).filter((p) => p.quando >= trecho.inicio && p.quando <= trecho.fim);
+  if (!dentro.length) return null;
+
+  const contagem = new Map();
+  for (const p of dentro) {
+    const c = celulaDe(p);
+    if (c) contagem.set(c, (contagem.get(c) || 0) + 1);
+  }
+  if (!contagem.size) return null;
+  return [...contagem.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+
 export function porRegiao(trechos, trilha, { minimo = MINIMO_TRECHOS_REGIAO } = {}) {
   const pontos = (trilha || [])
     .filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon) && Number.isFinite(p?.quando))
@@ -160,17 +179,8 @@ export function porRegiao(trechos, trilha, { minimo = MINIMO_TRECHOS_REGIAO } = 
   const porCelula = new Map();
 
   for (const t of trechos || []) {
-    const dentro = pontos.filter((p) => p.quando >= t.inicio && p.quando <= t.fim);
-    if (!dentro.length) continue;
-
-    // A célula com mais pontos no trecho é onde ele estava de fato.
-    const contagem = new Map();
-    for (const p of dentro) {
-      const c = celulaDe(p);
-      if (c) contagem.set(c, (contagem.get(c) || 0) + 1);
-    }
-    if (!contagem.size) continue;
-    const [celula] = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0];
+    const celula = regiaoDoTrecho(t, pontos);
+    if (!celula) continue;
 
     const balde = porCelula.get(celula) || { celula, trechos: 0, ms: 0, valor: 0, periodos: new Set() };
     balde.trechos += 1;

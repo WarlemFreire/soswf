@@ -3,9 +3,9 @@
 // nao tem build step, entao nada de CDN.
 
 const DB_NAME = "copiloto";
-// 5 acrescentou `estrategias`; 4 acrescentou `trilha`; 3 acrescentou `orcamentos`; 2 acrescentou `ofertas`. A migracao e segura porque o onupgradeneeded abaixo
+// 6 acrescentou `modelo`; 5 acrescentou `estrategias`; 4 acrescentou `trilha`; 3 acrescentou `orcamentos`; 2 acrescentou `ofertas`. A migracao e segura porque o onupgradeneeded abaixo
 // pula store que ja existe: quem ja tem dados so ganha a store nova, vazia.
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 // Stores das fases seguintes (custos, corridas, contextos) ja nascem aqui para
 // evitar uma migracao de schema quando a Fase 2 chegar.
@@ -27,6 +27,9 @@ const STORES = {
   // Sugestoes do assistente viradas em aposta mensuravel. E aqui que mora o
   // aprendizado: modelo de linguagem nao lembra entre chamadas, o app lembra.
   estrategias: { keyPath: "id", indexes: [["quando", "quando"]] },
+  // O que o app aprendeu, em numeros. UMA linha, de tamanho fixo: depois de dez
+  // observacoes e depois de dez mil ela ocupa o mesmo espaco. Ver modelo.js.
+  modelo: { keyPath: "chave" },
   config: { keyPath: "chave" },
 };
 

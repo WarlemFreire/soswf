@@ -30,8 +30,18 @@ const BASE = "https://openrouter.ai/api/v1";
 /** Teto de resposta. Ele lê no celular; resposta longa não é lida. */
 export const MAX_TOKENS = 900;
 
-/** Dias de histórico que vão no contexto. Mais que isso encarece sem ajudar. */
-export const DIAS_DE_CONTEXTO = 30;
+/**
+ * Dias de histórico que vão no contexto.
+ *
+ * Era 30. Caiu para 10 porque o que o modelo precisa saber do passado longo
+ * agora chega PRONTO, em `aprendido` -- alguns números de tamanho fixo em vez
+ * de uma linha por dia. Mandar as duas coisas seria pagar token pela mesma
+ * informação duas vezes, e o custo cresceria para sempre com o uso.
+ *
+ * Os dez dias que ficam servem ao que o resumo não carrega: o que aconteceu
+ * ONTEM, que é o que ele costuma querer comparar.
+ */
+export const DIAS_DE_CONTEXTO = 10;
 
 /** Prazo da chamada. Passando disso, é melhor falhar do que travar a tela. */
 const PRAZO_MS = 45000;
@@ -99,6 +109,19 @@ export function promptDoSistema() {
     "  rendeu mais'. Um lugar ótimo onde ele nunca foi não aparece nos dados.",
     "- Amostra pequena pede cautela explícita, não silêncio.",
     "",
+    "O QUE O APLICATIVO JÁ APRENDEU (campo 'aprendido')",
+    "Não é opinião: é um modelo treinado nas jornadas dele, que prevê R$/h por",
+    "contexto e carrega a própria incerteza.",
+    "- 'desempenho.melhorQueAMedia' falso quer dizer que o modelo ainda erra",
+    "  mais que um palpite simples. Nesse caso NÃO use as previsões dele para",
+    "  recomendar nada: diga que ainda está aprendendo e quantas observações",
+    "  faltam.",
+    "- 'confianca' baixa numa região quer dizer pouca experiência ali, não",
+    "  lugar ruim. Não trate as duas coisas como a mesma.",
+    "- 'vaiExplorar' marcado quer dizer que vale a pena testar aquela região",
+    "  justamente porque ele a conhece pouco. Diga isso como teste, não como",
+    "  certeza.",
+    "",
     "O PLACAR DAS SUGESTÕES ANTERIORES",
     "Você também recebe o que já foi sugerido antes e o que deu, medido pelo",
     "aplicativo comparando o R$/h depois contra o antes.",
@@ -129,6 +152,7 @@ export function montarContexto({
   dias = [],
   diagnostico = null,
   placar = null,
+  aprendido = null,
   fechamentoSemana = null,
   fechamentoMes = null,
   faixas = null,
@@ -178,6 +202,14 @@ export function montarContexto({
       : null,
 
     ofensiva: ofensiva ? { atual: ofensiva.atual, recorde: ofensiva.recorde } : null,
+
+    // O QUE O APLICATIVO APRENDEU, em números de tamanho fixo.
+    //
+    // É isto que impede o custo de crescer com o uso: em vez de mandar mais
+    // histórico a cada pergunta, o aprendizado fica guardado em pesos e vem
+    // resumido. Depois de um ano de uso este campo tem o mesmo tamanho que
+    // tem hoje -- só os números ficam melhores. Ver modelo.js.
+    aprendido: aprendido || null,
 
     // Medido pelo app, não pelo modelo. Ver estrategia.js.
     //

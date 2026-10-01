@@ -8,6 +8,7 @@ import * as F from "./faixas.js";
 import { posicaoAgora, distanciaKm, manterTelaLigada, liberarTela } from "./geo.js";
 import * as rastreio from "./rastreio.js";
 import * as Z from "./zonas.js";
+import * as treino from "./treino.js";
 
 const estado = {
   jornada: null,
@@ -89,6 +90,9 @@ export async function carregarJornadaAberta() {
   // Reabrir o app no meio do turno tem que voltar a medir, retomando de onde
   // o acumulado parou — não zerar e não medir duas vezes o mesmo trecho.
   if (aberta && cfg("rastrearKm")) ligarRastreio(aberta);
+  // O modelo aprende com o que já aconteceu, em segundo plano. Cada trecho
+  // entra uma vez só -- ver treino.js.
+  treinarModelo().catch(() => {});
   notificar();
   return aberta;
 }
@@ -332,6 +336,36 @@ export function rastreando() {
   return rastreio.estaRastreando();
 }
 
+/* ---------------------------------------------------------- aprendizado */
+
+let ultimoModelo = null;
+
+/**
+ * Alimenta o modelo com as jornadas fechadas que ele ainda não viu.
+ *
+ * Roda ao abrir o app e ao fechar jornada. É aritmética local de alguns
+ * milissegundos; nada aqui espera por rede.
+ */
+export async function treinarModelo() {
+  const jornadas = await db.todos("jornadas");
+  const registros = await db.todos("registros");
+  const pontos = await db.todos("trilha");
+  const r = await treino.atualizar({ jornadas, registros, trilha: pontos });
+  ultimoModelo = r.modelo;
+  if (r.treinadas) notificar();
+  return r;
+}
+
+/** O modelo já carregado, para a tela não reler o banco a cada pintura. */
+export function modeloAtual() {
+  return ultimoModelo;
+}
+
+export async function carregarModelo() {
+  if (!ultimoModelo) ultimoModelo = (await treino.carregar()).modelo;
+  return ultimoModelo;
+}
+
 export async function fecharJornada({ odometroFim, observacoes } = {}) {
   const jornada = jornadaAtiva();
   if (!jornada) return null;
@@ -355,6 +389,8 @@ export async function fecharJornada({ odometroFim, observacoes } = {}) {
   estado.jornada = fechada;
   // Fechou jornada, os trechos dela entram na conta das faixas.
   await carregarFaixas();
+  // E viram observações para o modelo, uma vez cada.
+  treinarModelo().catch(() => {});
   // O dia continua: recalcula para a tela já oferecer abrir a próxima jornada
   // mostrando quanto rendeu até aqui.
   await carregarDia(fechada.data);

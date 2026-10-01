@@ -21,6 +21,8 @@ import * as Z from "./zonas.js";
 import * as risco from "./risco.js";
 import { entregarArquivo } from "./plataforma.js";
 import * as IA from "./ia.js";
+import * as Mod from "./modelo.js";
+import * as treino from "./treino.js";
 import { abrirConfigDaIA, abrirPergunta } from "./tela-ia.js";
 import { abrirEditorDeZonas, abrirDetalheDeZona } from "./tela-zonas.js";
 
@@ -145,6 +147,7 @@ function secaoAssistente() {
           ? `Pronto, usando ${cfg("iaModelo")}. Pergunte pela aba Análise.`
           : "Responde perguntas sobre os seus números, em texto. É a única parte " +
             "do aplicativo que manda dado para fora, e por isso vem desligada."),
+      blocoAprendizado(),
       el("div", { class: "zonas__acoes" },
         el("button", {
           type: "button",
@@ -163,6 +166,57 @@ function secaoAssistente() {
   };
 
   pintar();
+  return caixa;
+}
+
+/**
+ * O que o aplicativo aprendeu sozinho.
+ *
+ * Fica visível e com número porque a alternativa seria pedir fé. Enquanto o
+ * modelo erra mais que um palpite simples, a tela DIZ isso em vez de mostrar
+ * uma recomendação bonita -- é a mesma regra do travessão: melhor admitir que
+ * não sabe do que inventar confiança.
+ */
+function blocoAprendizado() {
+  const caixa = el("div", { class: "aprend" });
+
+  (async () => {
+    const modelo = await store.carregarModelo();
+    const d = Mod.desempenho(modelo);
+    const rec = treino.recomendacao(modelo);
+
+    if (!d.pronto) {
+      caixa.replaceChildren(
+        el("p", { class: "campo__ajuda" },
+          `Aprendendo com as suas jornadas: ${modelo.n} ${modelo.n === 1 ? "observação" : "observações"}. ` +
+          "Ele começa a opinar depois de rodar o bastante para errar menos que um palpite simples. " +
+          "Isso acontece no aparelho, sem custo por pergunta.")
+      );
+      return;
+    }
+
+    caixa.replaceChildren(
+      el("div", { class: "aprend__linha" },
+        el("span", {}, "Erro do modelo"),
+        el("strong", {}, `${d.erro} R$/h`)),
+      el("div", { class: "aprend__linha" },
+        el("span", {}, "Erro de um palpite simples"),
+        el("strong", {}, `${d.erroBase} R$/h`)),
+      el("p", {
+        class: `campo__ajuda ${d.melhorQueAMedia ? "aprend__bom" : "aprend__ruim"}`,
+      },
+        d.melhorQueAMedia
+          ? `Está acertando ${d.ganhoPct}% melhor que a média simples, com ${modelo.n} observações.`
+          : "Ainda erra mais que a média simples, então não está recomendando nada. " +
+            "Mais jornadas resolvem isso sozinhas."),
+      rec
+        ? el("p", { class: "campo__ajuda" },
+            `Agora ele apostaria na ${rec.regiao}: ~${rec.reaisPorHora} R$/h` +
+            (rec.explorando ? " — e marcaria como teste, porque conhece pouco de lá." : "."))
+        : null
+    );
+  })();
+
   return caixa;
 }
 
