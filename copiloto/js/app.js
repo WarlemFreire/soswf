@@ -39,6 +39,9 @@ async function iniciar() {
   await store.carregarJornadaAberta();
   // Depois da jornada: o semáforo precisa da referência de aceite já carregada
   // para mandar cortes verdadeiros, e não zeros, ao serviço.
+  // Sempre, e não só quando ligado: o lado nativo esquece esse estado a cada
+  // instalação, e um "desligado" que não chega lá é tão ruim quanto um "ligado".
+  semaforo.sincronizarLigado().catch(() => {});
   if (cfg("semaforoLigado")) semaforo.iniciar();
 
   let aberta = "agora";

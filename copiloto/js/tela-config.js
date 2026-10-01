@@ -256,7 +256,11 @@ function secaoSemaforo() {
         "nenhum lugar."
       ),
       interruptor("Ligado", "semaforoLigado", {
-        ler: () => !!cfg("semaforoLigado"),
+        // Lê do APARELHO, não da configuração. Os dois podiam divergir -- a
+        // configuração volta do backup, o estado do serviço não -- e quando
+        // divergiam esta tela dizia "ligado" sobre um serviço que descartava
+        // tudo. Interruptor que mente é pior que interruptor que falta.
+        ler: () => e.ligado,
         gravar: async (v) => {
           await salvarConfig("semaforoLigado", v);
           await semaforo.ligar(v);
@@ -316,8 +320,9 @@ function secaoSemaforo() {
     if (!cortes) {
       filhos.push(
         el("p", { class: "campo__ajuda" },
-          "Ainda sem histórico suficiente nesta faixa horária. Até ter, o selo não " +
-          "aparece — melhor calado do que com cor chutada."
+          `Ainda sem base nesta faixa horária${e.amostra ? ` (${e.amostra} de 12 ofertas)` : ""}. ` +
+          "Até lá o selo aparece CINZA, com os números da oferta e sem veredito — " +
+          "ele não chuta cor, mas também não fica mudo."
         )
       );
     } else {
@@ -330,7 +335,7 @@ function secaoSemaforo() {
       );
     }
 
-    filhos.push(listaDeAreas(() => pintar()), blocoDiagnostico(e, () => pintar()));
+    filhos.push(await blocoEstado(e), listaDeAreas(() => pintar()), blocoDiagnostico(e, () => pintar()));
 
     caixa.replaceChildren(...filhos);
   };
@@ -341,6 +346,41 @@ function secaoSemaforo() {
     if (document.visibilityState === "visible") pintar();
   });
   return caixa;
+}
+
+/**
+ * O estado do semáforo em quatro linhas, em português.
+ *
+ * Existe porque "não está aparecendo nada" não tem como ser investigado de
+ * dentro do carro. Cada linha separa um ponto da corrente, e a de baixo é a que
+ * mais diz: se ofertas foram lidas e mesmo assim não apareceu selo, o problema
+ * é desenhar por cima; se nenhuma foi lida, é leitura.
+ */
+async function blocoEstado(e) {
+  let lidas = 0;
+  try {
+    lidas = (await semaforo.ofertasDoDia()).length;
+  } catch {
+    /* sem banco a conta não sai; as outras linhas ainda valem */
+  }
+
+  const linha = (rotulo, ok, detalhe) =>
+    el("div", { class: "campo" },
+      el("span", { class: `campo__rotulo${ok ? "" : " campo__rotulo--alerta"}` },
+        `${ok ? "✓" : "✗"} ${rotulo}`),
+      el("span", { class: "campo__ajuda" }, detalhe));
+
+  return el("div", { class: "config__estado" },
+    linha("Leitor de tela autorizado", e.acessibilidadeAtiva,
+      e.acessibilidadeAtiva ? "o Android está entregando a tela" : "reinstalar apaga esta permissão"),
+    linha("Pode desenhar por cima", e.podeSobrepor,
+      e.podeSobrepor ? "o selo tem onde aparecer" : "sem isto o selo não tem como ser desenhado"),
+    linha("Semáforo ligado", e.ligado,
+      e.ligado ? "o serviço está olhando as ofertas" : "o interruptor acima"),
+    linha("Ofertas lidas hoje", lidas > 0, lidas > 0
+      ? `${lidas} — a leitura está funcionando`
+      : "nenhuma ainda; com tudo autorizado e uma oferta na tela, isto tem que subir")
+  );
 }
 
 /**
@@ -507,12 +547,20 @@ function descreverZona(z) {
   return partes.join(" · ") || "só este nome";
 }
 
+/**
+ * Uma pendência: o que falta, e o botão que resolve.
+ *
+ * EMPILHADO, não lado a lado. Em linha, o rótulo espremia em três linhas no
+ * celular enquanto o botão tomava metade da largura -- e justo estas são as
+ * linhas que ele precisa achar com pressa. Botão de largura inteira também dá
+ * alvo de toque maior, que é a regra do projeto.
+ */
 function pendencia(texto, rotuloBotao, acao) {
   return el(
     "div",
-    { class: "campo" },
+    { class: "campo campo--coluna" },
     el("span", { class: "campo__rotulo campo__rotulo--alerta" }, texto),
-    el("button", { type: "button", class: "botao", onClick: acao }, rotuloBotao)
+    el("button", { type: "button", class: "botao fin__acao", onClick: acao }, rotuloBotao)
   );
 }
 

@@ -82,6 +82,22 @@ export async function abrirSobreposicao() {
   return true;
 }
 
+/**
+ * Manda ao Android o estado que o APP considera verdadeiro.
+ *
+ * POR QUE EXISTE: o "ligado" do serviço mora em SharedPreferences, que nascem
+ * VAZIAS a cada instalação -- e a configuração do Copiloto vem do backup, que
+ * sobrevive. Depois de reinstalar, o interruptor aparecia ligado e o serviço
+ * descartava todo evento na primeira linha (`if (!Pisos.ler(this).ligado)`).
+ * Resultado: selo nenhum, nem o cinza, e a tela de ajustes jurando que estava
+ * tudo certo. Nenhum lado adivinha o outro: quem abre o app manda o estado.
+ */
+export async function sincronizarLigado(ligado = configAtual().semaforoLigado) {
+  if (!disponivel()) return false;
+  await plugin().ligar({ ligado: Boolean(ligado) });
+  return true;
+}
+
 export async function ligar(ligado) {
   if (!disponivel()) return false;
   await plugin().ligar({ ligado: Boolean(ligado) });
@@ -256,6 +272,10 @@ let ligadoAoServico = false;
 export async function iniciar() {
   if (!disponivel() || ligadoAoServico) return false;
   ligadoAoServico = true;
+
+  // Antes de qualquer outra coisa: o serviço só olha a tela se souber que está
+  // ligado, e ele esquece isso a cada instalação.
+  await sincronizarLigado();
 
   plugin().addListener("oferta", (oferta) => {
     guardar(oferta).catch(() => {

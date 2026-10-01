@@ -831,6 +831,35 @@ button { cursor: pointer; border: 0; background: none; }
 }
 
 .campo--coluna { flex-direction: column; align-items: stretch; gap: 8px; }
+
+/* Usadas em toda a tela de ajustes e, até aqui, sem regra nenhuma: o texto de
+   apoio saía do mesmo tamanho do rótulo e a PENDÊNCIA saía sem destaque — logo
+   as linhas que dizem o que falta autorizar, que são as que ele precisa achar
+   com o carro andando. */
+.campo__ajuda { font-size: 14px; line-height: 1.4; color: var(--tinta-fraca); margin: 2px 0 10px; }
+.campo__rotulo--alerta { color: var(--nivel-piso); font-weight: 700; }
+
+/* O estado do semáforo em linhas de ✓/✗. Caixa própria para ser varrida de
+   relance: é a primeira coisa que se olha quando "não está aparecendo nada". */
+.config__estado {
+  margin: 4px 0 14px;
+  padding: 2px 12px;
+  background: var(--fundo-cartao);
+  border: 1px solid var(--linha);
+  border-radius: 12px;
+}
+/* Empilhado e tudo à esquerda: em linha, o detalhe quebrava em quatro linhas
+   esfarrapadas contra a margem direita, que é o oposto de ler de relance. */
+.config__estado .campo {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-height: 0;
+  padding: 9px 0;
+}
+.config__estado .campo:last-child { border-bottom: 0; }
+.config__estado .campo__rotulo { font-size: 15px; flex: 0 0 auto; }
+.config__estado .campo__ajuda { margin: 0; font-size: 13px; }
 .campo__rotulo { flex: 1; font-size: 18px; }
 .campo__stepper { display: flex; align-items: center; gap: 6px; }
 .campo__valor { min-width: 108px; text-align: center; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }

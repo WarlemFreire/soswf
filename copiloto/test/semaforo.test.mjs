@@ -112,4 +112,67 @@ teste("veredito desconhecido não contamina o resumo", () => {
   assert.equal(r.recusar, 0);
 });
 
+/* ------------------------------------------------------------------------- *
+ * O estado "ligado" dos dois lados.
+ *
+ * Regressão com nome e data: depois de reinstalar o aplicativo, o selo não
+ * aparecia NUNCA -- nem o cinza. A configuração voltava do backup dizendo
+ * "ligado", o interruptor aparecia ligado, e o serviço Android, cujas
+ * preferências nascem vazias a cada instalação, descartava todo evento na
+ * primeira linha. Dois lados, duas verdades, e a tela mostrando a errada.
+ * ------------------------------------------------------------------------- */
+
+async function comPluginFalso(fn) {
+  const antes = globalThis.Capacitor;
+  const recebido = [];
+  globalThis.Capacitor = {
+    isNativePlatform: () => true,
+    Plugins: { Semaforo: { ligar: (a) => { recebido.push(a); return Promise.resolve(); } } },
+  };
+  try {
+    // await, não `return fn(...)`: sem ele o finally restaura o Capacitor na
+    // PRIMEIRA pausa de fn, e o resto do teste roda sem o plugin falso --
+    // passando por engano. Aconteceu aqui.
+    return await fn(recebido);
+  } finally {
+    globalThis.Capacitor = antes;
+  }
+}
+
+async function testeAsync(nome, fn) {
+  try {
+    await fn();
+    passou++;
+  } catch (erro) {
+    console.error(`✗ ${nome}\n  ${erro.message}`);
+    process.exitCode = 1;
+  }
+}
+
+await testeAsync("no navegador, sincronizar o ligado não quebra e não finge", async () => {
+  assert.equal(await S.sincronizarLigado(true), false);
+});
+
+await testeAsync("ligado=true chega ao serviço", async () => {
+  await comPluginFalso(async (recebido) => {
+    assert.equal(await S.sincronizarLigado(true), true);
+    assert.deepEqual(recebido, [{ ligado: true }]);
+  });
+});
+
+await testeAsync("desligado também é mandado: o silêncio não é 'desligado'", async () => {
+  await comPluginFalso(async (recebido) => {
+    await S.sincronizarLigado(false);
+    assert.deepEqual(recebido, [{ ligado: false }]);
+  });
+});
+
+await testeAsync("o que vai é booleano, nunca o valor cru da configuração", async () => {
+  await comPluginFalso(async (recebido) => {
+    await S.sincronizarLigado("sim");
+    await S.sincronizarLigado(undefined ?? 0);
+    assert.deepEqual(recebido, [{ ligado: true }, { ligado: false }]);
+  });
+});
+
 console.log(`✓ ${passou} testes passaram`);
