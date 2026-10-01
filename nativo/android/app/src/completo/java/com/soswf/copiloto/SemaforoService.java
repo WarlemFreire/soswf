@@ -353,10 +353,10 @@ public class SemaforoService extends AccessibilityService {
         List<AccessibilityNodeInfo> raizes = new ArrayList<>();
 
         AccessibilityNodeInfo daFonte = raizDe(fonte);
-        if (daFonte != null) raizes.add(daFonte);
+        if (daFonte != null && !doCopiloto(daFonte)) raizes.add(daFonte);
 
         AccessibilityNodeInfo ativa = getRootInActiveWindow();
-        if (ativa != null) raizes.add(ativa);
+        if (ativa != null && !doCopiloto(ativa)) raizes.add(ativa);
 
         try {
             List<AccessibilityWindowInfo> janelas = getWindows();
@@ -364,13 +364,26 @@ public class SemaforoService extends AccessibilityService {
                 for (AccessibilityWindowInfo janela : janelas) {
                     if (janela == null) continue;
                     AccessibilityNodeInfo raiz = janela.getRoot();
-                    if (raiz != null) raizes.add(raiz);
+                    if (raiz != null && !doCopiloto(raiz)) raizes.add(raiz);
                 }
             }
         } catch (Exception erro) {
             // getWindows() falha em fabricante exotico; as duas de cima bastam.
         }
         return raizes;
+    }
+
+    /**
+     * A tela do proprio Copiloto nunca e oferta.
+     *
+     * Sem isto, com o filtro de janela fora, o servico lia a tela de ajustes
+     * -- "Prejuizo abaixo de 0,69 R$/km" tem R$ e km -- e o rastro reportava
+     * "cartao isolado: sim" sobre a NOSSA tela. Foi o instrumento mentindo de
+     * novo, e eu quase acreditei.
+     */
+    private boolean doCopiloto(AccessibilityNodeInfo raiz) {
+        CharSequence p = raiz.getPackageName();
+        return p != null && p.toString().equals(getPackageName());
     }
 
     /** Sobe do no ate a raiz da arvore dele. */
@@ -434,7 +447,9 @@ public class SemaforoService extends AccessibilityService {
     }
 
     private static boolean pareceOferta(List<String> textos) {
-        String junto = String.join("\n", textos);
+        // Mesmo espaco inquebravel que escondia o dinheiro do parser escondia
+        // o cartao daqui. Ver Oferta.normalizar.
+        String junto = Oferta.normalizar(String.join("\n", textos));
         return DINHEIRO.matcher(junto).find() && DISTANCIA.matcher(junto).find();
     }
 

@@ -67,6 +67,31 @@ public final class OfertaTeste {
             perto("R$/h", d.reaisPorHora(), 60.06, 0.02);
         }
 
+        /* ESPACO INQUEBRAVEL. O Android escreve dinheiro em portugues com
+         * U+00A0 entre "R$" e o numero. Na tela e identico; no texto, o \s do
+         * Java nao casa. Era por isso que o selo de teste (texto digitado por
+         * mim, espaco comum) funcionava e a oferta de verdade nao. */
+        String nb = "\u00A0", nbe = "\u202F";
+        Oferta inq = Oferta.ler(Arrays.asList(
+                "UberX",
+                "R$" + nb + "9,01",
+                "R$1,88/km aprox.",
+                "+R$" + nb + "1,50 incluído",
+                "6" + nb + "min (1.2" + nb + "km)",
+                "8" + nbe + "minutos (3.6" + nbe + "km)"));
+        conferir("dinheiro com espaço inquebrável é lido", inq != null, "veio null");
+        if (inq != null) {
+            perto("valor com U+00A0", inq.valor, 9.01);
+            perto("km com U+00A0 e U+202F somam 1,2 + 3,6", inq.km, 4.8);
+            perto("minutos somam 6 + 8", inq.minutos, 14);
+            // O outro aplicativo mostrou 1,88 R$/km e 38,61 R$/h nesta oferta.
+            perto("R$/km bate com o outro app", inq.reaisPorKm(), 1.88, 0.01);
+            perto("R$/h bate com o outro app", inq.reaisPorHora(), 38.61, 0.02);
+        }
+        conferir("caractere invisível no meio do número não quebra",
+                Oferta.ler(Arrays.asList("R$ 9,\u200B01", "6 min (1.2 km)", "8 minutos (3.6 km)")) != null,
+                "zero-width quebrou a leitura");
+
         // O maior dinheiro e o ganho; "R$1,54/km" nao pode virar o valor.
         Oferta so = Oferta.ler(Arrays.asList("R$ 7,90", "R$ 31,40", "3 min (1,2 km)", "12 min (5,0 km)"));
         conferir("com duas quantias, vale a maior", so != null && so.valor == 31.40, "valor errado");

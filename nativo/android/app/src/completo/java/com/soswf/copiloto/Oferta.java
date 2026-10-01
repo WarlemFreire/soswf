@@ -86,12 +86,29 @@ public final class Oferta {
      * falta qualquer uma das tres grandezas -- sem as tres nao da para decidir
      * nada, e chutar aqui seria pior que ficar calado.
      */
+    /**
+     * Troca todo espaco "especial" por espaco comum, e some com os invisiveis.
+     *
+     * O BUG QUE ISTO RESOLVE custou a noite inteira dele. O Android formata
+     * dinheiro em portugues como "R$ 9,01" com ESPACO INQUEBRAVEL (U+00A0)
+     * entre o simbolo e o numero -- identico na tela, diferente no texto. O \s
+     * do Java nao casa com ele. Resultado: nenhum dinheiro encontrado, nenhuma
+     * oferta, selo mudo. E o botao de teste funcionava, porque o texto dele fui
+     * EU que digitei, com espaco comum. Provado em nativo/testes.
+     */
+    public static String normalizar(String texto) {
+        if (texto == null) return "";
+        return texto
+                .replaceAll("[\\p{Zs}\\u2007\\u202F]", " ")
+                .replaceAll("[\\u200B\\u200C\\u200D\\uFEFF]", "");
+    }
+
     public static Oferta ler(List<String> textos) {
         StringBuilder tudo = new StringBuilder();
         for (String t : textos) {
             if (t != null) tudo.append(t).append('\n');
         }
-        String tela = tudo.toString();
+        String tela = normalizar(tudo.toString());
 
         List<Double> dinheiros = todos(DINHEIRO, tela, true);
         List<Double> distancias = todos(DISTANCIA, tela, false);
