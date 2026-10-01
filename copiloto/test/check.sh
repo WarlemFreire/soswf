@@ -22,6 +22,10 @@ for v in validar-xml.py validar-plugincall.py validar-gradle.py; do
     python3 "$validador" || erros=1
   fi
 done
+# O parser da oferta é Java, mas Java PURO: roda aqui, com texto de tela real.
+java_sh="$(dirname "$0")/../../nativo/scripts/testar-java.sh"
+[ -x "$java_sh" ] && { "$java_sh" || erros=1; }
+
 for suite in "$(dirname "$0")"/*.test.mjs; do
   node "$suite" || erros=1
 done

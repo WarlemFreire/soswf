@@ -32,9 +32,17 @@ public final class Oferta {
     private static final Pattern DISTANCIA =
             Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*km\\b", Pattern.CASE_INSENSITIVE);
 
-    /** 12 min · 1 h 05 min */
+    /**
+     * 12 min · 14 minutos · 8 minuto · 5 mins · 1 h 05 min
+     *
+     * O `(?:uto)?s?` nao e zelo: era `min\\b`, e \\b exige fim de palavra logo
+     * depois de "min". A Uber escreve "10 min" na busca e "14 minutos" na
+     * viagem NA MESMA TELA -- entao so a busca entrava. Numa oferta real de
+     * R$ 18,07 o tempo saiu 10 em vez de 24 e o R$/h saiu 108 em vez de 45:
+     * uma corrida fraca apareceria como OTIMA. Ver nativo/testes.
+     */
     private static final Pattern MINUTOS =
-            Pattern.compile("(\\d+)\\s*min\\b", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("(\\d+)\\s*min(?:uto)?s?\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern HORAS =
             Pattern.compile("(\\d+)\\s*h(?:ora)?s?\\b", Pattern.CASE_INSENSITIVE);
 
