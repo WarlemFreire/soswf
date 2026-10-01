@@ -16,7 +16,7 @@ rm -rf "$tmp"
 
 echo "sintaxe ok"
 
-for v in validar-xml.py validar-plugincall.py; do
+for v in validar-xml.py validar-plugincall.py validar-gradle.py; do
   validador="$(dirname "$0")/../../nativo/scripts/$v"
   if [ -f "$validador" ] && command -v python3 >/dev/null 2>&1; then
     python3 "$validador" || erros=1
