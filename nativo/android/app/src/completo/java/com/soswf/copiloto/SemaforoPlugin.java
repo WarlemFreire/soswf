@@ -84,6 +84,7 @@ public class SemaforoPlugin extends Plugin {
         // A versao na tela: nesta semana eu consertei o semaforo tres vezes e
         // nao havia como ele nem eu sabermos qual APK estava no aparelho.
         r.put("versao", versaoDoApp(getContext()));
+        r.put("lidasHoje", Pisos.lidasHoje(getContext(), Pisos.hoje()));
         chamada.resolve(r);
     }
 

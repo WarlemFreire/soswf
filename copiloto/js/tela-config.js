@@ -357,11 +357,17 @@ function secaoSemaforo() {
  * é desenhar por cima; se nenhuma foi lida, é leitura.
  */
 async function blocoEstado(e) {
-  let lidas = 0;
-  try {
-    lidas = (await semaforo.ofertasDoDia()).length;
-  } catch {
-    /* sem banco a conta não sai; as outras linhas ainda valem */
+  // A contagem vem do SERVIÇO, não do banco do app. O que está guardado no
+  // banco são só as ofertas lidas com o Copiloto aberto -- e quando a oferta
+  // chega o Copiloto quase sempre está fechado. A linha mostrava zero mesmo
+  // com a leitura funcionando, que é a pior coisa que um indicador faz.
+  let lidas = Number(e.lidasHoje) || 0;
+  if (!lidas) {
+    try {
+      lidas = (await semaforo.ofertasDoDia()).length;
+    } catch {
+      /* sem banco a conta não sai; as outras linhas ainda valem */
+    }
   }
 
   const botao = el("button", { type: "button", class: "botao fin__acao" }, "Testar o selo agora");

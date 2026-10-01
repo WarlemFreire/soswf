@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,20 +165,34 @@ public class SemaforoService extends AccessibilityService {
      * terceira, e assim por diante.
      */
     private void olhar(String pacote, boolean podeRetentar) {
-        AccessibilityNodeInfo raiz = getRootInActiveWindow();
-        if (raiz == null) return;
+        List<AccessibilityNodeInfo> raizes = janelasDoApp(pacote);
+        if (raizes.isEmpty()) return;
 
-        Colheita colheita = new Colheita();
+        // A primeira janela que produzir uma oferta ganha; se nenhuma produzir,
+        // fica a primeira, para o diagnostico ter o que mostrar.
+        Colheita colheita = null;
+        Oferta ofertaLida = null;
         try {
-            varrer(raiz, colheita, 0);
+            for (AccessibilityNodeInfo raiz : raizes) {
+                Colheita c = new Colheita();
+                varrer(raiz, c, 0);
+                Oferta o = Oferta.ler(c.cartao != null ? c.cartao : c.tudo);
+                if (colheita == null) colheita = c;
+                if (o != null) {
+                    colheita = c;
+                    ofertaLida = o;
+                    break;
+                }
+            }
         } finally {
-            raiz.recycle();
+            for (AccessibilityNodeInfo raiz : raizes) raiz.recycle();
         }
+        if (colheita == null) return;
 
         // O cartao quando existe; a tela inteira como ultimo recurso, porque um
         // layout que nao separa o cartao ainda e melhor lido do que nao lido.
         List<String> doCartao = colheita.cartao != null ? colheita.cartao : colheita.tudo;
-        Oferta oferta = Oferta.ler(doCartao);
+        Oferta oferta = ofertaLida;
 
         Diagnostico.guardar(
                 this, pacote,
@@ -196,6 +211,10 @@ public class SemaforoService extends AccessibilityService {
             }
             return;
         }
+
+        // Conta aqui, e nao do lado do app: quando a oferta chega, o Copiloto
+        // quase sempre esta fechado.
+        Pisos.contarLida(this, Pisos.hoje());
 
         long agora = System.currentTimeMillis();
         String assinatura = String.format(
@@ -227,6 +246,54 @@ public class SemaforoService extends AccessibilityService {
         // checkpoint nao lanca, e a oferta lida -- a unica fonte que encheria
         // sozinha -- so era gravada DEPOIS de ja existir faixa.
         SemaforoPlugin.avisarOferta(oferta, veredito, pisos.periodo, area);
+    }
+
+    /**
+     * As raizes das janelas DO APP DE CORRIDA.
+     *
+     * getRootInActiveWindow() sozinho nao servia, e foi o que manteve o selo
+     * mudo com a oferta bem na tela. A Uber desenha o cartao POR CIMA do
+     * aplicativo que estiver na frente -- no print dele, por cima do proprio
+     * Copiloto -- e a janela ATIVA continua sendo a outra. O servico lia a tela
+     * errada, achava que nao havia oferta, e calava.
+     *
+     * Ler a tela errada nao e so perder a oferta: a propria tela de ajustes do
+     * Copiloto tem "R$" e "km" escritos nela. Por isso cada janela e conferida
+     * contra o pacote, e nao apenas colhida.
+     */
+    private List<AccessibilityNodeInfo> janelasDoApp(String pacote) {
+        List<AccessibilityNodeInfo> raizes = new ArrayList<>();
+
+        try {
+            List<AccessibilityWindowInfo> janelas = getWindows();
+            if (janelas != null) {
+                for (AccessibilityWindowInfo janela : janelas) {
+                    if (janela == null) continue;
+                    AccessibilityNodeInfo raiz = janela.getRoot();
+                    if (raiz == null) continue;
+                    if (daPlataforma(pacote, raiz.getPackageName())) raizes.add(raiz);
+                    else raiz.recycle();
+                }
+            }
+        } catch (Exception erro) {
+            // getWindows() falha em fabricante exotico. O caminho antigo ainda
+            // resolve quando a oferta esta mesmo na janela ativa.
+        }
+
+        if (raizes.isEmpty()) {
+            AccessibilityNodeInfo ativa = getRootInActiveWindow();
+            if (ativa == null) return raizes;
+            if (daPlataforma(pacote, ativa.getPackageName())) raizes.add(ativa);
+            else ativa.recycle();
+        }
+        return raizes;
+    }
+
+    /** Mesmo pacote do evento, ou outro app de corrida: os dois servem. */
+    private static boolean daPlataforma(String pacote, CharSequence outro) {
+        if (outro == null) return false;
+        String p = outro.toString();
+        return p.equals(pacote) || appDeCorrida(p);
     }
 
     /** O texto da tela, e o menor pedaco dela que parece um cartao de oferta. */

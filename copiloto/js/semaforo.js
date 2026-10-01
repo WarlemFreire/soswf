@@ -49,6 +49,7 @@ export async function estado() {
       ligado: false,
       temPisos: false,
       versao: "",
+      lidasHoje: 0,
     };
   }
   const r = await plugin().estado();

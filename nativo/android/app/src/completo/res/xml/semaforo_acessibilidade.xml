@@ -11,6 +11,10 @@
     ele, todo no marcado como "nao importante para acessibilidade" fica de fora
     da arvore, e aplicativo moderno marca assim boa parte do texto. Era por
     isso que o cartao era lido uma vez sim e duas nao.
+  - flagRetrieveInteractiveWindows e o que permite enxergar as OUTRAS janelas.
+    Sem ele so da para ler a janela ativa -- e a Uber desenha a oferta POR CIMA
+    do aplicativo que estiver na frente, entao a janela ativa e a outra. Era
+    isto que mantinha o selo mudo com a oferta bem na tela.
   - packageNames limita ao que interessa. Sem isso o servico receberia evento de
     banco, mensagem e tudo mais, e ele nao tem nada que ver isso.
   - notificationTimeout de 100 ms: era 500, e meio segundo de atraso pesa quando
@@ -23,7 +27,7 @@
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews"
+    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:description="@string/semaforo_descricao"
     android:notificationTimeout="100"

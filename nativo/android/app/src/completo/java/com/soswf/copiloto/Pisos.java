@@ -27,6 +27,8 @@ public final class Pisos {
     private static final String K_LIGADO = "ligado";
     private static final String K_PERIODO = "periodo";
     private static final String K_AMOSTRA = "amostra";
+    private static final String K_LIDAS_DIA = "lidasDia";
+    private static final String K_LIDAS_N = "lidasN";
 
     public final double pisoHora;
     public final double idealHora;
@@ -97,6 +99,31 @@ public final class Pisos {
                 .putString(K_PERIODO, periodo == null ? "" : periodo)
                 .putInt(K_AMOSTRA, amostra)
                 .apply();
+    }
+
+    /**
+     * Conta uma oferta lida, aqui no servico.
+     *
+     * NAO da para contar isso do lado do app: ele quase sempre esta fechado
+     * quando a oferta chega, e a oferta so chega ao JavaScript se o WebView
+     * estiver vivo. O indicador "ofertas lidas hoje" mostrava zero mesmo
+     * funcionando -- um indicador que mente e pior que nenhum.
+     */
+    public static void contarLida(Context contexto, String hoje) {
+        SharedPreferences p = prefs(contexto);
+        int n = hoje.equals(p.getString(K_LIDAS_DIA, "")) ? p.getInt(K_LIDAS_N, 0) : 0;
+        p.edit().putString(K_LIDAS_DIA, hoje).putInt(K_LIDAS_N, n + 1).apply();
+    }
+
+    public static int lidasHoje(Context contexto, String hoje) {
+        SharedPreferences p = prefs(contexto);
+        return hoje.equals(p.getString(K_LIDAS_DIA, "")) ? p.getInt(K_LIDAS_N, 0) : 0;
+    }
+
+    /** A data no formato que contarLida espera. */
+    public static String hoje() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT)
+                .format(new java.util.Date());
     }
 
     public static void ligar(Context contexto, boolean ligado) {

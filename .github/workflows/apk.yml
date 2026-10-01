@@ -107,15 +107,18 @@ jobs:
           echo "senha=$senha" >> "$GITHUB_OUTPUT"
         working-directory: nativo/android
 
-      # Dois sabores: "limpo" sem leitura de tela nem sobreposicao (nao briga com
-      # aplicativo de banco) e "completo" com o semaforo.
-      - name: Compilar os dois APKs de debug
+      # So o sabor "completo". O "limpo" continua existindo no build.gradle --
+      # foi o que salvou quando o aplicativo de banco barrou o aparelho, e um
+      # dia pode salvar de novo -- mas compilar os dois a cada push so dobrava o
+      # tempo e dava dois arquivos para ele escolher errado na pressa.
+      # Para gerar o limpo quando precisar: ./gradlew assembleLimpoDebug.
+      - name: Compilar o APK de debug
         env:
           CHAVE_SENHA: ${{ steps.chave.outputs.senha }}
           # O numero da execucao vira versionCode: sempre sobe, nunca repete.
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 1.0.${{ github.run_number }}
-        run: ./gradlew --no-daemon assembleLimpoDebug assembleCompletoDebug
+        run: ./gradlew --no-daemon assembleCompletoDebug
         working-directory: nativo/android
 
       # O APK dele so instala por cima se a assinatura for ESTA. Conferir aqui
@@ -152,10 +155,8 @@ jobs:
           # A versao entra no nome do arquivo porque instalar um APK mais antigo
           # sobre um mais novo tambem falha, e sem o numero nao ha como saber.
           mkdir -p saida
-          mv app/build/outputs/apk/limpo/debug/app-limpo-debug.apk \
-             "saida/copiloto-LIMPO-v$GITHUB_RUN_NUMBER-$data-$curto.apk"
           mv app/build/outputs/apk/completo/debug/app-completo-debug.apk \
-             "saida/copiloto-COMPLETO-v$GITHUB_RUN_NUMBER-$data-$curto.apk"
+             "saida/copiloto-v$GITHUB_RUN_NUMBER-$data-$curto.apk"
           echo "nome=copiloto-v$GITHUB_RUN_NUMBER-$data-$curto" >> "$GITHUB_OUTPUT"
           ls -lh saida
         working-directory: nativo/android
