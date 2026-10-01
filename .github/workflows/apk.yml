@@ -4,7 +4,7 @@
 # O APK sai como artefato da execucao, em Actions > a execucao > Artifacts.
 # E um APK de debug: instala direto no celular (habilitando "instalar de fontes
 # desconhecidas"). Mas e assinado com a CHAVE ESTAVEL do segredo
-# ANDROID_KEYSTORE_BASE64, e nao com a chave de debug do runner -- essa o GitHub
+# ANDROID_KEYSTORE, e nao com a chave de debug do runner -- essa o GitHub
 # gera nova em cada execucao, e assinatura diferente faz o Android recusar a
 # instalacao com "o pacote tem um conflito com um pacote ja existente".
 # Veja nativo/README.md para como o segredo e criado.
@@ -53,15 +53,22 @@ jobs:
       # Sem este passo cada APK sai com uma assinatura diferente e nao instala
       # sobre o anterior. Com ele, instalar e atualizar, e o banco de dados do
       # motorista sobrevive a troca de versao e de sabor.
+      # O segredo ANDROID_KEYSTORE traz duas coisas numa colagem so: a senha na
+      # primeira linha, o cofre em base64 nas demais. Um segredo em vez de tres,
+      # porque criar segredo no navegador do celular e a parte chata deste conserto.
       - name: Escrever a chave de assinatura
+        id: chave
         env:
-          CHAVE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          CHAVE: ${{ secrets.ANDROID_KEYSTORE }}
         run: |
-          if [ -n "$CHAVE_BASE64" ]; then
-            printf '%s' "$CHAVE_BASE64" | base64 -d > app/chave.jks
-            echo "Chave estavel escrita ($(stat -c%s app/chave.jks) bytes)."
+          if [ -n "$CHAVE" ]; then
+            senha=$(printf '%s' "$CHAVE" | head -1 | tr -d ' \r')
+            printf '%s' "$CHAVE" | tail -n +2 | tr -d ' \n\r' | base64 -d > app/chave.p12
+            echo "::add-mask::$senha"
+            echo "senha=$senha" >> "$GITHUB_OUTPUT"
+            echo "Chave estavel escrita ($(stat -c%s app/chave.p12) bytes)."
           else
-            echo "::warning title=Sem chave estavel::O segredo ANDROID_KEYSTORE_BASE64 nao esta configurado. Este APK nao vai instalar sobre o anterior."
+            echo "::warning title=Sem chave estavel::O segredo ANDROID_KEYSTORE nao esta configurado. Este APK nao vai instalar sobre o anterior."
           fi
         working-directory: nativo/android
 
@@ -69,12 +76,37 @@ jobs:
       # aplicativo de banco) e "completo" com o semaforo.
       - name: Compilar os dois APKs de debug
         env:
-          CHAVE_SENHA: ${{ secrets.ANDROID_KEYSTORE_SENHA }}
-          CHAVE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          CHAVE_SENHA: ${{ steps.chave.outputs.senha }}
           # O numero da execucao vira versionCode: sempre sobe, nunca repete.
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 1.0.${{ github.run_number }}
         run: ./gradlew --no-daemon assembleLimpoDebug assembleCompletoDebug
+        working-directory: nativo/android
+
+      # O APK dele so instala por cima se a assinatura for ESTA. Conferir aqui
+      # custa dois segundos e transforma "instalei e deu conflito de novo" em
+      # "o build falhou e disse por que".
+      - name: Conferir a assinatura
+        env:
+          CHAVE: ${{ secrets.ANDROID_KEYSTORE }}
+        run: |
+          esperada=$(cat assinatura-esperada.txt)
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          falhou=0
+          for apk in app/build/outputs/apk/*/debug/*.apk; do
+            digest=$("$apksigner" verify --print-certs "$apk" \
+              | grep -i "certificate SHA-256 digest" | head -1 \
+              | sed "s/.*: *//" | tr -d " " | tr "A-Z" "a-z")
+            if [ "$digest" = "$esperada" ]; then
+              echo "ok   $(basename "$apk") -> $digest"
+            elif [ -z "$CHAVE" ]; then
+              echo "::warning title=APK sem a chave estavel::$(basename "$apk") esta assinado com a chave desta maquina ($digest). NAO instala sobre o APK anterior. Falta o segredo ANDROID_KEYSTORE."
+            else
+              echo "::error title=Assinatura errada::$(basename "$apk") saiu com $digest, esperado $esperada. O segredo ANDROID_KEYSTORE esta com conteudo errado."
+              falhou=1
+            fi
+          done
+          exit $falhou
         working-directory: nativo/android
 
       - name: Renomear com a data e o commit

@@ -9,16 +9,21 @@ apply plugin: 'com.android.application'
 // com uma chave diferente e nao instalava sobre o anterior. Nem a troca entre
 // "limpo" e "completo" funcionava, apesar do applicationId ser o mesmo.
 //
-// A chave fica fora do repositorio (publico!) em ANDROID_KEYSTORE_BASE64, e o
-// fluxo a escreve em app/chave.jks antes de compilar. Ver .github/workflows/apk.yml
-// e nativo/README.md.
+// A chave fica FORA do repositorio, que e publico: no segredo
+// ANDROID_KEYSTORE. O fluxo a escreve em app/chave.p12 antes de
+// compilar. Ver .github/workflows/apk.yml e nativo/README.md.
 //
-// Sem a chave o build NAO falha: volta a assinar com a chave de debug da
+// UM segredo so, e nao tres: o segredo carrega a senha na primeira linha e o
+// cofre em base64 nas demais, e o fluxo separa os dois. Senha nenhuma fica no
+// repositorio -- nem precisava ficar para funcionar, e credencial em codigo e
+// exatamente o tipo de coisa que depois ninguem lembra que esta ali.
+//
+// Sem o arquivo o build NAO falha: volta a assinar com a chave de debug da
 // maquina, com aviso. Isso mantem o projeto compilavel por quem clonar -- e o
 // aviso diz em voz alta o que isso custa.
-def chaveArquivo = file("chave.jks")
+def chaveArquivo = file("chave.p12")
 def chaveSenha = System.getenv("CHAVE_SENHA")
-def chaveAlias = System.getenv("CHAVE_ALIAS") ?: "copiloto"
+def chaveAlias = "copiloto"
 def temChaveEstavel = chaveArquivo.exists() && chaveSenha != null && !chaveSenha.trim().isEmpty()
 
 android {
@@ -82,13 +87,13 @@ if (temChaveEstavel) {
         storePassword chaveSenha
         keyAlias chaveAlias
         // Chave e cofre com a mesma senha: e um cofre com uma chave so.
-        keyPassword System.getenv("CHAVE_SENHA_ALIAS") ?: chaveSenha
+        keyPassword chaveSenha
     }
     // Debug tambem, porque o APK que ele instala no celular e o de debug.
     android.buildTypes.getByName("debug").signingConfig = android.signingConfigs.getByName("estavel")
     android.buildTypes.getByName("release").signingConfig = android.signingConfigs.getByName("estavel")
 } else {
-    logger.lifecycle("Copiloto: sem chave estavel (app/chave.jks + CHAVE_SENHA). " +
+    logger.lifecycle("Copiloto: sem chave estavel (falta app/chave.p12 ou a senha). " +
         "O APK vai assinado com a chave de debug desta maquina e NAO instala " +
         "sobre um APK compilado em outra maquina.")
 }

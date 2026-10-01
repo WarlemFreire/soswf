@@ -53,27 +53,43 @@ O conserto e uma chave **estavel**, fora do repositorio (que e publico — chave
 commitada deixaria qualquer um assinar um APK que o celular dele aceitaria como
 atualizacao do Copiloto, num app que tem servico de acessibilidade. Nao se faz).
 
-A chave vive em tres segredos do repositorio, em
+A chave vive num unico segredo do repositorio, em
 **Settings -> Secrets and variables -> Actions -> New repository secret**:
 
 | Segredo | Conteudo |
 |---|---|
-| `ANDROID_KEYSTORE_BASE64` | o arquivo `.jks` em base64 (`base64 -w0 chave.jks`) |
-| `ANDROID_KEYSTORE_SENHA`  | a senha do keystore |
-| `ANDROID_KEYSTORE_ALIAS`  | o alias da chave (`copiloto`) |
+| `ANDROID_KEYSTORE` | linha 1: a senha do cofre. Linhas seguintes: o `.p12` em base64 |
 
-O workflow escreve `nativo/android/app/chave.jks` a partir do primeiro e passa
-os outros dois como variaveis de ambiente; `app/build.gradle` monta o
-`signingConfig` e o aplica a **debug e release**. Sem os segredos o build nao
-quebra: volta a assinar com a chave da maquina e deixa um aviso na execucao
-dizendo que aquele APK nao instala sobre o anterior.
+Um segredo e nao tres de proposito: criar segredo no navegador do celular e a
+parte chata deste conserto, e as tres informacoes cabem numa colagem. O alias e
+sempre `copiloto` e esta no `build.gradle` -- alias nao e segredo.
 
-Gerar a chave (uma vez na vida — **perder a chave e perder a capacidade de
-atualizar**, e aparece o conflito de novo):
+O fluxo separa as duas partes do segredo, escreve
+`nativo/android/app/chave.p12` e passa a senha como variavel de ambiente
+(mascarada no log);
+`app/build.gradle` monta o `signingConfig` e o aplica a **debug e release**. Sem
+o segredo o build nao quebra: volta a assinar com a chave da maquina e avisa na
+execucao que aquele APK nao instala sobre o anterior.
 
-    keytool -genkeypair -v -keystore chave.jks -storetype PKCS12 \
-      -alias copiloto -keyalg RSA -keysize 4096 -validity 10950 \
-      -dname "CN=Copiloto, OU=Copiloto, O=Copiloto, C=BR"
+Depois de compilar, o passo **Conferir a assinatura** roda `apksigner` nos dois
+APKs e compara a impressao digital do certificado com
+`nativo/android/assinatura-esperada.txt`. Se o segredo estiver com conteudo
+errado, o build FALHA ali, com a impressao que saiu e a esperada no log -- em vez
+de entregar um APK que so vai dar conflito na hora de instalar, no celular, na
+rua.
+
+Gerar a chave (uma vez na vida -- **perder a chave e perder a capacidade de
+atualizar**, e o conflito volta):
+
+    keytool -genkeypair -v -keystore chave.p12 -storetype PKCS12 \\
+      -alias copiloto -keyalg RSA -keysize 2048 -validity 10950 \\
+      -storepass "$SENHA" -dname "CN=Copiloto, O=Copiloto, C=BR"
+
+E atualizar `assinatura-esperada.txt` com a impressao da chave nova:
+
+    keytool -list -keystore chave.p12 -storepass "$SENHA" -rfc \\
+      | openssl x509 -noout -fingerprint -sha256 \\
+      | sed 's/.*=//;s/://g' | tr 'A-Z' 'a-z'
 
 ### Na troca para a chave estavel, uma vez
 
