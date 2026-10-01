@@ -73,10 +73,17 @@ public class SemaforoPlugin extends Plugin {
         Pisos pisos = Pisos.ler(getContext());
         JSObject r = new JSObject();
         r.put("acessibilidadeAtiva", acessibilidadeAtiva(getContext()));
+        // Estar na lista do Android e estar DE PE sao coisas diferentes: o
+        // sistema mata servico, o fabricante poda segundo plano. Separar as
+        // duas e a diferenca entre "falta autorizar" e "foi morto".
+        r.put("servicoDePe", SemaforoService.emPe());
         r.put("podeSobrepor", Sobreposicao.permitido(getContext()));
         r.put("ligado", pisos.ligado);
         r.put("temPisos", pisos.temFaixaDeHora());
         r.put("amostra", pisos.amostra);
+        // A versao na tela: nesta semana eu consertei o semaforo tres vezes e
+        // nao havia como ele nem eu sabermos qual APK estava no aparelho.
+        r.put("versao", versaoDoApp(getContext()));
         chamada.resolve(r);
     }
 
@@ -220,6 +227,31 @@ public class SemaforoPlugin extends Plugin {
      * Lido das Secure Settings porque nao existe API que pergunte "eu estou
      * habilitado?" -- so a lista bruta do sistema.
      */
+    /**
+     * Desenha um selo de mentira para o motorista ver se a sobreposicao
+     * funciona, sem depender de aparecer uma oferta.
+     *
+     * Devolve as tres respostas separadas de proposito: com elas, "nao aparece
+     * nada" deixa de ser uma frase e vira um diagnostico.
+     */
+    @PluginMethod
+    public void testarSelo(PluginCall chamada) {
+        JSObject r = new JSObject();
+        r.put("servicoDePe", SemaforoService.emPe());
+        r.put("podeSobrepor", Sobreposicao.permitido(getContext()));
+        r.put("mostrou", SemaforoService.mostrarTeste());
+        chamada.resolve(r);
+    }
+
+    static String versaoDoApp(Context contexto) {
+        try {
+            return contexto.getPackageManager()
+                    .getPackageInfo(contexto.getPackageName(), 0).versionName;
+        } catch (Exception erro) {
+            return "";
+        }
+    }
+
     static boolean acessibilidadeAtiva(Context contexto) {
         String ativos = Settings.Secure.getString(
                 contexto.getContentResolver(),

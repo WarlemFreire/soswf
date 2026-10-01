@@ -44,9 +44,11 @@ export async function estado() {
       suportado: false,
       nativo: nativo(),
       acessibilidadeAtiva: false,
+      servicoDePe: false,
       podeSobrepor: false,
       ligado: false,
       temPisos: false,
+      versao: "",
     };
   }
   const r = await plugin().estado();
@@ -150,6 +152,18 @@ export async function sincronizarZonas() {
   const zonas = (configAtual().zonasRisco || []).map(Z.normalizarZona);
   await plugin().definirZonas({ zonas: Z.paraOServico(zonas) });
   return true;
+}
+
+/**
+ * Desenha um selo de mentira, para ele ver com um toque se a sobreposição
+ * funciona -- sem depender de uma oferta aparecer no trânsito.
+ *
+ * Devolve as três respostas separadas porque "não aparece nada" tem duas
+ * causas que de fora parecem iguais: não ler e não conseguir desenhar.
+ */
+export async function testarSelo() {
+  if (!disponivel()) return { mostrou: false, servicoDePe: false, podeSobrepor: false };
+  return plugin().testarSelo();
 }
 
 /* ----------------------------------------------------------- diagnóstico */

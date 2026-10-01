@@ -118,6 +118,29 @@ public class SemaforoService extends AccessibilityService {
         return true;
     }
 
+    /**
+     * Mostra um selo de mentira, a pedido do app.
+     *
+     * Separa as duas metades que, de fora, parecem o mesmo defeito: "nao
+     * aparece nada" pode ser que o servico nao esteja lendo, ou que esteja
+     * lendo e nao consiga desenhar. Sem isto, descobrir qual das duas exige uma
+     * oferta de verdade na tela, no transito, e um palpite depois.
+     *
+     * O texto e o de um cartao de oferta real: assim o botao exercita tambem o
+     * parser, nao so o desenho.
+     */
+    public static boolean mostrarTeste() {
+        SemaforoService servico = emExecucao;
+        if (servico == null || servico.sobreposicao == null) return false;
+
+        Oferta falsa = Oferta.ler(java.util.Arrays.asList(
+                "R$ 18,07", "10 min (1.7 km)", "14 minutos (10.0 km)"));
+        if (falsa == null) return false;
+
+        servico.sobreposicao.mostrar(falsa, Oferta.Veredito.SEM_BASE, null, 12);
+        return true;
+    }
+
     private void esconderSelo() {
         if (sobreposicao != null) sobreposicao.esconder();
     }

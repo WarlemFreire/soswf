@@ -364,6 +364,21 @@ async function blocoEstado(e) {
     /* sem banco a conta não sai; as outras linhas ainda valem */
   }
 
+  const botao = el("button", { type: "button", class: "botao fin__acao" }, "Testar o selo agora");
+  const resultado = el("p", { class: "campo__ajuda" });
+  botao.onclick = async () => {
+    vibrar(10);
+    resultado.textContent = "Olhe a tela…";
+    const r = await semaforo.testarSelo();
+    resultado.textContent = r.mostrou
+      ? "Mandei desenhar. Se você NÃO viu o selo cinza aparecer, o problema é desenhar por cima — não é leitura."
+      : !r.servicoDePe
+        ? "O leitor não está de pé. Autorize a leitura de tela acima; se já estiver autorizada, desligue e ligue de novo na tela do Android."
+        : !r.podeSobrepor
+          ? "Falta a permissão de desenhar sobre outros aplicativos."
+          : "Não consegui desenhar, e as duas permissões estão dadas. Me mande esta mensagem.";
+  };
+
   const linha = (rotulo, ok, detalhe) =>
     el("div", { class: "campo" },
       el("span", { class: `campo__rotulo${ok ? "" : " campo__rotulo--alerta"}` },
@@ -372,14 +387,29 @@ async function blocoEstado(e) {
 
   return el("div", { class: "config__estado" },
     linha("Leitor de tela autorizado", e.acessibilidadeAtiva,
-      e.acessibilidadeAtiva ? "o Android está entregando a tela" : "reinstalar apaga esta permissão"),
+      e.acessibilidadeAtiva ? "está na lista do Android" : "reinstalar apaga esta permissão"),
+    // Autorizado e de pé são coisas diferentes: o sistema mata serviço e
+    // fabricante poda segundo plano. Sem separar, "autorizado" bastava para
+    // acreditar que estava funcionando.
+    linha("Leitor em funcionamento", e.servicoDePe,
+      e.servicoDePe ? "o serviço está vivo" : "autorizado mas não está de pé — desligue e ligue na tela do Android"),
     linha("Pode desenhar por cima", e.podeSobrepor,
       e.podeSobrepor ? "o selo tem onde aparecer" : "sem isto o selo não tem como ser desenhado"),
     linha("Semáforo ligado", e.ligado,
       e.ligado ? "o serviço está olhando as ofertas" : "o interruptor acima"),
     linha("Ofertas lidas hoje", lidas > 0, lidas > 0
       ? `${lidas} — a leitura está funcionando`
-      : "nenhuma ainda; com tudo autorizado e uma oferta na tela, isto tem que subir")
+      : "nenhuma ainda; com tudo autorizado e uma oferta na tela, isto tem que subir"),
+    botao,
+    resultado,
+    el("p", { class: "campo__ajuda" },
+      e.versao
+        // O nome do arquivo baixado é "copiloto-COMPLETO-v34-...": o número
+        // final da versão é o mesmo. Esta semana consertei o semáforo três
+        // vezes sem que nenhum de nós dois soubesse qual APK estava no
+        // aparelho, e isso custou mais tempo que os consertos.
+        ? `Versão instalada: ${e.versao} — é o APK v${e.versao.split(".").pop()}.`
+        : "Versão instalada: desconhecida.")
   );
 }
 
