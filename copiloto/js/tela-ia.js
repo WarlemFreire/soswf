@@ -18,6 +18,9 @@ import * as M from "./metrics.js";
 import * as F from "./financeiro.js";
 import * as IA from "./ia.js";
 import { ofensiva } from "./ofensiva.js";
+import * as E from "./estrategia.js";
+import * as A from "./aprendizado.js";
+import * as F2 from "./faixas.js";
 import { db } from "./db.js";
 import { vibrar, mostrarToast } from "./feedback.js";
 
@@ -148,8 +151,15 @@ export async function abrirPergunta() {
     try {
       const contexto = await montarContextoAtual();
       const r = await IA.perguntar({ pergunta: texto, contexto, sinal: emVoo.signal });
+
+      // A resposta vira APOSTA. Sem isto o assistente nunca aprenderia: o
+      // modelo não lembra entre chamadas, e o app só consegue medir o que
+      // registrou. Ver aprendizado.js.
+      const aposta = await A.registrar({ texto: r.texto, alvo: { tipo: "reaisPorHora" } });
+
       resposta.replaceChildren(
         el("div", { class: "ia__texto" }, ...r.texto.split("\n").map((l) => el("p", {}, l))),
+        seguiuOuNao(aposta),
         r.uso
           ? el("p", { class: "ia__uso" },
               `${r.modelo} · ${r.uso.total_tokens ?? "?"} tokens`)
@@ -197,6 +207,36 @@ export async function abrirPergunta() {
 }
 
 /**
+ * "Você vai seguir isso?"
+ *
+ * É a pergunta que torna a medição honesta. Sem ela, uma semana ruim depois de
+ * uma sugestão que ele ignorou contaria como sugestão ruim -- e o assistente
+ * aprenderia a coisa errada. Quem não seguiu não gera veredito.
+ */
+function seguiuOuNao(aposta) {
+  const linha = el("div", { class: "ia__seguir" });
+
+  const responder = async (seguiu) => {
+    await A.marcarSeguiu(aposta.id, seguiu);
+    vibrar(8);
+    linha.replaceChildren(
+      el("p", { class: "folha__ajuda" },
+        seguiu
+          ? "Anotado. Daqui a uma semana o aplicativo mede se rendeu, comparando "
+            + "o seu R$/h depois contra o de antes."
+          : "Anotado. Como você não vai seguir, esta não entra no placar.")
+    );
+  };
+
+  linha.replaceChildren(
+    el("span", { class: "ia__seguir-rotulo" }, "Vai seguir?"),
+    el("button", { type: "button", class: "chip", onClick: () => responder(true) }, "Vou seguir"),
+    el("button", { type: "button", class: "chip", onClick: () => responder(false) }, "Não vou")
+  );
+  return linha;
+}
+
+/**
  * Junta o que vai junto da pergunta.
  *
  * Tudo sai de função que já existia e já era testada -- o assistente lê os
@@ -213,6 +253,31 @@ async function montarContextoAtual(hoje = Date.now()) {
   const semanas = F.porPeriodo(resumos, "semana", 1);
   const meses = F.porPeriodo(resumos, "mes", 1);
 
+  // O diagnóstico é medido pelo app, não pelo modelo. E as apostas vencidas são
+  // medidas ANTES de montar o contexto, para o placar já chegar atualizado.
+  const jornadas = await db.todos("jornadas");
+  const registros = await db.todos("registros");
+  const pausas = await db.todos("pausas");
+  const trilha = await store.trilha();
+  const corridas = await db.todos("corridas");
+
+  const trechos = F2.trechosDe(jornadas, registros);
+  await A.medirPendentes(trechos, hoje);
+  const placar = A.placar(await A.apostas(), hoje);
+
+  const aberta = store.jornadaAtiva();
+  const diagnostico = E.diagnostico({
+    jornadas,
+    registros,
+    pausas,
+    corridas,
+    trilha,
+    referencia: store.referenciaDeAceite(),
+    jornadaAberta: aberta,
+    eventosDoDia: aberta ? M.eventosDoDia([aberta], registros.filter((r) => r.jornadaId === aberta.id)) : null,
+    agora: hoje,
+  });
+
   return IA.montarContexto({
     dias,
     fechamentoSemana: semanas[0]
@@ -225,6 +290,8 @@ async function montarContextoAtual(hoje = Date.now()) {
     aceite: store.referenciaDeAceite(),
     categorias: F.porCategoria(custos),
     ofensiva: ofensiva(dias, hoje),
+    diagnostico,
+    placar,
     config: { ...config, custoTotalKm: custoTotalKm(config) },
     hoje,
   });

@@ -84,6 +84,30 @@ export function promptDoSistema() {
     "  manutenção futura. Se ele lança a manutenção quando ela chega e você",
     "  também descontar o desgaste, a mesma despesa sai duas vezes.",
     "",
+    "QUANDO A PERGUNTA É DE ESTRATÉGIA",
+    "Você recebe um diagnóstico já medido pelo aplicativo: tempo ocioso por",
+    "período, mistura de corrida curta e longa, rendimento por região e por",
+    "hora de cada dia, e quantas corridas ficaram abaixo do piso dele.",
+    "- Aponte no máximo DUAS mudanças, as de maior efeito. Lista de dez vira",
+    "  nenhuma: ele vai dirigir, não estudar.",
+    "- Cada mudança precisa ser executável hoje e dizer o número que a sustenta.",
+    "  'Reposicione' sem dizer para onde e por quê não serve de nada.",
+    "- REGIÃO É A EXPERIÊNCIA DELE, NÃO A CIDADE.",
+    "  Nunca diga que uma região é a melhor da cidade.",
+    "  Diga que ela é a melhor ENTRE AS QUE ELE RODOU.",
+    "  'Região 2 rende mais' quer dizer 'nas vezes em que você esteve lá,",
+    "  rendeu mais'. Um lugar ótimo onde ele nunca foi não aparece nos dados.",
+    "- Amostra pequena pede cautela explícita, não silêncio.",
+    "",
+    "O PLACAR DAS SUGESTÕES ANTERIORES",
+    "Você também recebe o que já foi sugerido antes e o que deu, medido pelo",
+    "aplicativo comparando o R$/h depois contra o antes.",
+    "- Não repita sugestão marcada como 'nao-rendeu' sem dizer por que desta vez",
+    "  seria diferente.",
+    "- O que foi marcado como 'rendeu' pode ser reforçado.",
+    "- 'sem-dado' quer dizer que ele não seguiu ou não houve jornada: não conte",
+    "  como sucesso nem como fracasso.",
+    "",
     "O QUE VOCÊ NÃO FAZ",
     "- Não decide se uma corrida específica vale a pena. Isso é do semáforo, que",
     "  é determinístico e roda offline. Se ele perguntar, explique o critério",
@@ -103,6 +127,8 @@ export function promptDoSistema() {
  */
 export function montarContexto({
   dias = [],
+  diagnostico = null,
+  placar = null,
   fechamentoSemana = null,
   fechamentoMes = null,
   faixas = null,
@@ -152,6 +178,24 @@ export function montarContexto({
       : null,
 
     ofensiva: ofensiva ? { atual: ofensiva.atual, recorde: ofensiva.recorde } : null,
+
+    // Medido pelo app, não pelo modelo. Ver estrategia.js.
+    //
+    // A célula sai fora: ela é coordenada disfarçada e identifica o quarteirão
+    // em que ele roda. O modelo raciocina igual com o rótulo neutro.
+    diagnostico: diagnostico ? semCelulas(diagnostico) : null,
+    // O que já foi sugerido e no que deu. É isto que faz o assistente aprender:
+    // modelo não lembra entre chamadas, o app lembra. Ver aprendizado.js.
+    sugestoesAnteriores: placar || null,
+  };
+}
+
+/** Tira a coordenada das regiões, deixando só o rótulo e os números. */
+function semCelulas(diagnostico) {
+  if (!Array.isArray(diagnostico.regioes)) return diagnostico;
+  return {
+    ...diagnostico,
+    regioes: diagnostico.regioes.map(({ celula, ...resto }) => resto),
   };
 }
 
@@ -311,6 +355,9 @@ function mensagemDeErro(status, corpo) {
  * pergunta boa vale mais que uma resposta boa.
  */
 export const PERGUNTAS = [
+  "Olhando meus dados, o que eu faço diferente a partir de agora?",
+  "Estou perdendo tempo parado? Onde, e quanto isso me custa?",
+  "Que tipo de corrida está me rendendo mais: curta ou longa?",
   "O que mudou na minha última semana em relação à anterior?",
   "Em que faixa de horário eu estou ganhando menos por hora, e quanto menos?",
   "Para onde está indo meu dinheiro, e o que mais cresceu?",

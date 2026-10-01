@@ -3,9 +3,9 @@
 // nao tem build step, entao nada de CDN.
 
 const DB_NAME = "copiloto";
-// 4 acrescentou `trilha`; 3 acrescentou `orcamentos`; 2 acrescentou `ofertas`. A migracao e segura porque o onupgradeneeded abaixo
+// 5 acrescentou `estrategias`; 4 acrescentou `trilha`; 3 acrescentou `orcamentos`; 2 acrescentou `ofertas`. A migracao e segura porque o onupgradeneeded abaixo
 // pula store que ja existe: quem ja tem dados so ganha a store nova, vazia.
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 // Stores das fases seguintes (custos, corridas, contextos) ja nascem aqui para
 // evitar uma migracao de schema quando a Fase 2 chegar.
@@ -24,6 +24,9 @@ const STORES = {
   // Rastro decimado do GPS. Serve de fundo ao editor de zonas: sem telha de
   // servidor, o mapa e o proprio caminho que ele ja fez.
   trilha: { keyPath: "id", indexes: [["quando", "quando"]] },
+  // Sugestoes do assistente viradas em aposta mensuravel. E aqui que mora o
+  // aprendizado: modelo de linguagem nao lembra entre chamadas, o app lembra.
+  estrategias: { keyPath: "id", indexes: [["quando", "quando"]] },
   config: { keyPath: "chave" },
 };
 

@@ -72,8 +72,8 @@ teste("o contexto é só o que foi declarado", () => {
   const c = IA.montarContexto({ dias: [dia(1)], hoje: HOJE });
   assert.deepEqual(
     Object.keys(c).sort(),
-    ["custosPorCategoria", "dias", "faixasDaJornada", "faixasDaOferta", "hoje", "mes",
-     "ofensiva", "parametros", "semana"].sort()
+    ["custosPorCategoria", "diagnostico", "dias", "faixasDaJornada", "faixasDaOferta",
+     "hoje", "mes", "ofensiva", "parametros", "semana", "sugestoesAnteriores"].sort()
   );
   assert.deepEqual(
     Object.keys(c.dias[0]).sort(),
@@ -134,6 +134,31 @@ teste("o fechamento declara se o combustível foi medido ou estimado", () => {
 });
 
 /* ---------------------------------------------------------- prompt */
+
+teste("região vai como rótulo neutro, sem coordenada", () => {
+  const c = IA.montarContexto({
+    diagnostico: { regioes: [{ regiao: "região 1", celula: "-1992:-4394", reaisPorHora: 44 }] },
+    hoje: HOJE,
+  });
+  // A célula é coordenada disfarçada: identifica o quarteirão onde ele roda.
+  assert.equal(JSON.stringify(c).includes("-1992"), false, "célula vazou");
+});
+
+teste("o prompt diz que região é a experiência dele, não a cidade", () => {
+  const p = IA.promptDoSistema();
+  assert.ok(/melhor da cidade/i.test(p), "a ressalva sobre região precisa estar lá");
+  assert.ok(/ENTRE AS QUE ELE RODOU/.test(p));
+});
+
+teste("o prompt manda não repetir sugestão que não rendeu", () => {
+  const p = IA.promptDoSistema();
+  assert.ok(/nao-rendeu/.test(p), "o placar precisa ter efeito no prompt");
+  assert.ok(/sem-dado/.test(p), "não seguiu não é fracasso");
+});
+
+teste("o prompt limita a duas mudanças", () => {
+  assert.ok(/DUAS mudanças/.test(IA.promptDoSistema()), "lista de dez vira nenhuma");
+});
 
 teste("o prompt carrega as regras que custaram caro", () => {
   const p = IA.promptDoSistema();

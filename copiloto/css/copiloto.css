@@ -1532,3 +1532,12 @@ button { cursor: pointer; border: 0; background: none; }
 .ia__modelo small { font-size: 11px; color: var(--tinta-fraca); word-break: break-all; }
 
 .folha__ajuda--alerta { color: var(--nivel-piso); }
+
+/* "Vai seguir?" — sem esta resposta, uma semana ruim depois de uma sugestão
+   ignorada contaria como sugestão ruim, e o assistente aprenderia errado. */
+.ia__seguir {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 14px 0 10px; padding-top: 14px; border-top: 1px solid var(--linha);
+}
+.ia__seguir-rotulo { font-size: 15px; color: var(--tinta-fraca); }
+.ia__seguir .chip { min-height: 56px; padding: 0 18px; }
