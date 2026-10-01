@@ -237,7 +237,7 @@ function rastroDaCadeia(rastro) {
       quandoLeitura
         ? `${quandoLeitura} · cartão isolado: ${rastro.leituraCartao ? "sim" : "não"}` +
           ` · ${rastro.leituraNos || 0} nós em ${rastro.leituraJanelas || 0} ` +
-          `${rastro.leituraJanelas === 1 ? "janela" : "janelas"}, ${rastro.leituraDuracaoMs || 0} ms`
+          `${rastro.leituraJanelas === 1 ? "tela" : "telas"}, ${rastro.leituraDuracaoMs || 0} ms`
         : "o evento chegou mas a janela não foi lida"),
     linha("Números saíram", Boolean(rastro.leituraOk),
       rastro.leituraOk
