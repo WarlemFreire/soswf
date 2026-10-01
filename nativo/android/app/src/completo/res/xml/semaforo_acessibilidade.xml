@@ -12,7 +12,7 @@
     da arvore, e aplicativo moderno marca assim boa parte do texto. Era por
     isso que o cartao era lido uma vez sim e duas nao.
   - flagRetrieveInteractiveWindows e o que permite enxergar as OUTRAS janelas.
-    Sem ele so da para ler a janela ativa -- e a Uber desenha a oferta POR CIMA
+    Sem ele so da para ler a janela ativa, e a Uber desenha a oferta POR CIMA
     do aplicativo que estiver na frente, entao a janela ativa e a outra. Era
     isto que mantinha o selo mudo com a oferta bem na tela.
   - packageNames limita ao que interessa. Sem isso o servico receberia evento de
