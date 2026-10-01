@@ -2,10 +2,12 @@
 # ele ja vem com o Android SDK, que nao existe na maquina de ninguem aqui.
 #
 # O APK sai como artefato da execucao, em Actions > a execucao > Artifacts.
-# E um APK de debug: vem assinado com a chave de debug do Android, entao
-# instala direto no celular (habilitando "instalar de fontes desconhecidas").
-# Para a Play Store depois e preciso um APK/AAB de release assinado com chave
-# propria -- veja nativo/README.md.
+# E um APK de debug: instala direto no celular (habilitando "instalar de fontes
+# desconhecidas"). Mas e assinado com a CHAVE ESTAVEL do segredo
+# ANDROID_KEYSTORE_BASE64, e nao com a chave de debug do runner -- essa o GitHub
+# gera nova em cada execucao, e assinatura diferente faz o Android recusar a
+# instalacao com "o pacote tem um conflito com um pacote ja existente".
+# Veja nativo/README.md para como o segredo e criado.
 name: APK
 
 on:
@@ -48,9 +50,30 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Sem este passo cada APK sai com uma assinatura diferente e nao instala
+      # sobre o anterior. Com ele, instalar e atualizar, e o banco de dados do
+      # motorista sobrevive a troca de versao e de sabor.
+      - name: Escrever a chave de assinatura
+        env:
+          CHAVE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$CHAVE_BASE64" ]; then
+            printf '%s' "$CHAVE_BASE64" | base64 -d > app/chave.jks
+            echo "Chave estavel escrita ($(stat -c%s app/chave.jks) bytes)."
+          else
+            echo "::warning title=Sem chave estavel::O segredo ANDROID_KEYSTORE_BASE64 nao esta configurado. Este APK nao vai instalar sobre o anterior."
+          fi
+        working-directory: nativo/android
+
       # Dois sabores: "limpo" sem leitura de tela nem sobreposicao (nao briga com
       # aplicativo de banco) e "completo" com o semaforo.
       - name: Compilar os dois APKs de debug
+        env:
+          CHAVE_SENHA: ${{ secrets.ANDROID_KEYSTORE_SENHA }}
+          CHAVE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          # O numero da execucao vira versionCode: sempre sobe, nunca repete.
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
         run: ./gradlew --no-daemon assembleLimpoDebug assembleCompletoDebug
         working-directory: nativo/android
 
@@ -59,12 +82,14 @@ jobs:
         run: |
           data=$(date +%Y%m%d)
           curto=${GITHUB_SHA::7}
+          # A versao entra no nome do arquivo porque instalar um APK mais antigo
+          # sobre um mais novo tambem falha, e sem o numero nao ha como saber.
           mkdir -p saida
           mv app/build/outputs/apk/limpo/debug/app-limpo-debug.apk \
-             "saida/copiloto-LIMPO-$data-$curto.apk"
+             "saida/copiloto-LIMPO-v$GITHUB_RUN_NUMBER-$data-$curto.apk"
           mv app/build/outputs/apk/completo/debug/app-completo-debug.apk \
-             "saida/copiloto-COMPLETO-$data-$curto.apk"
-          echo "nome=copiloto-$data-$curto" >> "$GITHUB_OUTPUT"
+             "saida/copiloto-COMPLETO-v$GITHUB_RUN_NUMBER-$data-$curto.apk"
+          echo "nome=copiloto-v$GITHUB_RUN_NUMBER-$data-$curto" >> "$GITHUB_OUTPUT"
           ls -lh saida
         working-directory: nativo/android
 

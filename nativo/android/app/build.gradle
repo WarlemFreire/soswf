@@ -1,5 +1,26 @@
 apply plugin: 'com.android.application'
 
+// ---------------------------------------------------------------- assinatura
+//
+// POR QUE ISTO EXISTE: o Android recusa atualizar um aplicativo instalado se a
+// assinatura mudou -- a mensagem que aparece e "o pacote tem um conflito com um
+// pacote ja existente". E o runner do GitHub gera uma chave de debug NOVA em
+// cada execucao, entao, sem o que esta aqui, cada APK compilado era assinado
+// com uma chave diferente e nao instalava sobre o anterior. Nem a troca entre
+// "limpo" e "completo" funcionava, apesar do applicationId ser o mesmo.
+//
+// A chave fica fora do repositorio (publico!) em ANDROID_KEYSTORE_BASE64, e o
+// fluxo a escreve em app/chave.jks antes de compilar. Ver .github/workflows/apk.yml
+// e nativo/README.md.
+//
+// Sem a chave o build NAO falha: volta a assinar com a chave de debug da
+// maquina, com aviso. Isso mantem o projeto compilavel por quem clonar -- e o
+// aviso diz em voz alta o que isso custa.
+def chaveArquivo = file("chave.jks")
+def chaveSenha = System.getenv("CHAVE_SENHA")
+def chaveAlias = System.getenv("CHAVE_ALIAS") ?: "copiloto"
+def temChaveEstavel = chaveArquivo.exists() && chaveSenha != null && !chaveSenha.trim().isEmpty()
+
 android {
     namespace "com.soswf.copiloto"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +28,11 @@ android {
         applicationId "com.soswf.copiloto"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Cada compilacao recebe um numero maior (o numero da execucao no
+        // GitHub). Sem isso todo APK seria a "versao 1" e nao havia como o
+        // sistema -- nem ele -- saber qual e o mais novo.
+        versionCode (System.getenv("VERSION_CODE") ?: "1") as int
+        versionName System.getenv("VERSION_NAME") ?: "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,9 +40,10 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // Dois sabores do mesmo codigo. O applicationId e o MESMO nos dois: trocar de
-    // versao e uma atualizacao, nao uma instalacao nova, entao o historico dele
-    // nao se perde na troca.
+    // Dois sabores do mesmo codigo. O applicationId e o MESMO nos dois, e com a
+    // chave estavel acima trocar de sabor e uma ATUALIZACAO, nao uma instalacao
+    // nova -- o historico dele nao se perde. Sem a chave estavel essa promessa
+    // nao se cumpre: era exatamente o que estava quebrado.
     flavorDimensions "leitor"
     productFlavors {
         // Sem leitura de tela e sem sobreposicao. Nao briga com aplicativo de
@@ -41,6 +66,26 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+// Fora do bloco android{} de proposito: a configuracao de assinatura so passa a
+// EXISTIR quando ha chave, em vez de existir vazia. Config vazio e uma armadilha
+// -- em algumas versoes do AGP ele e validado mesmo sem ninguem usar.
+if (temChaveEstavel) {
+    android.signingConfigs.create("estavel") {
+        storeFile chaveArquivo
+        storePassword chaveSenha
+        keyAlias chaveAlias
+        // Chave e cofre com a mesma senha: e um cofre com uma chave so.
+        keyPassword System.getenv("CHAVE_SENHA_ALIAS") ?: chaveSenha
+    }
+    // Debug tambem, porque o APK que ele instala no celular e o de debug.
+    android.buildTypes.getByName("debug").signingConfig = android.signingConfigs.getByName("estavel")
+    android.buildTypes.getByName("release").signingConfig = android.signingConfigs.getByName("estavel")
+} else {
+    logger.lifecycle("Copiloto: sem chave estavel (app/chave.jks + CHAVE_SENHA). " +
+        "O APK vai assinado com a chave de debug desta maquina e NAO instala " +
+        "sobre um APK compilado em outra maquina.")
 }
 
 repositories {
