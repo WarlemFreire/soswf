@@ -170,6 +170,30 @@ function secaoAssistente() {
   return caixa;
 }
 
+/**
+ * Apagar tudo que o leitor gravou.
+ *
+ * Uma leitura errada não some sozinha: as ofertas de ontem formam o corte de
+ * hoje. Quando o serviço leu a tela de navegação como oferta, a tela passou a
+ * anunciar "ótima de 8427 R$/h" — e nenhum conserto no leitor desfazia o que
+ * já estava gravado. O corte agora recusa o impossível, mas ter como varrer a
+ * sujeira de uma vez vale o botão.
+ */
+function limparLeituras() {
+  const aviso = el("p", { class: "campo__ajuda" },
+    "Apaga só as ofertas que o leitor gravou. Suas corridas, jornadas e custos " +
+    "não são tocados.");
+  const botao = el("button", { type: "button", class: "botao botao--perigo fin__acao" },
+    "Apagar as ofertas lidas");
+  botao.onclick = async () => {
+    await semaforo.apagarOfertas();
+    vibrar(20);
+    mostrarToast({ titulo: "Ofertas apagadas", detalhe: "Os cortes foram refeitos sem elas." });
+    botao.disabled = true;
+  };
+  return el("div", { class: "campo campo--coluna" }, botao, aviso);
+}
+
 /** "há 12 s", "há 4 min", "há 2 h". Quanto mais velho, menos importa a precisão. */
 function haQuantoTempo(ms) {
   if (!ms) return null;
@@ -211,7 +235,9 @@ function rastroDaCadeia(rastro) {
         : "nenhum — o nome do pacote da plataforma pode não estar na minha lista"),
     linha("Tela lida", Boolean(quandoLeitura),
       quandoLeitura
-        ? `${quandoLeitura} · cartão isolado: ${rastro.leituraCartao ? "sim" : "não"}`
+        ? `${quandoLeitura} · cartão isolado: ${rastro.leituraCartao ? "sim" : "não"}` +
+          ` · ${rastro.leituraNos || 0} nós em ${rastro.leituraJanelas || 0} ` +
+          `${rastro.leituraJanelas === 1 ? "janela" : "janelas"}, ${rastro.leituraDuracaoMs || 0} ms`
         : "o evento chegou mas a janela não foi lida"),
     linha("Números saíram", Boolean(rastro.leituraOk),
       rastro.leituraOk
@@ -496,6 +522,7 @@ async function blocoEstado(e) {
       : "nenhuma ainda; com tudo autorizado e uma oferta na tela, isto tem que subir"),
     ...rastroDaCadeia(e.rastro),
     botao,
+    limparLeituras(),
     resultado,
     el("p", { class: "campo__ajuda" },
       e.versao

@@ -706,6 +706,18 @@ export function referenciaDeAceite() {
   return estado.aceite;
 }
 
+/**
+ * Refaz as faixas agora, fora do carregamento.
+ *
+ * Usado depois de apagar as ofertas lidas: sem isto, o corte envenenado
+ * continuaria em vigor até o app ser reaberto -- e quem acabou de apagar a
+ * sujeira espera ver a tela limpa no mesmo toque.
+ */
+export async function recarregarFaixas() {
+  await carregarFaixas();
+  notificar();
+}
+
 async function carregarCombustivel() {
   const todos = await db.todos("custos");
   estado.abastecimentos = todos.filter((c) => M.ehCombustivel(c.tipo));

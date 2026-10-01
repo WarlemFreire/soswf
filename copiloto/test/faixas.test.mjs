@@ -196,4 +196,38 @@ teste("uma corrida de 36 R$/h numa tarde passa pelo corte", () => {
   assert.ok(corrida > p.hora, `${corrida.toFixed(1)} R$/h tem que passar por ${p.hora}`);
 });
 
-if (!process.exitCode) console.log(`✓ ${passou} testes passaram`);
+/* ------------------------------------------------------------------------- *
+ * Leitura errada não pode virar corte.
+ *
+ * Aconteceu: o serviço leu a tela de NAVEGAÇÃO como oferta e gravou
+ * 8427 R$/h. A tela de ajustes passou a dizer "ótima de 8427" -- um corte que
+ * nenhuma corrida alcança. O app existe para dizer se a corrida presta, e
+ * passou semanas podendo dizer que nenhuma presta.
+ * ------------------------------------------------------------------------- */
+
+const umaOferta = (valor, km, minutos, quando) => ({ valor, km, minutos, timestamp: quando });
+
+teste("oferta impossível não entra na distribuição", () => {
+  const tarde = new Date(2026, 8, 25, 14, 0, 0).getTime();
+  const boas = Array.from({ length: 20 }, (_, i) => umaOferta(30 + i, 10, 20, tarde));
+  const comLixo = [...boas, umaOferta(140.45, 1, 1, tarde)];
+
+  const limpo = F.referenciaDeAceite([], boas).tarde;
+  const sujo = F.referenciaDeAceite([], comLixo).tarde;
+
+  assert.equal(sujo.n, limpo.n, "a oferta impossível não devia nem ser contada");
+  assert.equal(sujo.hora.otimo, limpo.hora.otimo, "o corte mudou por causa do lixo");
+});
+
+teste("plausivel() recusa o que o serviço leu da navegação", () => {
+  assert.equal(F.plausivel(140.45, 1.0, 1), false);
+  assert.equal(F.plausivel(10.01, 3.4, 10), true);
+  assert.equal(F.plausivel(7.06, 1.8, 7), true);
+});
+
+teste("corrida lançada à mão com dedo errado também não envenena", () => {
+  assert.equal(F.plausivel(8000, 5, 10), false);
+});
+
+if (!process.exitCode)
+console.log(`✓ ${passou} testes passaram`);

@@ -48,11 +48,16 @@ public class SemaforoService extends AccessibilityService {
     /**
      * Teto de nos por varredura.
      *
-     * Era 400, e isso fazia perder oferta: a arvore do app da plataforma passa
-     * disso com folga, e a varredura parava antes de chegar no cartao. Percorrer
-     * alguns milhares de nos ja em memoria custa poucos milissegundos.
+     * Era 400, depois 4000, e continuava faltando. Com a oferta aparecendo por
+     * cima da NAVEGACAO -- mapa, ruas, pinos, botoes -- a arvore e enorme, e o
+     * orcamento acabava antes de chegar na folha da oferta. O sintoma era
+     * "cartao isolado: nao" com o cartao bem na tela.
+     *
+     * 20000 e chute informado, nao medida: por isso o rastro agora grava quantos
+     * nos foram percorridos e em quantos milissegundos. Na proxima vez isto se
+     * ajusta com numero, nao com palpite.
      */
-    private static final int MAX_NOS = 4000;
+    private static final int MAX_NOS = 20000;
 
     /**
      * Quando o pacote e de corrida mas os numeros nao sairam, o cartao pode
@@ -220,6 +225,8 @@ public class SemaforoService extends AccessibilityService {
         // fica a primeira, para o diagnostico ter o que mostrar.
         Colheita colheita = null;
         Oferta ofertaLida = null;
+        final long comecou = System.currentTimeMillis();
+        final int quantasJanelas = raizes.size();
         try {
             for (AccessibilityNodeInfo raiz : raizes) {
                 Colheita c = new Colheita();
@@ -247,7 +254,8 @@ public class SemaforoService extends AccessibilityService {
         List<String> doCartao = colheita.cartao != null ? colheita.cartao : colheita.tudo;
         Oferta oferta = ofertaLida;
 
-        Pisos.marcarLeitura(this, oferta != null, colheita.cartao != null);
+        Pisos.marcarLeitura(this, oferta != null, colheita.cartao != null,
+                colheita.nos, quantasJanelas, System.currentTimeMillis() - comecou);
 
         Diagnostico.guardar(
                 this, pacote,

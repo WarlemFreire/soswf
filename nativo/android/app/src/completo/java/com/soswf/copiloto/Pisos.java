@@ -37,6 +37,9 @@ public final class Pisos {
     private static final String K_LEU_MS = "leuMs";
     private static final String K_LEU_OK = "leuOk";
     private static final String K_LEU_CARTAO = "leuCartao";
+    private static final String K_LEU_NOS = "leuNos";
+    private static final String K_LEU_JANELAS = "leuJanelas";
+    private static final String K_LEU_DURACAO = "leuDuracao";
 
     public final double pisoHora;
     public final double idealHora;
@@ -154,11 +157,18 @@ public final class Pisos {
                 .apply();
     }
 
-    public static void marcarLeitura(Context contexto, boolean numerosSairam, boolean cartaoIsolado) {
+    public static void marcarLeitura(
+            Context contexto, boolean numerosSairam, boolean cartaoIsolado,
+            int nos, int janelas, long duracaoMs) {
         prefs(contexto).edit()
                 .putLong(K_LEU_MS, System.currentTimeMillis())
                 .putBoolean(K_LEU_OK, numerosSairam)
                 .putBoolean(K_LEU_CARTAO, cartaoIsolado)
+                // Quantos nós e quanto tempo: o teto de nós ja foi 400 e 4000 e
+                // nas duas vezes faltou. Medir e mais barato que adivinhar de novo.
+                .putInt(K_LEU_NOS, nos)
+                .putInt(K_LEU_JANELAS, janelas)
+                .putLong(K_LEU_DURACAO, duracaoMs)
                 .apply();
     }
 
@@ -171,6 +181,9 @@ public final class Pisos {
             j.put("leituraMs", p.getLong(K_LEU_MS, 0));
             j.put("leituraOk", p.getBoolean(K_LEU_OK, false));
             j.put("leituraCartao", p.getBoolean(K_LEU_CARTAO, false));
+            j.put("leituraNos", p.getInt(K_LEU_NOS, 0));
+            j.put("leituraJanelas", p.getInt(K_LEU_JANELAS, 0));
+            j.put("leituraDuracaoMs", p.getLong(K_LEU_DURACAO, 0));
         } catch (org.json.JSONException erro) {
             // Objeto vazio ainda e resposta.
         }

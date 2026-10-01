@@ -329,6 +329,20 @@ export async function ofertasDoDia(data = M.chaveData(Date.now())) {
     .sort((a, b) => a.timestamp - b.timestamp);
 }
 
+/**
+ * Apaga tudo que o leitor gravou.
+ *
+ * Existe porque uma leitura errada não some sozinha: as ofertas de ontem
+ * continuam formando o corte de hoje. Quando o serviço leu a tela de navegação
+ * como oferta, a tela passou a dizer "ótima de 8427" -- e nenhuma correção no
+ * leitor desfazia o que já estava gravado.
+ */
+export async function apagarOfertas() {
+  await db.limpar("ofertas");
+  await store.recarregarFaixas();
+  return true;
+}
+
 /** Quanto foi oferecido, quanto o semáforo mandou recusar, e a soma de cada. */
 export function resumoDeOfertas(ofertas) {
   const vazio = { total: 0, recusar: 0, fraca: 0, boa: 0, otima: 0, somaBoas: 0, somaRecusadas: 0 };

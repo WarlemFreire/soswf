@@ -163,23 +163,57 @@ export function faixasDeJornada(trechos, { faixasKm, faixasHora, chaoKm = null }
  *
  * As duas se somam porque medem a mesma coisa: o que a plataforma oferece.
  */
+/**
+ * Os mesmos limites de plausibilidade do parser (Oferta.java).
+ *
+ * POR QUE AQUI TAMBÉM. O serviço leu uma tela de navegação como se fosse
+ * oferta e gravou 8427 R$/h. Isso entrou na distribuição e a tela de ajustes
+ * passou a dizer "ótima de 8427" — um corte que nenhuma corrida alcança, num
+ * app cuja única função é dizer se a corrida presta.
+ *
+ * Barrar na leitura não basta: o que já está gravado continua lá, e qualquer
+ * leitor novo pode errar de um jeito novo. Quem calcula o corte também recusa
+ * o impossível. Duas cercas, porque o estrago é silencioso e dura semanas.
+ */
+const PLAUSIVEL = { rsPorKmMax: 15, rsPorHoraMax: 400, valorMin: 1, kmMin: 0.3, minutosMin: 1 };
+
+export function plausivel(valor, km, minutos) {
+  if (!(valor >= PLAUSIVEL.valorMin) || !(km >= PLAUSIVEL.kmMin) || !(minutos >= PLAUSIVEL.minutosMin)) {
+    return false;
+  }
+  if (valor / km > PLAUSIVEL.rsPorKmMax) return false;
+  if ((valor / minutos) * 60 > PLAUSIVEL.rsPorHoraMax) return false;
+  return true;
+}
+
 export function referenciaDeAceite(corridas, ofertas = []) {
   const porPeriodo = Object.fromEntries(PERIODOS.map((p) => [p.id, { km: [], hora: [], n: 0 }]));
 
+  // Cada dimensão entra POR SI, e é barrada por si. Corrida com km e sem
+  // duração continua descrevendo R$/km -- isso é de propósito e tem teste.
+  // O que não entra é o impossível: foi uma leitura de tela de navegação, com
+  // 8427 R$/h, que fez a tela de ajustes anunciar "ótima de 8427".
   const somar = (balde, valor, km, minutos) => {
-    if (!balde) return;
+    if (!balde || !(valor > 0)) return;
+
+    const porKm = km > 0 ? valor / km : null;
+    const porHora = minutos > 0 ? (valor / minutos) * 60 : null;
+    const kmServe = porKm != null && porKm <= PLAUSIVEL.rsPorKmMax;
+    const horaServe = porHora != null && porHora <= PLAUSIVEL.rsPorHoraMax;
+    if (!kmServe && !horaServe) return;
+
     balde.n += 1;
-    if (km > 0 && valor > 0) balde.km.push(valor / km);
-    if (minutos > 0 && valor > 0) balde.hora.push((valor / minutos) * 60);
+    if (kmServe) balde.km.push(porKm);
+    if (horaServe) balde.hora.push(porHora);
   };
 
+  // Vale para a corrida lançada à mão também: um dedo errado no teclado
+  // numérico envenena o corte igual a uma leitura de tela errada.
   for (const c of M.corridasValidas(corridas || [])) {
     somar(porPeriodo[M.periodoDe(c.timestamp)], c.valorBruto, c.km, c.duracaoMin);
   }
 
   for (const o of ofertas || []) {
-    // Oferta sem os três números não descreve nada.
-    if (!(o?.valor > 0) || !(o?.km > 0) || !(o?.minutos > 0)) continue;
     somar(porPeriodo[M.periodoDe(o.timestamp)], o.valor, o.km, o.minutos);
   }
 
