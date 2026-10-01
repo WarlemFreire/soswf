@@ -26,6 +26,7 @@ public final class Pisos {
     private static final String K_CUSTO_KM = "custoKm";
     private static final String K_LIGADO = "ligado";
     private static final String K_PERIODO = "periodo";
+    private static final String K_AMOSTRA = "amostra";
 
     public final double pisoHora;
     public final double idealHora;
@@ -34,6 +35,8 @@ public final class Pisos {
     public final double custoKm;
     public final boolean ligado;
     public final String periodo;
+    /** Quantas ofertas ja foram lidas neste periodo. Enche sozinha com o uso. */
+    public final int amostra;
 
     private Pisos(
             double pisoHora,
@@ -42,7 +45,8 @@ public final class Pisos {
             double pisoKm,
             double custoKm,
             boolean ligado,
-            String periodo) {
+            String periodo,
+            int amostra) {
         this.pisoHora = pisoHora;
         this.idealHora = idealHora;
         this.otimoHora = otimoHora;
@@ -50,6 +54,7 @@ public final class Pisos {
         this.custoKm = custoKm;
         this.ligado = ligado;
         this.periodo = periodo;
+        this.amostra = amostra;
     }
 
     /**
@@ -69,7 +74,8 @@ public final class Pisos {
                 p.getFloat(K_PISO_KM, 0f),
                 p.getFloat(K_CUSTO_KM, 0f),
                 p.getBoolean(K_LIGADO, false),
-                p.getString(K_PERIODO, ""));
+                p.getString(K_PERIODO, ""),
+                p.getInt(K_AMOSTRA, 0));
     }
 
     public static void gravar(
@@ -79,7 +85,8 @@ public final class Pisos {
             double otimoHora,
             double pisoKm,
             double custoKm,
-            String periodo) {
+            String periodo,
+            int amostra) {
         prefs(contexto)
                 .edit()
                 .putFloat(K_PISO_HORA, (float) pisoHora)
@@ -88,6 +95,7 @@ public final class Pisos {
                 .putFloat(K_PISO_KM, (float) pisoKm)
                 .putFloat(K_CUSTO_KM, (float) custoKm)
                 .putString(K_PERIODO, periodo == null ? "" : periodo)
+                .putInt(K_AMOSTRA, amostra)
                 .apply();
     }
 

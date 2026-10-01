@@ -76,6 +76,7 @@ public class SemaforoPlugin extends Plugin {
         r.put("podeSobrepor", Sobreposicao.permitido(getContext()));
         r.put("ligado", pisos.ligado);
         r.put("temPisos", pisos.temFaixaDeHora());
+        r.put("amostra", pisos.amostra);
         chamada.resolve(r);
     }
 
@@ -100,7 +101,8 @@ public class SemaforoPlugin extends Plugin {
                 valor(chamada, "otimoHora"),
                 valor(chamada, "pisoKm"),
                 valor(chamada, "custoKm"),
-                chamada.getString("periodo", ""));
+                chamada.getString("periodo", ""),
+                chamada.getInteger("amostra", 0));
         chamada.resolve();
     }
 

@@ -681,7 +681,10 @@ async function carregarFaixas() {
     faixasHora: config.faixasHora,
     chaoKm: M.custosEstimados(0, config, estado.energiaKm).totalKm,
   });
-  estado.aceite = F.referenciaDeAceite(corridas);
+  // As ofertas lidas pelo semáforo contam junto: são a mesma escala, e são a
+  // única fonte que enche sozinha para quem usa checkpoint.
+  const ofertas = await db.todos("ofertas").catch(() => []);
+  estado.aceite = F.referenciaDeAceite(corridas, ofertas);
 }
 
 /** Abaixo de quanto recusar, no período de agora. */
@@ -752,6 +755,10 @@ export async function registrarCusto(dados) {
 
 export async function removerCusto(id) {
   await db.remover("custos", id);
+  // O custo por km sai dos abastecimentos reais: apagar um muda o líquido, o
+  // break-even e o chão do semáforo. Recarregar não é opcional.
+  await carregarCombustivel();
+  document.dispatchEvent(new CustomEvent("copiloto:custo"));
   estado.custos = estado.custos.filter((c) => c.id !== id);
   await carregarCombustivel();
   notificar();

@@ -105,6 +105,9 @@ export function cortesAgora(agora = Date.now(), { aceite, config } = {}) {
   const km = referencia?.km;
   return {
     periodo,
+    // Quantas observações já existem neste período. O selo usa para dizer
+    // "aprendendo 7/12" em vez de ficar mudo sem explicação.
+    amostra: referencia?.n ?? 0,
     pisoHora: hora.piso,
     idealHora: hora.ideal,
     otimoHora: hora.otimo,
@@ -196,9 +199,16 @@ export async function sincronizar(agora = Date.now()) {
   if (!disponivel()) return false;
   const cortes = cortesAgora(agora);
   if (!cortes) {
-    // Zerar é importante: sem isso o serviço seguiria julgando com o corte de
-    // ontem depois de o usuário apagar os dados.
-    await plugin().definirPisos({ pisoHora: 0, idealHora: 0, otimoHora: 0, pisoKm: 0, custoKm: 0, periodo: "" });
+    // Sem faixa ainda. Zerar os cortes é importante -- senão o serviço seguiria
+    // julgando com o de ontem depois de apagar os dados -- mas a AMOSTRA vai
+    // mesmo assim, para o selo aparecer dizendo quanto falta em vez de sumir.
+    const periodo = M.periodoDe(agora);
+    await plugin().definirPisos({
+      pisoHora: 0, idealHora: 0, otimoHora: 0, pisoKm: 0,
+      custoKm: custoTotalKm(configAtual()) || 0,
+      periodo,
+      amostra: store.referenciaDeAceite()?.[periodo]?.n ?? 0,
+    });
     return false;
   }
   await plugin().definirPisos(cortes);

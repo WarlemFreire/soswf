@@ -183,7 +183,8 @@ public class SemaforoService extends AccessibilityService {
         // uma area marcada em qualquer canto do app marcava toda oferta.
         Zonas.Achado area = Zonas.casar(this, String.join("\n", doCartao));
 
-        Oferta.Veredito veredito = Oferta.julgar(oferta, Pisos.ler(this));
+        Pisos pisos = Pisos.ler(this);
+        Oferta.Veredito veredito = Oferta.julgar(oferta, pisos);
         if (veredito == null && area == null) return;
 
         // "Nao pegar" recusa mesmo com o dinheiro bom: ele decidiu isso antes,
@@ -194,8 +195,15 @@ public class SemaforoService extends AccessibilityService {
         ultimaAssinatura = assinatura;
         ultimoVeredito = agora;
 
-        sobreposicao.mostrar(oferta, veredito, area);
-        SemaforoPlugin.avisarOferta(oferta, veredito, Pisos.ler(this).periodo, area);
+        // MINIMO_CORRIDAS do lado JavaScript. Repetido aqui so para o rotulo.
+        int faltam = Math.max(0, 12 - pisos.amostra);
+        sobreposicao.mostrar(oferta, veredito, area, faltam);
+
+        // Grava SEMPRE, inclusive sem veredito. Era aqui que o recurso se
+        // mordia: a faixa vinha das corridas lancadas a mao, que quem usa
+        // checkpoint nao lanca, e a oferta lida -- a unica fonte que encheria
+        // sozinha -- so era gravada DEPOIS de ja existir faixa.
+        SemaforoPlugin.avisarOferta(oferta, veredito, pisos.periodo, area);
     }
 
     /** O texto da tela, e o menor pedaco dela que parece um cartao de oferta. */

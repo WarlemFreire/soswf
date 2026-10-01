@@ -15,7 +15,7 @@ import {
 } from "./export.js";
 import { db } from "./db.js";
 import { manterTelaLigada, liberarTela } from "./geo.js";
-import { abrirCusto, painelCombustivel } from "./tela-custo.js";
+import { abrirCusto, painelCombustivel, listaDeCustos } from "./tela-custo.js";
 import * as semaforo from "./semaforo.js";
 import * as Z from "./zonas.js";
 import * as risco from "./risco.js";
@@ -70,6 +70,7 @@ export function montarConfig(raiz) {
           "o custo por km passa a ser medido de bomba a bomba — e o histórico inteiro é recalculado."
       ),
       painelCombustivel(),
+      listaDeCustos(),
       el(
         "button",
         { type: "button", class: "botao botao--primario", onClick: () => abrirCusto() },

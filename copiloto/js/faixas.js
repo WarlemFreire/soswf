@@ -149,15 +149,38 @@ export function faixasDeJornada(trechos, { faixasKm, faixasHora, chaoKm = null }
  * exatos. É o número que responde "aceito ou recuso" — e é quase o dobro do
  * R$/km de jornada, porque não carrega o deslocamento vazio.
  */
-export function referenciaDeAceite(corridas) {
+/**
+ * A faixa de ACEITE, em escala de corrida ofertada.
+ *
+ * DUAS FONTES, E A SEGUNDA É A QUE SALVA. `corridas` só enche quando ele lança
+ * corrida por corrida, à mão -- e quem usa checkpoint não lança. O semáforo
+ * ficava mudo para sempre: precisava de uma faixa que precisava de dados que só
+ * ele próprio poderia coletar.
+ *
+ * `ofertas` são as leituras do próprio semáforo. Cada oferta que ele lê, mesmo
+ * sem conseguir julgar, é uma observação em escala de corrida -- valor, km e
+ * minutos da oferta. Em poucas horas de rua isso enche sozinho.
+ *
+ * As duas se somam porque medem a mesma coisa: o que a plataforma oferece.
+ */
+export function referenciaDeAceite(corridas, ofertas = []) {
   const porPeriodo = Object.fromEntries(PERIODOS.map((p) => [p.id, { km: [], hora: [], n: 0 }]));
 
-  for (const c of M.corridasValidas(corridas || [])) {
-    const balde = porPeriodo[M.periodoDe(c.timestamp)];
-    if (!balde) continue;
+  const somar = (balde, valor, km, minutos) => {
+    if (!balde) return;
     balde.n += 1;
-    if (c.km > 0 && c.valorBruto > 0) balde.km.push(c.valorBruto / c.km);
-    if (c.duracaoMin > 0 && c.valorBruto > 0) balde.hora.push((c.valorBruto / c.duracaoMin) * 60);
+    if (km > 0 && valor > 0) balde.km.push(valor / km);
+    if (minutos > 0 && valor > 0) balde.hora.push((valor / minutos) * 60);
+  };
+
+  for (const c of M.corridasValidas(corridas || [])) {
+    somar(porPeriodo[M.periodoDe(c.timestamp)], c.valorBruto, c.km, c.duracaoMin);
+  }
+
+  for (const o of ofertas || []) {
+    // Oferta sem os três números não descreve nada.
+    if (!(o?.valor > 0) || !(o?.km > 0) || !(o?.minutos > 0)) continue;
+    somar(porPeriodo[M.periodoDe(o.timestamp)], o.valor, o.km, o.minutos);
   }
 
   return Object.fromEntries(

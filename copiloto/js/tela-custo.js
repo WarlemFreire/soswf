@@ -9,6 +9,7 @@ import { Teclado } from "./keypad.js";
 import * as M from "./metrics.js";
 import * as store from "./store.js";
 import { vibrar, falar, mostrarToast } from "./feedback.js";
+import { db } from "./db.js";
 
 const TIPOS = [
   { id: "gnv", nome: "GNV", unidade: "m³", combustivel: true },
@@ -198,6 +199,65 @@ function ultimoAbastecimento() {
 /* ------------------------------------------------------------- resumo */
 
 /** Painel de consumo mostrado nos Ajustes. */
+/**
+ * Os últimos lançamentos, com apagar.
+ *
+ * Existe porque não existia: `removerCusto` estava no store.js desde sempre e
+ * NENHUMA tela chamava. Um valor digitado errado ficava para sempre, e como o
+ * custo por km sai dos abastecimentos reais, um zero a mais contaminava o
+ * líquido, o break-even e o piso do semáforo de uma vez.
+ *
+ * Apagar e relançar em vez de editar: são dois toques, o teclado de lançar já
+ * existe e está testado, e uma tela de edição seria uma segunda forma de
+ * escrever a mesma coisa -- mais lugar para divergir.
+ */
+export function listaDeCustos(quantos = 8) {
+  const caixa = el("div", { class: "custos" });
+
+  const pintar = async () => {
+    const todos = await db.todos("custos");
+    const recentes = todos.sort((a, b) => b.timestamp - a.timestamp).slice(0, quantos);
+
+    if (!recentes.length) {
+      caixa.replaceChildren(el("p", { class: "campo__ajuda" }, "Nenhum custo lançado ainda."));
+      return;
+    }
+
+    caixa.replaceChildren(
+      el("h3", { class: "areas__titulo" }, "Últimos lançamentos"),
+      ...recentes.map((c) => {
+        const tipo = TIPOS.find((t) => t.id === c.tipo);
+        return el("div", { class: "custos__item" },
+          el("div", { class: "custos__texto" },
+            el("strong", {}, `R$ ${M.formatarReais(c.valor)}`),
+            el("small", {},
+              `${tipo?.nome || c.tipo} · ${M.formatarData(c.timestamp)}` +
+              (c.litros > 0 ? ` · ${c.litros} ${tipo?.unidade || ""}`.trimEnd() : "") +
+              (c.odometro > 0 ? ` · ${c.odometro} km` : ""))),
+          el("button", {
+            type: "button",
+            class: "custos__apagar",
+            "aria-label": `Apagar ${tipo?.nome || c.tipo} de R$ ${M.formatarReais(c.valor)}`,
+            onClick: async () => {
+              await store.removerCusto(c.id);
+              vibrar(20);
+              mostrarToast({
+                titulo: "Lançamento apagado",
+                detalhe: "O custo por km e o líquido já foram recalculados.",
+              });
+              pintar();
+            },
+          }, "Apagar")
+        );
+      })
+    );
+  };
+
+  pintar();
+  document.addEventListener("copiloto:custo", pintar);
+  return caixa;
+}
+
 export function painelCombustivel() {
   const caixa = el("div", { class: "custo-resumo" });
 

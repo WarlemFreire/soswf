@@ -54,16 +54,16 @@ public final class Sobreposicao {
         return Settings.canDrawOverlays(contexto);
     }
 
-    public void mostrar(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area) {
+    public void mostrar(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area, int faltam) {
         if (!permitido(contexto) || veredito == null) return;
-        mao.post(() -> desenhar(oferta, veredito, area));
+        mao.post(() -> desenhar(oferta, veredito, area, faltam));
     }
 
     public void esconder() {
         mao.post(this::remover);
     }
 
-    private void desenhar(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area) {
+    private void desenhar(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area, int faltam) {
         remover();
 
         if (janelas == null) {
@@ -71,7 +71,7 @@ public final class Sobreposicao {
         }
         if (janelas == null) return;
 
-        selo = montarSelo(oferta, veredito, area);
+        selo = montarSelo(oferta, veredito, area, faltam);
         selo.setOnClickListener((v) -> remover());
 
         WindowManager.LayoutParams p = new WindowManager.LayoutParams(
@@ -101,7 +101,7 @@ public final class Sobreposicao {
         mao.postDelayed(this::remover, VIDA_MS);
     }
 
-    private View montarSelo(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area) {
+    private View montarSelo(Oferta oferta, Oferta.Veredito veredito, Zonas.Achado area, int faltam) {
         LinearLayout caixa = new LinearLayout(contexto);
         caixa.setOrientation(LinearLayout.VERTICAL);
         caixa.setPadding(dp(14), dp(10), dp(14), dp(12));
@@ -134,6 +134,20 @@ public final class Sobreposicao {
         numeros.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         caixa.addView(numeros);
 
+        // Sem faixa, o selo diz quanto falta. Ficar mudo fazia o motorista
+        // concluir que o recurso estava quebrado -- e ele estava, mas por outro
+        // motivo: a oferta nem era gravada para formar a faixa.
+        if (veredito == Oferta.Veredito.SEM_BASE) {
+            TextView nota = new TextView(contexto);
+            nota.setText(faltam > 0
+                    ? "aprendendo · faltam " + faltam + " ofertas neste horário"
+                    : "aprendendo com as ofertas deste horário");
+            nota.setTextColor(Color.parseColor("#A9B8C9"));
+            nota.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            nota.setPadding(0, dp(6), 0, 0);
+            caixa.addView(nota);
+        }
+
         // A area entra como LINHA PROPRIA, nao como cor: o motivo de recusar
         // muda o que ele faz. "Recusar porque paga mal" e "recusar porque e
         // area que voce marcou" sao decisoes diferentes.
@@ -156,6 +170,8 @@ public final class Sobreposicao {
 
     private static String palavra(Oferta.Veredito v) {
         switch (v) {
+            case SEM_BASE:
+                return "LENDO";
             case RECUSAR:
                 return "RECUSAR";
             case FRACA:
@@ -170,6 +186,10 @@ public final class Sobreposicao {
     /** As mesmas cores dos niveis do app, para o selo e a tela falarem igual. */
     private static int cor(Oferta.Veredito v) {
         switch (v) {
+            // Neutro de proposito: sem faixa medida nao ha veredito, e pintar
+            // de verde ou vermelho seria inventar opiniao.
+            case SEM_BASE:
+                return Color.parseColor("#A9B8C9");
             case RECUSAR:
                 return Color.parseColor("#FF7B7B");
             case FRACA:

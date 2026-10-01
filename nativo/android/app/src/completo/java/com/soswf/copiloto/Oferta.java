@@ -94,6 +94,13 @@ public final class Oferta {
     /* ------------------------------------------------------------ veredito */
 
     public enum Veredito {
+        /**
+         * Ainda sem faixa medida. NAO e ausencia de resposta: o selo aparece
+         * com os numeros da oferta e diz quanto falta para ele opinar. Ficar
+         * mudo era o defeito -- o motorista via nada e concluia que o recurso
+         * estava quebrado, e a oferta nem era gravada para formar a faixa.
+         */
+        SEM_BASE,
         /** Abaixo do custo de rodar, ou abaixo do piso da hora. */
         RECUSAR,
         /** Paga, mas abaixo do que ele costuma conseguir neste horario. */
@@ -120,7 +127,9 @@ public final class Oferta {
      * aparece, em vez de aparecer com cor chutada.
      */
     public static Veredito julgar(Oferta oferta, Pisos pisos) {
-        if (oferta == null || pisos == null || !pisos.temFaixaDeHora()) return null;
+        if (oferta == null) return null;
+        // Sem faixa ainda, mas com oferta lida: mostra os numeros.
+        if (pisos == null || !pisos.temFaixaDeHora()) return Veredito.SEM_BASE;
 
         if (pisos.custoKm > 0 && oferta.reaisPorKm() < pisos.custoKm) return Veredito.RECUSAR;
 

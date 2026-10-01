@@ -1552,3 +1552,20 @@ button { cursor: pointer; border: 0; background: none; }
 .aprend__linha strong { font-variant-numeric: tabular-nums; }
 .aprend__bom { color: var(--nivel-ideal); }
 .aprend__ruim { color: var(--nivel-piso); }
+
+/* Últimos lançamentos de custo, com apagar. Existe porque um valor digitado
+   errado contaminava o custo por km, o líquido e o chão do semáforo de uma vez
+   — e não havia como corrigir. */
+.custos { margin-top: 18px; }
+.custos__item {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  padding: 10px 12px; border-radius: var(--raio-m); background: var(--fundo);
+}
+.custos__texto { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.custos__texto strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.custos__texto small { font-size: 12px; color: var(--tinta-fraca); }
+.custos__apagar {
+  min-height: 64px; min-width: 88px; flex-shrink: 0;
+  border-radius: var(--raio-m); border: 1px solid var(--linha);
+  background: transparent; color: var(--nivel-abaixo); font-size: 15px;
+}
