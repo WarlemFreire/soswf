@@ -8,6 +8,41 @@
       "skillPath": "skills/brainstorming/SKILL.md",
       "computedHash": "a7424777b7f81e3eb9b4556d29fe233553736d8255780d3e1feea190fef61fef"
     },
+    "caveman": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "a192894723a8f47e7f504c7b5041967ff1f18e55",
+      "sourceType": "github",
+      "skillPath": "skills/caveman/SKILL.md",
+      "computedHash": "b51af74aacdadbc3c2d6bb79f05db58dc521854b87f7ffabd48faf286a81ed31"
+    },
+    "caveman-commit": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "a192894723a8f47e7f504c7b5041967ff1f18e55",
+      "sourceType": "github",
+      "skillPath": "skills/caveman-commit/SKILL.md",
+      "computedHash": "2c1472fb59eedd3cfba0b6512dc470a00287343ade421db55c21a6fb52afbe86"
+    },
+    "caveman-compress": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "a192894723a8f47e7f504c7b5041967ff1f18e55",
+      "sourceType": "github",
+      "skillPath": "skills/caveman-compress/SKILL.md",
+      "computedHash": "1f627a3ac239baa859918cf64a5e89619c162e1e9787c6d97ad41c5a1cc2fdb9"
+    },
+    "caveman-help": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "a192894723a8f47e7f504c7b5041967ff1f18e55",
+      "sourceType": "github",
+      "skillPath": "skills/caveman-help/SKILL.md",
+      "computedHash": "6a3e3d37fa03b4aa0622a6aec14446a243619c1539ad419e065dc8b1cd70aacd"
+    },
+    "caveman-review": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "a192894723a8f47e7f504c7b5041967ff1f18e55",
+      "sourceType": "github",
+      "skillPath": "skills/caveman-review/SKILL.md",
+      "computedHash": "c55908f8ee0dca0e59690e939dfd4a877bd9361897ae5fced096274a77509154"
+    },
     "diagnosing-superpowers": {
       "source": "obra/superpowers",
       "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
@@ -43,6 +78,13 @@
       "skillPath": "skills/finishing-a-development-branch/SKILL.md",
       "computedHash": "7e24d821d45b8f10773edd9f1a4be2fac90eedae4f8fc8e70e34e27e44d3f3c0"
     },
+    "megacave": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "a192894723a8f47e7f504c7b5041967ff1f18e55",
+      "sourceType": "github",
+      "skillPath": "skills/megacave/SKILL.md",
+      "computedHash": "d38301dd11ffdbf9c876cb5a15ff245a31fe7806a29f7800e7fbe44fc306fd62"
+    },
     "receiving-code-review": {
       "source": "obra/superpowers",
       "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
@@ -77,6 +119,13 @@
       "sourceType": "github",
       "skillPath": "skills/test-driven-development/SKILL.md",
       "computedHash": "2782702b2cf69ace085ed30d067b6f8bfd2d777ad51770fc5bdae9cb5c1b5c04"
+    },
+    "ultracave": {
+      "source": "JuliusBrussee/caveman",
+      "commit": "a192894723a8f47e7f504c7b5041967ff1f18e55",
+      "sourceType": "github",
+      "skillPath": "skills/ultracave/SKILL.md",
+      "computedHash": "b9814ef35fbc9f4359f682c7f2e4944b30428f8c8d79463efa070f99fffaa453"
     },
     "using-git-worktrees": {
       "source": "obra/superpowers",
