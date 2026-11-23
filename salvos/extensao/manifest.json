@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Salvos – Coletor",
+  "version": "0.1.0",
+  "description": "Coleta link, legenda e imagens dos posts salvos no Instagram, devagar, enquanto a página rola.",
+  "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": ["https://www.instagram.com/*"],
+  "action": { "default_popup": "popup.html", "default_title": "Salvos – Coletor" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["extrator.js", "inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

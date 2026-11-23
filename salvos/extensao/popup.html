@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  body { font: 14px system-ui, sans-serif; width: 280px; margin: 0; padding: 14px; background: #fff; color: #111; }
+  h1 { font-size: 15px; margin: 0 0 10px; }
+  .n { font-size: 28px; font-weight: 700; }
+  label { display: block; margin: 10px 0 4px; }
+  input { width: 80px; padding: 4px; }
+  button { display: block; width: 100%; margin-top: 8px; padding: 8px; border: 0; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .p { background: #0a66c2; color: #fff; }
+  .s { background: #eee; color: #111; }
+  .d { background: #fff; color: #b00; border: 1px solid #b00; }
+  #msg { margin-top: 10px; font-size: 12px; color: #444; min-height: 16px; }
+</style>
+</head>
+<body>
+  <h1>Salvos – Coletor</h1>
+  <div><span class="n" id="total">0</span> posts coletados</div>
+  <label for="meta">Parar quando chegar em:</label>
+  <input id="meta" type="number" min="1" value="50">
+  <button class="p" id="iniciar">Começar a rolar</button>
+  <button class="s" id="parar">Parar</button>
+  <button class="s" id="exportar">Baixar arquivo (salvos.json)</button>
+  <button class="d" id="limpar">Apagar tudo e recomeçar</button>
+  <div id="msg"></div>
+<script src="popup.js"></script>
+</body>
+</html>
