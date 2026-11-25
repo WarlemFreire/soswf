@@ -1,7 +1,7 @@
 [Unit]
 Description=VPS MCP server (ferramentas da VPS para o Claude)
-After=network-online.target
-Wants=network-online.target
+After=network-online.target docker.service
+Wants=network-online.target docker.service
 
 [Service]
 User=agente

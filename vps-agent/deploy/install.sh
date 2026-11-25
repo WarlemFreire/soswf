@@ -7,7 +7,7 @@ SRC="$(cd "$(dirname "$0")/.." && pwd)"
 APP=/opt/vps-agent
 
 apt-get update -y
-apt-get install -y python3 python3-venv curl debian-keyring debian-archive-keyring apt-transport-https
+apt-get install -y python3 python3-venv curl
 
 # Usuario sem root para o agente
 id agente >/dev/null 2>&1 || adduser --disabled-password --gecos "" agente
@@ -32,8 +32,10 @@ if [ ! -f /etc/vps-agent.env ]; then
   echo ">> Criado /etc/vps-agent.env com um MCP_TOKEN novo. Edite o resto antes de iniciar."
 fi
 
-# Caddy (HTTPS)
-if ! command -v caddy >/dev/null; then
+# HTTPS: por padrao NAO instala servidor web (use o Nginx Proxy Manager que ja esta na VPS).
+# Numa VPS limpa, sem nada nas portas 80/443, rode:  INSTALL_CADDY=1 bash deploy/install.sh
+if [ "${INSTALL_CADDY:-0}" = "1" ] && ! command -v caddy >/dev/null; then
+  apt-get install -y debian-keyring debian-archive-keyring apt-transport-https gpg
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
   apt-get update -y && apt-get install -y caddy
@@ -46,7 +48,7 @@ cat <<MSG
 
 Pronto. Proximos passos:
   1. nano /etc/vps-agent.env          (credencial do Claude, dominio, Telegram)
-  2. cp $SRC/deploy/Caddyfile /etc/caddy/Caddyfile && nano /etc/caddy/Caddyfile && systemctl reload caddy
+  2. No Nginx Proxy Manager: crie o Proxy Host (veja README, secao Nginx Proxy Manager)
   3. systemctl enable --now vps-mcp vps-telegram
   4. journalctl -u vps-mcp -u vps-telegram -f
 MSG

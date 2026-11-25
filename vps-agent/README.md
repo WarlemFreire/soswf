@@ -45,6 +45,22 @@ journalctl -u vps-mcp -u vps-telegram -f
 
 O `install.sh` gera um `MCP_TOKEN` aleatório. Para ver o token: `grep MCP_TOKEN /etc/vps-agent.env`.
 
+## Nginx Proxy Manager (VPS que já tem Docker em 80/443)
+
+Se as portas 80/443 já são do Nginx Proxy Manager (NPM), **não use o Caddy**. O instalador não o instala por padrão.
+
+1. Aponte o DNS: registro `A`, nome `vps`, valor = IP da VPS.
+2. O `MCP_BIND` no `/etc/vps-agent.env` deve ser o endereço da VPS na rede docker do NPM. Descubra com:
+   `docker inspect nginx-proxy-app-1 --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{$v.Gateway}}{{"\n"}}{{end}}'`
+   (use o gateway de `nginx-proxy_default`).
+3. No painel do NPM, em **Proxy Hosts → Add**:
+   - Domain: `vps.soswf.com.br`
+   - Scheme `http`, Forward Hostname/IP = o `MCP_BIND`, Port `8765`
+   - Ative **Websockets Support**
+   - Aba SSL: novo certificado Let's Encrypt, **Force SSL** ligado
+   - Aba Advanced, para o streaming do MCP: `proxy_buffering off; proxy_read_timeout 3600s;`
+4. Teste: `curl -i https://vps.soswf.com.br/mcp` deve dar `401` (sem token). Qualquer outra resposta, revise.
+
 ## Conectar ao Claude
 
 **claude.ai (web, desktop e celular).** Vá em Configurações → Conectores → Adicionar conector personalizado, e use a URL:
