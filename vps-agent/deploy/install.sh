@@ -3,6 +3,9 @@
 #   sudo bash deploy/install.sh
 set -euo pipefail
 
+# Nao deixar o apt reiniciar servicos (ex.: Docker) por conta propria.
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l
+
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
 APP=/opt/vps-agent
 
