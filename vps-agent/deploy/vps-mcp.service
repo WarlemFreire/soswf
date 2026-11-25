@@ -1,0 +1,20 @@
+[Unit]
+Description=VPS MCP server (ferramentas da VPS para o Claude)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=agente
+Group=agente
+WorkingDirectory=/opt/vps-agent
+EnvironmentFile=/etc/vps-agent.env
+Environment=PATH=/home/agente/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/vps-agent/venv/bin/python mcp_server.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

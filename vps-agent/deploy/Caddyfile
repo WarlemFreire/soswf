@@ -1,0 +1,12 @@
+# /etc/caddy/Caddyfile  - troque o dominio. O Caddy emite o certificado HTTPS sozinho.
+vps.seudominio.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8765 {
+		# respostas em streaming (SSE) do MCP nao podem ficar presas em buffer
+		flush_interval -1
+	}
+	# nao grava a URL (que contem o token) no log de acesso
+	log {
+		output discard
+	}
+}
