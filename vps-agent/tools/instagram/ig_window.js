@@ -3,7 +3,7 @@
 // Serve uma paginazinha (via rota /ig-window do servidor MCP) que mostra a tela do navegador
 // e repassa toques, digitacao e teclas. A senha vai direto da sua tela para o Instagram:
 // nao e gravada, nem registrada em log. So os cookies da sessao ficam em ~/.browser-profiles/instagram.
-// Fecha sozinho quando o login conclui ou apos 15 minutos.
+// Fecha sozinho quando o login conclui ou apos 15 minutos (IG_WINDOW_MAX_MIN=5..60 ajusta).
 //   node ig_window.js
 'use strict';
 const http = require('http');
@@ -23,7 +23,7 @@ const BASE = process.env.IG_BASE || 'https://www.instagram.com';
 const PORT = parseInt(process.env.IG_WINDOW_PORT || '8770', 10);
 const PROFILE = path.join(os.homedir(), '.browser-profiles', 'instagram');
 const W = 430, H = 860;
-const MAX_MS = 15 * 60 * 1000;
+const MAX_MS = Math.max(5, Math.min(60, parseInt(process.env.IG_WINDOW_MAX_MIN || '15', 10))) * 60 * 1000;
 const KEYS = new Set(['Enter', 'Backspace', 'Tab', 'ArrowDown', 'ArrowUp', 'Escape']);
 
 const KEY = crypto.randomBytes(16).toString('hex');
