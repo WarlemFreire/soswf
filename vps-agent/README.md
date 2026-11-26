@@ -61,6 +61,29 @@ Se as portas 80/443 já são do Nginx Proxy Manager (NPM), **não use o Caddy**.
    - Aba Advanced, para o streaming do MCP: `proxy_buffering off; proxy_read_timeout 3600s;`
 4. Teste: `curl -i https://vps.soswf.com.br/mcp` deve dar `401` (sem token). Qualquer outra resposta, revise.
 
+## Ferramentas de imagem e navegador
+
+O servidor MCP também expõe `screenshot` (devolve a captura de tela como imagem), `read_image`
+(mostra ao modelo uma imagem que está na VPS) e `browse_page` (texto, estrutura ou links de uma página).
+Elas usam `tools/nav.js` + Playwright/Chromium, instalados na pasta do usuário `agente`
+(`~/tools/browser`). O Chromium precisa das bibliotecas do sistema (uma linha de `apt` como root,
+veja `deploy/install.sh`). Só URLs http(s) são aceitas.
+
+## Login no Instagram por uma "janela" no celular
+
+Instagram não tem API para os itens salvos de contas pessoais; o jeito é um navegador logado.
+Para você mesmo logar sem passar a senha por script nem pelo chat:
+
+1. `node ~/tools/instagram/ig_window.js` (como `agente`) abre o Instagram num navegador da VPS e
+   grava uma chave descartável em `~/.browser-profiles/ig_window.key`.
+2. Abra `https://SEU-DOMINIO/ig-window/<chave>/` no celular: a página mostra a tela do navegador e
+   repassa toques, digitação e teclas. A rota `/ig-window` do servidor MCP não usa o token do MCP;
+   quem protege é a chave (128 bits), que só existe enquanto a janela está aberta.
+3. A janela fecha sozinha ao logar (ou em 15 minutos). Ficam só os cookies em
+   `~/.browser-profiles/instagram`.
+
+`ig_login.js` é a alternativa por terminal (usuário/senha digitados no Termius).
+
 ## Conectar ao Claude
 
 **claude.ai (web, desktop e celular).** Vá em Configurações → Conectores → Adicionar conector personalizado, e use a URL:
