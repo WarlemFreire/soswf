@@ -79,12 +79,19 @@ async function clickIfPresent(page, names) {
     await sleep(2500);
     await clickIfPresent(page, ['Decline optional cookies', 'Allow all cookies', 'Allow essential and optional cookies']);
 
-    await page.fill('input[name="email"], input[name="username"]', user);
+    // Digita tecla por tecla (o botao do Instagram so habilita assim) e envia com Enter.
+    // O input[type=submit] da pagina e invisivel (0x0), por isso nao e clicado.
+    const userBox = page.locator('input[name="email"], input[name="username"]').first();
+    const passBox = page.locator('input[name="pass"], input[name="password"]').first();
+    await userBox.pressSequentially(user, { delay: 60 + Math.floor(Math.random() * 40) });
     await sleep(600);
-    await page.fill('input[name="pass"], input[name="password"]', pass);
-    await sleep(800);
-    await page.locator('button[type="submit"], input[type="submit"]').first().click();
+    await passBox.pressSequentially(pass, { delay: 60 + Math.floor(Math.random() * 40) });
+    await sleep(900);
+    await passBox.press('Enter');
     say('Enviado. Aguardando resposta do Instagram...');
+
+    // Segunda tentativa, uma vez so: se depois de 8 s a tela continua igual, clica no botao real.
+    let retried = false;
 
     let codeSent = false;
     const deadline = Date.now() + 150000;
@@ -93,6 +100,14 @@ async function clickIfPresent(page, names) {
       if (await loggedIn(context)) break;
       const url = page.url();
       const text = (await pageText(page)).slice(0, 600);
+
+      if (!retried && Date.now() - (deadline - 150000) > 8000 && /\/accounts\/login/.test(url)
+          && !/incorrect|wrong password|senha.*(incorreta|errada)|Sorry, your password/i.test(text)
+          && (await page.locator('input[name="pass"], input[name="password"]').count())) {
+        retried = true;
+        const btn = page.locator('[role="button"], button').filter({ hasText: /^(log in|entrar)$/i }).first();
+        if (await btn.count()) { try { await btn.click({ timeout: 5000 }); say('Clicando no botao Log in...'); } catch (_) { /* segue */ } }
+      }
 
       if (/incorrect|wrong password|senha.*(incorreta|errada)|Sorry, your password/i.test(text)) {
         say('\nO Instagram diz que usuario ou senha estao incorretos. Nada mais foi tentado.'); code = 3; break;
