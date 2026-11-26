@@ -40,22 +40,25 @@ const HTML = `<!doctype html><html lang="pt-br"><meta charset="utf-8">
  #st.ok{background:#14532d}
  img{width:100%;display:block;touch-action:manipulation;background:#000;min-height:300px}
  .bar{display:flex;gap:6px;padding:8px}
+ #top{position:sticky;top:0;z-index:5;background:#111;border-bottom:1px solid #333}
  input{flex:1;min-width:0;padding:10px;font-size:16px;border-radius:6px;border:0}
  button{padding:10px 12px;font-size:15px;border-radius:6px;border:0;background:#3b82f6;color:#fff}
  button.g{background:#444}
 </style>
 <div id="wrap">
- <div id="st">Conectando...</div>
+ <div id="top">
+  <div id="st">Conectando...</div>
+  <div class="bar">
+   <input id="t" type="text" placeholder="1) toque no campo na tela  2) digite aqui  3) Enviar" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+   <button id="eye" class="g" title="ocultar/mostrar">&#128065;</button>
+   <button id="send">Enviar</button>
+  </div>
+  <div class="bar">
+   <button class="g" data-k="Enter">Enter</button><button class="g" data-k="Backspace">&#9003;</button>
+   <button class="g" data-k="Tab">Tab</button><button class="g" id="up">&#9650;</button><button class="g" id="down">&#9660;</button>
+  </div>
+ </div>
  <img id="v" alt="tela do navegador">
- <div class="bar">
-  <input id="t" type="password" placeholder="Toque num campo na tela e digite aqui" autocomplete="off" autocapitalize="off" autocorrect="off">
-  <button id="eye" class="g" title="mostrar/ocultar">&#128065;</button>
-  <button id="send">Enviar</button>
- </div>
- <div class="bar">
-  <button class="g" data-k="Enter">Enter</button><button class="g" data-k="Backspace">&#9003;</button>
-  <button class="g" data-k="Tab">Tab</button><button class="g" id="up">&#9650;</button><button class="g" id="down">&#9660;</button>
- </div>
 </div>
 <script>
 const B = location.pathname.replace(/\\/?$/, '/');
@@ -77,7 +80,7 @@ async function poll() {
   } catch (e) { st.textContent = 'Sem conexao com a janela (ela pode ter fechado).'; }
   setTimeout(poll, 2000);
 }
-v.addEventListener('click', e => { const r = v.getBoundingClientRect(); post('tap', { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }); });
+v.addEventListener('click', e => { t.focus({ preventScroll: true }); const r = v.getBoundingClientRect(); post('tap', { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }); });
 document.getElementById('send').onclick = () => { if (t.value) { post('type', { text: t.value }); t.value = ''; } };
 document.getElementById('eye').onclick = () => { t.type = t.type === 'password' ? 'text' : 'password'; };
 document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => post('key', { key: b.dataset.k }));
