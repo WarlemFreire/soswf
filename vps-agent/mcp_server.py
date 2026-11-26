@@ -30,7 +30,7 @@ from typing import Any
 
 import httpx2
 import uvicorn
-from starlette.responses import RedirectResponse, Response
+from starlette.responses import FileResponse, Response
 from mcp.server.mcpserver import Image, MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
@@ -269,6 +269,28 @@ async def ig_window_proxy(request):  # type: ignore[no-untyped-def]
                     headers={"cache-control": "no-store"})
 
 
+# --- Catalogo dos salvos: pagina estatica protegida por chave longa na URL (/catalogo/<chave>/) ---
+CATALOG_DIR = Path(os.environ.get("CATALOG_DIR", str(Path.home() / "work" / "ig" / "site")))
+CATALOG_KEY_FILE = Path(os.environ.get("CATALOG_KEY_FILE", str(Path.home() / ".vps-agent" / "catalogo.key")))
+CATALOG_FILES = {"": "index.html", "index.html": "index.html", "data.json": "data.json"}
+
+
+@mcp.custom_route("/catalogo/{rest:path}", methods=["GET"])
+async def catalogo(request):  # type: ignore[no-untyped-def]
+    try:
+        key = CATALOG_KEY_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return Response("nao encontrado", status_code=404)
+    first, _, rest = request.path_params.get("rest", "").partition("/")
+    if len(key) < 32 or not hmac.compare_digest(first.encode(), key.encode()):
+        return Response("nao encontrado", status_code=404)
+    name = CATALOG_FILES.get(rest)
+    path = CATALOG_DIR / name if name else None
+    if path is None or not path.is_file():
+        return Response("nao encontrado", status_code=404)
+    return FileResponse(path, headers={"cache-control": "no-store", "x-robots-tag": "noindex"})
+
+
 @mcp.tool()
 async def start_agent_task(task: str, resume_session_id: str | None = None) -> dict[str, Any]:
     """Delega uma tarefa longa ao agente autonomo da VPS, que roda em segundo plano.
@@ -312,7 +334,7 @@ class TokenAuth:
             return await self.app(scope, receive, send)
 
         path: str = scope.get("path", "")
-        if path.startswith("/ig-window/"):  # protegida pela chave descartavel da propria janela
+        if path.startswith(("/ig-window/", "/catalogo/")):  # protegidas pela chave da propria pagina
             return await self.app(scope, receive, send)
         parts = path.split("/", 2)  # ['', '<token>', 'mcp...']
         if len(parts) == 3 and self._ok(parts[1]):
