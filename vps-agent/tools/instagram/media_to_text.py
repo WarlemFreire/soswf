@@ -41,7 +41,53 @@ class Engines:
         result, _ = self._ocr(str(image))
         return "\n".join(r[1] for r in (result or []))
 
+    def frames_text(self, video: Path, max_frames: int = 20) -> str:
+        """Le o texto escrito NA IMAGEM do video: amostra quadros ao longo da duracao e junta as linhas unicas."""
+        import av
+        if self._ocr is None:
+            from rapidocr_onnxruntime import RapidOCR
+            self._ocr = RapidOCR()
+        c = av.open(str(video))
+        try:
+            if not c.streams.video:
+                return ""
+            s = c.streams.video[0]
+            dur = float(c.duration) / 1e6 if c.duration else 30.0
+            step = max(2.0, dur / max_frames)
+            next_t, frames = 0.0, []
+            for fr in c.decode(s):
+                if fr.pts is None:
+                    continue
+                t = float(fr.pts * s.time_base)
+                if t >= next_t:
+                    frames.append(fr.to_ndarray(format="bgr24"))
+                    next_t = t + step
+                if len(frames) >= max_frames:
+                    break
+        finally:
+            c.close()
+        seen, lines = set(), []
+        for arr in frames:
+            result, _ = self._ocr(arr)
+            for r in (result or []):
+                text = r[1].strip()
+                key = "".join(ch for ch in text.lower() if ch.isalnum())
+                if len(key) >= 4 and key not in seen:
+                    seen.add(key)
+                    lines.append(text)
+        return "\n".join(lines)
+
+    def has_audio(self, video: Path) -> bool:
+        import av
+        c = av.open(str(video))
+        try:
+            return len(c.streams.audio) > 0
+        finally:
+            c.close()
+
     def transcribe(self, video: Path) -> dict:
+        if not self.has_audio(video):
+            return {"audio_seconds": 0.0, "language": None, "text": "", "no_audio": True}
         if self._whisper is None:
             from faster_whisper import WhisperModel
             self._whisper = WhisperModel(self.model_name, device="cpu", compute_type="int8", cpu_threads=self.threads,
@@ -86,20 +132,26 @@ def main() -> None:
                 rec["errors"].append(f"ocr {im['file']}: {type(e).__name__}: {e}"[:200])
         for v in row.get("videos", []):
             path = folder / v["file"]
+            entry = {"file": v["file"]}
             try:
-                r = eng.transcribe(path)
-                rec["videos"].append({"file": v["file"], **r})
-                if not args.keep_videos:
-                    path.unlink(missing_ok=True)
+                entry.update(eng.transcribe(path))
             except Exception as e:
                 rec["errors"].append(f"voz {v['file']}: {type(e).__name__}: {e}"[:200])
+            try:
+                entry["onscreen_text"] = eng.frames_text(path)
+            except Exception as e:
+                rec["errors"].append(f"quadros {v['file']}: {type(e).__name__}: {e}"[:200])
+            rec["videos"].append(entry)
+            if not args.keep_videos and not rec["errors"]:
+                path.unlink(missing_ok=True)
         rec["ocr_chars"] = sum(len(s["text"]) for s in rec["slides"])
-        rec["transcript_chars"] = sum(len(v["text"]) for v in rec["videos"])
+        rec["transcript_chars"] = sum(len(v.get("text", "")) for v in rec["videos"])
+        rec["onscreen_chars"] = sum(len(v.get("onscreen_text", "")) for v in rec["videos"])
         rec["processed_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
         with open(out_file, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
         print(f"[{n}/{len(todo)}] {row['code']}: {len(rec['slides'])} slides ({rec['ocr_chars']} car.), "
-              f"{len(rec['videos'])} video(s) ({rec['transcript_chars']} car.), {time.time() - t0:.0f}s"
+              f"{len(rec['videos'])} video(s) (fala {rec['transcript_chars']} car., na tela {rec['onscreen_chars']} car.), {time.time() - t0:.0f}s"
               + (f" ERROS: {rec['errors']}" if rec["errors"] else ""), flush=True)
 
 
