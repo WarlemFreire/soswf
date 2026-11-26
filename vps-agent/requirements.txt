@@ -2,3 +2,4 @@ mcp>=2.3,<3
 claude-agent-sdk>=0.2.189
 python-telegram-bot>=22.8,<23
 uvicorn>=0.54
+pillow>=10
