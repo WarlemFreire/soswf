@@ -28,7 +28,9 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+import httpx2
 import uvicorn
+from starlette.responses import RedirectResponse, Response
 from mcp.server.mcpserver import Image, MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
@@ -248,6 +250,25 @@ async def browse_page(url: str, mode: str = "text", wait_ms: int = 1500, profile
     return _clip(so)
 
 
+# --- "Janela de login" do Instagram: encaminha para o ig_window.js (so escuta em 127.0.0.1) ---
+WINDOW_PORT = int(os.environ.get("IG_WINDOW_PORT", "8770"))
+
+
+@mcp.custom_route("/ig-window/{rest:path}", methods=["GET", "POST"])
+async def ig_window_proxy(request):  # type: ignore[no-untyped-def]
+    rest = request.path_params.get("rest", "")
+    body = await request.body() if request.method == "POST" else None
+    try:
+        async with httpx2.AsyncClient(timeout=20) as client:
+            r = await client.request(
+                request.method, f"http://127.0.0.1:{WINDOW_PORT}/{rest}", params=dict(request.query_params),
+                content=body, headers={"content-type": request.headers.get("content-type", "application/json")})
+    except Exception:
+        return Response("A janela de login nao esta aberta.", status_code=503)
+    return Response(r.content, status_code=r.status_code, media_type=r.headers.get("content-type"),
+                    headers={"cache-control": "no-store"})
+
+
 @mcp.tool()
 async def start_agent_task(task: str, resume_session_id: str | None = None) -> dict[str, Any]:
     """Delega uma tarefa longa ao agente autonomo da VPS, que roda em segundo plano.
@@ -291,6 +312,8 @@ class TokenAuth:
             return await self.app(scope, receive, send)
 
         path: str = scope.get("path", "")
+        if path.startswith("/ig-window/"):  # protegida pela chave descartavel da propria janela
+            return await self.app(scope, receive, send)
         parts = path.split("/", 2)  # ['', '<token>', 'mcp...']
         if len(parts) == 3 and self._ok(parts[1]):
             new_path = "/" + parts[2]
